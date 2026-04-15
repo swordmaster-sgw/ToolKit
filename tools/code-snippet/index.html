@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>代码片段管理器</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .main { padding: 20px; max-width: 1200px; margin: 0 auto; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: #1f2235; font-size: 12px; font-weight: 600; color: #8b90a7; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #2d3148; }
+    .card-body { padding: 16px; }
+    .input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .input { flex: 1; background: #131520; border: 1px solid #363b5e; border-radius: 6px; padding: 8px 12px; color: #e2e8f0; font-size: 13px; outline: none; }
+    .input:focus { border-color: #6366f1; }
+    textarea { width: 100%; background: #131520; color: #e2e8f0; border: 1px solid #363b5e; border-radius: 6px; padding: 12px; font-family: 'Cascadia Code', monospace; font-size: 12px; resize: vertical; outline: none; min-height: 100px; transition: border-color .2s; }
+    textarea:focus { border-color: #6366f1; }
+    .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-primary:hover { background: #5457d4; }
+    .btn-secondary { background: #2d3148; color: #c4c9e2; }
+    .btn-secondary:hover { background: #363b5e; }
+    .snippet-item { background: #131520; padding: 12px; border-radius: 6px; border-left: 3px solid #6366f1; margin-bottom: 8px; }
+    .snippet-title { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+    .snippet-lang { font-size: 11px; color: #8b90a7; }
+    .snippet-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .snippet-btn { padding: 3px 10px; background: #2d3148; border: none; border-radius: 4px; color: #8b90a7; cursor: pointer; font-size: 11px; transition: all .2s; }
+    .snippet-btn:hover { background: #6366f1; color: #fff; }
+    .search { background: #131520; border: 1px solid #363b5e; border-radius: 6px; padding: 8px 12px; color: #e2e8f0; font-size: 13px; outline: none; margin-bottom: 10px; width: 100%; }
+    @media (max-width: 768px) { .grid2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">📌</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">代码片段管理器</h1>
+    <p style="font-size:12px;color:#8b90a7;margin-top:2px">收藏、分类、搜索代码片段，一键复制</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">新建片段</div>
+      <div class="card-body">
+        <div class="input-row">
+          <input class="input" id="title" placeholder="片段名称 (如: Promise错误处理)">
+          <select class="input" id="lang" style="flex:0.6">
+            <option value="javascript">JavaScript</option>
+            <option value="python">Python</option>
+            <option value="java">Java</option>
+            <option value="sql">SQL</option>
+            <option value="bash">Bash</option>
+            <option value="other">其他</option>
+          </select>
+        </div>
+        <textarea id="code" placeholder="粘贴代码..."></textarea>
+        <div class="input-row" style="margin-top:10px">
+          <button class="btn btn-primary" style="width:100%" onclick="saveSnippet()">💾 保存片段</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">我的片段</div>
+      <div class="card-body">
+        <input class="search" id="search" placeholder="搜索片段..." oninput="filterSnippets()">
+        <div id="snippets-list" style="max-height:400px;overflow-y:auto"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">预览</div>
+    <div class="card-body">
+      <pre style="background:#131520;padding:12px;border-radius:6px;overflow-x:auto;max-height:300px;overflow-y:auto"><code id="preview"></code></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+let snippets = JSON.parse(localStorage.getItem('snippets') || '[]');
+
+function saveSnippet() {
+  const title = document.getElementById('title').value.trim();
+  const lang = document.getElementById('lang').value;
+  const code = document.getElementById('code').value.trim();
+  
+  if (!title || !code) return alert('请填写片段名称和代码');
+  
+  snippets.unshift({ id: Date.now(), title, lang, code });
+  localStorage.setItem('snippets', JSON.stringify(snippets));
+  
+  document.getElementById('title').value = '';
+  document.getElementById('code').value = '';
+  renderSnippets();
+}
+
+function deleteSnippet(id) {
+  snippets = snippets.filter(s => s.id !== id);
+  localStorage.setItem('snippets', JSON.stringify(snippets));
+  renderSnippets();
+}
+
+function copySnippet(code) {
+  navigator.clipboard.writeText(code).then(() => alert('已复制到剪贴板'));
+}
+
+function showPreview(code) {
+  document.getElementById('preview').textContent = code;
+}
+
+function filterSnippets() {
+  const query = document.getElementById('search').value.toLowerCase();
+  const filtered = snippets.filter(s => s.title.toLowerCase().includes(query) || s.code.toLowerCase().includes(query));
+  renderSnippets(filtered);
+}
+
+function renderSnippets(list = snippets) {
+  const html = list.map(s => `
+    <div class="snippet-item">
+      <div class="snippet-title">${s.title}</div>
+      <div class="snippet-lang">${s.lang.toUpperCase()}</div>
+      <div class="snippet-actions">
+        <button class="snippet-btn" onclick="showPreview('${s.code.replace(/'/g, "\\'")}')">👁 预览</button>
+        <button class="snippet-btn" onclick="copySnippet('${s.code.replace(/'/g, "\\'")}')">📋 复制</button>
+        <button class="snippet-btn" onclick="deleteSnippet(${s.id})">🗑️ 删除</button>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('snippets-list').innerHTML = html || '<p style="color:#4a4f6a;font-size:12px">暂无片段</p>';
+}
+
+renderSnippets();
+</script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+{
+  "manifest_version": "1.0",
+  "name": "WorkBuddy - AI 开发者工具集",
+  "description": "个人效率与开发工具集，已启用 AI 调用能力",
+  "base_url": "../",
+  "tools_data_url": "../tools.json",
+  "api_url": "http://localhost:3000",
+  "updated": "2026-03-21",
+  "usage_guide": {
+    "step1": "启动 API 服务: node api/server.js",
+    "step2": "GET /api/tools 获取所有工具列表",
+    "step3": "GET /api/tools/ai 获取 AI 可调用的工具 (OpenAI 格式)",
+    "step4": "POST /api/exec/:toolId 执行工具"
+  },
+  "ai_callable_tools": [
+    {
+      "id": "json-formatter",
+      "name": "JSON 格式化",
+      "description": "格式化或压缩 JSON 数据，检查 JSON 语法是否正确",
+      "example": {
+        "input": "{\"name\":\"test\",\"value\":123}",
+        "action": "format",
+        "indent": 2
+      }
+    },
+    {
+      "id": "base64-codec",
+      "name": "Base64 编解码",
+      "description": "对文本进行 Base64 编码或解码",
+      "example": {
+        "text": "Hello World",
+        "action": "encode"
+      }
+    },
+    {
+      "id": "uuid-generator",
+      "name": "UUID 生成器",
+      "description": "批量生成随机 UUID v4",
+      "example": {
+        "count": 5,
+        "uppercase": true
+      }
+    },
+    {
+      "id": "hash-calculator",
+      "name": "Hash 计算器",
+      "description": "计算文本的 Hash 摘要值",
+      "example": {
+        "text": "password123",
+        "algorithm": "sha256"
+      }
+    },
+    {
+      "id": "url-codec",
+      "name": "URL 编解码",
+      "description": "对 URL 进行编码或解码，解析 URL 参数",
+      "example": {
+        "text": "https://example.com?name=test&value=123",
+        "action": "parse"
+      }
+    },
+    {
+      "id": "jwt-decoder",
+      "name": "JWT 解析",
+      "description": "解析 JWT Token 的内容",
+      "example": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      }
+    },
+    {
+      "id": "password-gen",
+      "name": "密码生成器",
+      "description": "生成安全的随机密码",
+      "example": {
+        "length": 16,
+        "count": 3,
+        "uppercase": true,
+        "numbers": true,
+        "symbols": true
+      }
+    },
+    {
+      "id": "text-process",
+      "name": "文本处理",
+      "description": "对文本进行去重、排序、替换等批量处理",
+      "example": {
+        "text": "apple\nbanana\napple\ncherry",
+        "action": "dedup"
+      }
+    },
+    {
+      "id": "http-status",
+      "name": "HTTP 状态码查询",
+      "description": "查询 HTTP 状态码的含义和处理建议",
+      "example": {
+        "code": "404"
+      }
+    },
+    {
+      "id": "number-converter",
+      "name": "进制转换",
+      "description": "在不同数字进制之间进行转换",
+      "example": {
+        "value": "255",
+        "fromBase": 10,
+        "toBase": 16
+      }
+    }
+  ],
+  "quick_start": {
+    "local": "在浏览器打开 index.html 使用工具",
+    "api": "运行 node api/server.js 启动 API 服务",
+    "ai_integration": "通过 /api/tools/ai 获取工具定义，集成到你的 AI Agent"
+  }
+}

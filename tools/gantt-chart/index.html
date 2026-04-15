@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>甘特图生成器</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .main { padding: 20px; max-width: 1000px; margin: 0 auto; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: #1f2235; font-size: 12px; font-weight: 600; color: #8b90a7; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #2d3148; }
+    .card-body { padding: 16px; }
+    .input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .input-field { flex: 1; background: #131520; border: 1px solid #363b5e; border-radius: 6px; padding: 8px 12px; color: #e2e8f0; font-size: 13px; outline: none; }
+    .input-field:focus { border-color: #6366f1; }
+    .btn-add { padding: 8px 16px; background: #6366f1; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; }
+    .btn-add:hover { background: #5457d4; }
+    .task-item { display: flex; gap: 10px; align-items: center; padding: 10px; background: #131520; border-radius: 6px; margin-bottom: 8px; }
+    .task-name { flex: 1; }
+    .task-progress { width: 150px; background: #2d3148; border-radius: 4px; height: 20px; overflow: hidden; }
+    .task-bar { height: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #fff; font-weight: 600; }
+    .btn-del { padding: 4px 10px; background: #ef4444; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; }
+    .btn-del:hover { background: #dc2626; }
+    .gantt-chart { margin-top: 20px; overflow-x: auto; }
+    .gantt-header { display: flex; gap: 0; margin-bottom: 4px; }
+    .gantt-col { width: 40px; text-align: center; font-size: 11px; color: #8b90a7; padding: 4px; background: #1f2235; border: 1px solid #2d3148; }
+    .gantt-col-name { width: 120px; }
+    .gantt-row { display: flex; gap: 0; margin-bottom: 2px; }
+    .gantt-cell-name { width: 120px; padding: 4px 8px; background: #131520; border: 1px solid #2d3148; font-size: 12px; }
+    .gantt-cell { width: 40px; height: 24px; border: 1px solid #2d3148; background: #0f1117; position: relative; }
+    .gantt-cell.active { background: #6366f1; border-color: #6366f1; }
+    .gantt-cell.today { background: #fbbf24; border-color: #fbbf24; }
+    .legend { display: flex; gap: 20px; font-size: 12px; margin-top: 12px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-box { width: 20px; height: 12px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">📅</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">甘特图生成器</h1>
+    <p style="font-size:12px;color:#8b90a7;margin-top:2px">可视化项目时间线，管理任务排期</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="card">
+    <div class="card-title">添加任务</div>
+    <div class="card-body">
+      <div class="input-row">
+        <input class="input-field" id="task-name" placeholder="任务名称" />
+        <input class="input-field" id="task-start" type="date" />
+        <input class="input-field" id="task-end" type="date" />
+        <select class="input-field" id="task-owner" style="width:120px">
+          <option>张三</option>
+          <option>李四</option>
+          <option>王五</option>
+          <option>赵六</option>
+        </select>
+        <button class="btn-add" onclick="addTask()">+ 添加</button>
+      </div>
+      <button onclick="loadSample()" style="padding:6px 12px;background:#2d3148;color:#c4c9e2;border:none;border-radius:6px;cursor:pointer;font-size:12px">📋 加载示例</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">任务列表</div>
+    <div class="card-body" id="task-list" style="max-height:300px;overflow-y:auto"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">甘特图预览</div>
+    <div class="card-body">
+      <div class="gantt-chart" id="gantt"></div>
+      <div class="legend" style="margin-top:20px">
+        <div class="legend-item">
+          <div class="legend-box" style="background:#6366f1"></div>
+          <span>进行中</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-box" style="background:#fbbf24"></div>
+          <span>今天</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-box" style="background:#0f1117;border:1px solid #2d3148"></div>
+          <span>未来</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let tasks = [];
+const today = new Date();
+const startDate = new Date(today);
+startDate.setDate(startDate.getDate() - 7);
+const endDate = new Date(today);
+endDate.setDate(endDate.getDate() + 30);
+
+function addTask() {
+  const name = document.getElementById('task-name').value.trim();
+  const start = document.getElementById('task-start').value;
+  const end = document.getElementById('task-end').value;
+  const owner = document.getElementById('task-owner').value;
+  
+  if (!name || !start || !end) return;
+  
+  tasks.push({ name, start, end, owner, id: Date.now() });
+  document.getElementById('task-name').value = '';
+  render();
+}
+
+function deleteTask(id) {
+  tasks = tasks.filter(t => t.id !== id);
+  render();
+}
+
+function render() {
+  // 任务列表
+  document.getElementById('task-list').innerHTML = tasks.map(t => `
+    <div class="task-item">
+      <div class="task-name">
+        <div style="font-size:13px;font-weight:600">${t.name}</div>
+        <div style="font-size:11px;color:#8b90a7">${t.owner} · ${t.start} 到 ${t.end}</div>
+      </div>
+      <button class="btn-del" onclick="deleteTask(${t.id})">删除</button>
+    </div>
+  `).join('');
+
+  // 甘特图
+  const days = [];
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    days.push(new Date(d));
+  }
+
+  const dayLabels = days.map((d, i) => {
+    if (i % 7 === 0) return d.getDate().toString();
+    return '';
+  });
+
+  let html = '<div class="gantt-header"><div class="gantt-col gantt-col-name">任务</div>';
+  dayLabels.forEach(label => html += `<div class="gantt-col">${label}</div>`);
+  html += '</div>';
+
+  tasks.forEach(t => {
+    const tStart = new Date(t.start);
+    const tEnd = new Date(t.end);
+    html += `<div class="gantt-row"><div class="gantt-cell-name">${t.name}</div>`;
+    days.forEach(d => {
+      const isActive = d >= tStart && d <= tEnd;
+      const isToday = d.toDateString() === today.toDateString();
+      html += `<div class="gantt-cell ${isActive ? 'active' : ''} ${isToday && isActive ? 'today' : ''}"></div>`;
+    });
+    html += '</div>';
+  });
+
+  document.getElementById('gantt').innerHTML = html;
+}
+
+function loadSample() {
+  const d1 = new Date(); d1.setDate(d1.getDate() + 2);
+  const d2 = new Date(); d2.setDate(d2.getDate() + 15);
+  const d3 = new Date(); d3.setDate(d3.getDate() + 25);
+  const d4 = new Date(); d4.setDate(d4.getDate() + 35);
+
+  tasks = [
+    { name: '需求评审', start: d1.toISOString().split('T')[0], end: d1.toISOString().split('T')[0], owner: '张三', id: 1 },
+    { name: '架构设计', start: d1.toISOString().split('T')[0], end: d2.toISOString().split('T')[0], owner: '李四', id: 2 },
+    { name: '核心开发', start: d2.toISOString().split('T')[0], end: d3.toISOString().split('T')[0], owner: '王五', id: 3 },
+    { name: '集成测试', start: d3.toISOString().split('T')[0], end: d4.toISOString().split('T')[0], owner: '赵六', id: 4 },
+  ];
+  render();
+}
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人开发数据分析 - ToolKit</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a2a6c 0%, #b21f1f 50%, #1a2a6c 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .privacy-notice {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .privacy-notice-icon {
+            font-size: 24px;
+        }
+        
+        .privacy-notice-content h3 {
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+        
+        .privacy-notice-content p {
+            font-size: 13px;
+            opacity: 0.9;
+            margin: 0;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .card h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a2a6c 0%, #b21f1f 100%);
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        
+        .stat-change {
+            font-size: 11px;
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+        
+        .stat-change.positive {
+            color: #4caf50;
+        }
+        
+        .stat-change.negative {
+            color: #ff9800;
+        }
+        
+        .coding-heatmap {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 3px;
+            margin: 20px 0;
+        }
+        
+        .heatmap-cell {
+            aspect-ratio: 1;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .heatmap-cell:hover {
+            transform: scale(1.2);
+            z-index: 10;
+            position: relative;
+        }
+        
+        .heatmap-cell.level-0 { background: #ebedf0; color: #666; }
+        .heatmap-cell.level-1 { background: #c6e48b; color: #333; }
+        .heatmap-cell.level-2 { background: #7bc96f; }
+        .heatmap-cell.level-3 { background: #239a3b; }
+        .heatmap-cell.level-4 { background: #196127; }
+        
+        .chart-container {
+            height: 250px;
+            position: relative;
+            margin: 20px 0;
+        }
+        
+        .productivity-chart {
+            display: flex;
+            align-items: flex-end;
+            height: 200px;
+            gap: 8px;
+            padding: 20px 0;
+        }
+        
+        .productivity-bar {
+            flex: 1;
+            background: linear-gradient(to top, #1a2a6c, #b21f1f);
+            border-radius: 4px 4px 0 0;
+            min-height: 20px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .productivity-bar:hover {
+            opacity: 0.8;
+            transform: translateY(-4px);
+        }
+        
+        .productivity-bar::after {
+            content: attr(data-value) '分';
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            font-weight: bold;
+            color: #1a2a6c;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .productivity-bar:hover::after {
+            opacity: 1;
+        }
+        
+        .focus-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        .focus-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: conic-gradient(#4caf50 0deg, #ff9800 120deg, #f44336 240deg, #4caf50 360deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        
+        .focus-inner {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .focus-percentage {
+            font-size: 24px;
+            color: #1a2a6c;
+        }
+        
+        .focus-label {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .language-breakdown {
+            margin: 20px 0;
+        }
+        
+        .language-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 8px;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        
+        .language-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .language-name {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .language-percentage {
+            font-size: 13px;
+            color: #666;
+            font-weight: bold;
+        }
+        
+        .activity-timeline {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .timeline-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 3px solid #1a2a6c;
+        }
+        
+        .timeline-icon {
+            font-size: 16px;
+            margin-right: 12px;
+            margin-top: 2px;
+        }
+        
+        .timeline-content {
+            flex: 1;
+        }
+        
+        .timeline-title {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .timeline-time {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .timeline-meta {
+            font-size: 13px;
+            color: #555;
+            margin-top: 4px;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #1a2a6c 0%, #b21f1f 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(26, 42, 108, 0.4);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: #1a2a6c;
+            border: 1px solid #1a2a6c;
+        }
+        
+        .btn-secondary:hover {
+            background: #f8f9ff;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            background: #4caf50;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateX(400px);
+            transition: transform 0.3s;
+            z-index: 1000;
+        }
+        
+        .toast.show {
+            transform: translateX(0);
+        }
+        
+        .settings-panel {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+        
+        .settings-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #2c3e50;
+        }
+        
+        .setting-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        
+        .setting-label {
+            font-size: 14px;
+            color: #555;
+        }
+        
+        .setting-toggle {
+            width: 44px;
+            height: 24px;
+            background: #ccc;
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .setting-toggle.active {
+            background: #1a2a6c;
+        }
+        
+        .setting-toggle::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+        
+        .setting-toggle.active::after {
+            transform: translateX(20px);
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .coding-heatmap {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 个人开发数据分析</h1>
+            <p>量化编码活动，分析效率瓶颈，保护隐私数据</p>
+        </div>
+        
+        <div class="privacy-notice">
+            <div class="privacy-notice-icon">🔒</div>
+            <div class="privacy-notice-content">
+                <h3>100%本地数据分析</h3>
+                <p>所有数据存储在本地浏览器中，不上传至任何服务器。可完全离线使用，保护您的隐私。</p>
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button class="btn btn-primary" onclick="da.startTracking()">
+                ▶️ 开始追踪
+            </button>
+            <button class="btn btn-secondary" onclick="da.simulateActivity()">
+                🎮 模拟活动
+            </button>
+            <button class="btn btn-secondary" onclick="da.exportData()">
+                📤 导出数据
+            </button>
+            <button class="btn btn-secondary" onclick="da.clearData()">
+                🗑️ 清空数据
+            </button>
+        </div>
+        
+        <div class="dashboard-grid">
+            <!-- 今日概览 -->
+            <div class="card">
+                <h2>📅 今日概览</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="todayHours">0.0</div>
+                        <div class="stat-label">编码时长(小时)</div>
+                        <div class="stat-change positive">+15%</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="todaySessions">0</div>
+                        <div class="stat-label">专注会话</div>
+                        <div class="stat-change positive">+2</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="todayLines">0</div>
+                        <div class="stat-label">代码行数</div>
+                        <div class="stat-change negative">-8%</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="todayFiles">0</div>
+                        <div class="stat-label">编辑文件</div>
+                        <div class="stat-change positive">+3</div>
+                    </div>
+                </div>
+                
+                <div class="focus-indicator">
+                    <div class="focus-circle">
+                        <div class="focus-inner">
+                            <div class="focus-percentage" id="focusScore">--</div>
+                            <div class="focus-label">专注指数</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 编码热力图 -->
+            <div class="card">
+                <h2>🔥 编码热力图（近12周）</h2>
+                <div class="coding-heatmap" id="codingHeatmap"></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-size: 12px; color: #666;">
+                    <span>编码活跃度</span>
+                    <div style="display: flex; gap: 5px; align-items: center;">
+                        <span>少</span>
+                        <div style="display: flex; gap: 2px;">
+                            <div style="width: 12px; height: 12px; background: #ebedf0; border-radius: 2px;"></div>
+                            <div style="width: 12px; height: 12px; background: #c6e48b; border-radius: 2px;"></div>
+                            <div style="width: 12px; height: 12px; background: #7bc96f; border-radius: 2px;"></div>
+                            <div style="width: 12px; height: 12px; background: #239a3b; border-radius: 2px;"></div>
+                            <div style="width: 12px; height: 12px; background: #196127; border-radius: 2px;"></div>
+                        </div>
+                        <span>多</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 语言分布 -->
+            <div class="card">
+                <h2>💻 语言分布</h2>
+                <div class="language-breakdown" id="languageBreakdown">
+                    <!-- 语言分布将在这里显示 -->
+                </div>
+            </div>
+            
+            <!-- 效率趋势 -->
+            <div class="card">
+                <h2>📈 效率趋势（近7天）</h2>
+                <div class="productivity-chart" id="productivityChart"></div>
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #666; margin-top: 10px;">
+                    <span>7天前</span>
+                    <span>今天</span>
+                </div>
+            </div>
+            
+            <!-- 瓶颈分析 -->
+            <div class="card">
+                <h2>⚠️ 效率瓶颈</h2>
+                <div id="bottleneckAnalysis">
+                    <div style="padding: 20px; text-align: center; color: #999;">
+                        <div style="font-size: 32px; margin-bottom: 10px;">📊</div>
+                        <div>数据收集中...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 活动日志 -->
+            <div class="card full-width">
+                <h2>📋 最近活动</h2>
+                <div class="activity-timeline" id="activityTimeline">
+                    <div class="empty-state" style="padding: 20px;">
+                        <div class="empty-icon" style="font-size: 32px;">⏰</div>
+                        <div style="font-size: 14px;">暂无活动记录</div>
+                        <div style="font-size: 12px; color: #999;">点击"开始追踪"或"模拟活动"生成数据</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 设置面板 -->
+            <div class="card full-width">
+                <h2>⚙️ 追踪设置</h2>
+                <div class="settings-panel">
+                    <div class="settings-title">数据收集选项</div>
+                    <div class="setting-item">
+                        <div class="setting-label">记录编码时长</div>
+                        <div class="setting-toggle active" onclick="da.toggleSetting(this, 'trackTime')"></div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-label">统计代码行数</div>
+                        <div class="setting-toggle active" onclick="da.toggleSetting(this, 'trackLines')"></div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-label">分析语言分布</div>
+                        <div class="setting-toggle active" onclick="da.toggleSetting(this, 'trackLanguages')"></div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-label">检测专注度</div>
+                        <div class="setting-toggle active" onclick="da.toggleSetting(this, 'trackFocus')"></div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-label">保存活动日志</div>
+                        <div class="setting-toggle active" onclick="da.toggleSetting(this, 'trackActivities')"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        class DevAnalytics {
+            constructor() {
+                this.settings = {
+                    trackTime: true,
+                    trackLines: true,
+                    trackLanguages: true,
+                    trackFocus: true,
+                    trackActivities: true
+                };
+                
+                this.data = JSON.parse(localStorage.getItem('devAnalytics') || '{}');
+                this.isTracking = false;
+                this.trackingInterval = null;
+                
+                this.init();
+            }
+            
+            init() {
+                this.loadSampleData();
+                this.updateDashboard();
+                this.renderCodingHeatmap();
+                this.renderProductivityChart();
+                this.renderLanguageBreakdown();
+                this.renderActivityTimeline();
+                this.analyzeBottlenecks();
+            }
+            
+            loadSampleData() {
+                if (Object.keys(this.data).length > 0) return;
+                
+                // 生成示例数据
+                const today = new Date();
+                const sampleData = {};
+                
+                // 生成最近30天的数据
+                for (let i = 30; i >= 0; i--) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - i);
+                    const dateKey = date.toISOString().split('T')[0];
+                    
+                    sampleData[dateKey] = {
+                        hours: Math.random() * 8 + 1,
+                        sessions: Math.floor(Math.random() * 10) + 3,
+                        lines: Math.floor(Math.random() * 500) + 100,
+                        files: Math.floor(Math.random() * 20) + 5,
+                        languages: {
+                            'JavaScript': Math.random() * 0.6 + 0.2,
+                            'TypeScript': Math.random() * 0.3 + 0.1,
+                            'CSS': Math.random() * 0.2 + 0.05,
+                            'HTML': Math.random() * 0.1 + 0.05
+                        },
+                        focusScore: Math.random() * 40 + 60
+                    };
+                }
+                
+                this.data = sampleData;
+                this.saveToStorage();
+            }
+            
+            startTracking() {
+                if (this.isTracking) {
+                    this.stopTracking();
+                    return;
+                }
+                
+                this.isTracking = true;
+                this.showToast('开始追踪开发活动...', 'info');
+                
+                let trackingTime = 0;
+                let lastActivity = Date.now();
+                
+                this.trackingInterval = setInterval(() => {
+                    const now = Date.now();
+                    const timeSinceLastActivity = now - lastActivity;
+                    
+                    // 模拟活动检测（实际应该集成IDE插件）
+                    if (timeSinceLastActivity < 30000) { // 30秒内检测到的活动
+                        trackingTime += 5; // 每5秒记录一次
+                        
+                        // 模拟键盘输入
+                        if (Math.random() > 0.3) {
+                            this.recordActivity('coding', {
+                                lines: Math.floor(Math.random() * 5) + 1,
+                                language: this.getRandomLanguage(),
+                                file: this.getRandomFile()
+                            });
+                        }
+                    }
+                    
+                    // 更新UI
+                    if (trackingTime % 60 === 0) { // 每分钟更新一次
+                        this.updateTodayStats();
+                    }
+                    
+                    lastActivity = now;
+                }, 5000); // 每5秒检查一次
+                
+                // 更新按钮文本
+                event.target.innerHTML = '⏸️ 停止追踪';
+                event.target.classList.add('btn-secondary');
+                event.target.classList.remove('btn-primary');
+            }
+            
+            stopTracking() {
+                this.isTracking = false;
+                clearInterval(this.trackingInterval);
+                this.trackingInterval = null;
+                
+                this.showToast('停止追踪', 'info');
+                
+                // 恢复按钮
+                const button = document.querySelector('[onclick="da.startTracking()"]');
+                if (button) {
+                    button.innerHTML = '▶️ 开始追踪';
+                    button.classList.remove('btn-secondary');
+                    button.classList.add('btn-primary');
+                }
+            }
+            
+            simulateActivity() {
+                const activities = [
+                    { type: 'coding', duration: 25, lines: 45, language: 'JavaScript', file: 'src/components/Button.js' },
+                    { type: 'debugging', duration: 15, file: 'src/utils/helpers.js' },
+                    { type: 'coding', duration: 30, lines: 62, language: 'TypeScript', file: 'src/types/index.ts' },
+                    { type: 'review', duration: 10, file: 'src/App.tsx' },
+                    { type: 'coding', duration: 20, lines: 38, language: 'CSS', file: 'src/styles/main.css' }
+                ];
+                
+                activities.forEach((activity, index) => {
+                    setTimeout(() => {
+                        this.recordActivity(activity.type, activity);
+                    }, index * 1000);
+                });
+                
+                this.showToast('模拟活动已生成', 'success');
+            }
+            
+            recordActivity(type, details) {
+                const today = new Date().toISOString().split('T')[0];
+                
+                if (!this.data[today]) {
+                    this.data[today] = {
+                        hours: 0,
+                        sessions: 0,
+                        lines: 0,
+                        files: new Set(),
+                        languages: {},
+                        focusScore: 0,
+                        activities: []
+                    };
+                }
+                
+                const dayData = this.data[today];
+                
+                switch (type) {
+                    case 'coding':
+                        if (this.settings.trackTime) {
+                            dayData.hours += details.duration / 60;
+                        }
+                        if (this.settings.trackLines) {
+                            dayData.lines += details.lines;
+                        }
+                        if (this.settings.trackLanguages && details.language) {
+                            dayData.languages[details.language] = (dayData.languages[details.language] || 0) + details.lines;
+                        }
+                        if (details.file) {
+                            dayData.files.add(details.file);
+                        }
+                        break;
+                    case 'debugging':
+                    case 'review':
+                        if (this.settings.trackTime) {
+                            dayData.hours += details.duration / 60;
+                        }
+                        if (details.file) {
+                            dayData.files.add(details.file);
+                        }
+                        break;
+                }
+                
+                if (this.settings.trackActivities) {
+                    dayData.activities.unshift({
+                        type,
+                        details,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                
+                // 计算专注度
+                if (this.settings.trackFocus) {
+                    dayData.focusScore = this.calculateFocusScore(dayData);
+                }
+                
+                this.saveToStorage();
+                this.updateDashboard();
+            }
+            
+            calculateFocusScore(dayData) {
+                // 基于编码时长、会话数、文件数计算专注度
+                const hoursScore = Math.min(dayData.hours / 4 * 40, 40); // 4小时得满分40
+                const sessionScore = Math.min(dayData.sessions / 5 * 30, 30); // 5个会话得满分30
+                const consistencyScore = dayData.files.size > 0 ? 30 : 0; // 专注文件得30
+                
+                return Math.round(hoursScore + sessionScore + consistencyScore);
+            }
+            
+            updateDashboard() {
+                this.updateTodayStats();
+                this.renderCodingHeatmap();
+                this.renderProductivityChart();
+                this.renderLanguageBreakdown();
+                this.renderActivityTimeline();
+                this.analyzeBottlenecks();
+            }
+            
+            updateTodayStats() {
+                const today = new Date().toISOString().split('T')[0];
+                const todayData = this.data[today] || { hours: 0, sessions: 0, lines: 0, files: new Set(), focusScore: 0 };
+                
+                document.getElementById('todayHours').textContent = todayData.hours.toFixed(1);
+                document.getElementById('todaySessions').textContent = todayData.sessions;
+                document.getElementById('todayLines').textContent = todayData.lines;
+                document.getElementById('todayFiles').textContent = todayData.files.size || 0;
+                
+                const focusScore = todayData.focusScore || 0;
+                document.getElementById('focusScore').textContent = focusScore > 0 ? focusScore : '--';
+            }
+            
+            renderCodingHeatmap() {
+                const heatmapContainer = document.getElementById('codingHeatmap');
+                const weeks = 12;
+                const cells = [];
+                
+                // 生成84天（12周）的数据
+                for (let i = weeks * 7 - 1; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    const dateKey = date.toISOString().split('T')[0];
+                    const dayData = this.data[dateKey] || { hours: 0 };
+                    
+                    const level = dayData.hours > 4 ? 4 :
+                                 dayData.hours > 3 ? 3 :
+                                 dayData.hours > 2 ? 2 :
+                                 dayData.hours > 1 ? 1 : 0;
+                    
+                    cells.push(`<div class="heatmap-cell level-${level}" title="${dateKey}: ${dayData.hours.toFixed(1)}小时"></div>`);
+                }
+                
+                heatmapContainer.innerHTML = cells.join('');
+            }
+            
+            renderProductivityChart() {
+                const chartContainer = document.getElementById('productivityChart');
+                const days = 7;
+                const bars = [];
+                
+                for (let i = days - 1; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    const dateKey = date.toISOString().split('T')[0];
+                    const dayData = this.data[dateKey] || { hours: 0 };
+                    
+                    const score = Math.min(100, dayData.hours * 20 + (dayData.lines || 0) / 10);
+                    const height = Math.max(20, (score / 100) * 160);
+                    
+                    bars.push(`<div class="productivity-bar" data-value="${Math.round(score)}" style="height: ${height}px;"></div>`);
+                }
+                
+                chartContainer.innerHTML = bars.join('');
+            }
+            
+            renderLanguageBreakdown() {
+                const container = document.getElementById('languageBreakdown');
+                const today = new Date().toISOString().split('T')[0];
+                const todayData = this.data[today] || { languages: {} };
+                
+                const languages = Object.entries(todayData.languages);
+                
+                if (languages.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">暂无语言数据</div>';
+                    return;
+                }
+                
+                const totalLines = languages.reduce((sum, [, lines]) => sum + lines, 0);
+                const colors = ['#1a2a6c', '#b21f1f', '#4caf50', '#ff9800', '#9c27b0', '#607d8b'];
+                
+                const languageHtml = languages.map(([language, lines], index) => {
+                    const percentage = totalLines > 0 ? Math.round((lines / totalLines) * 100) : 0;
+                    const color = colors[index % colors.length];
+                    
+                    return `
+                        <div class="language-item">
+                            <div class="language-color" style="background: ${color};"></div>
+                            <div class="language-name">${language}</div>
+                            <div class="language-percentage">${percentage}%</div>
+                        </div>
+                    `;
+                }).join('');
+                
+                container.innerHTML = languageHtml;
+            }
+            
+            renderActivityTimeline() {
+                const container = document.getElementById('activityTimeline');
+                const today = new Date().toISOString().split('T')[0];
+                const todayData = this.data[today] || {};
+                const activities = todayData.activities || [];
+                
+                if (activities.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state" style="padding: 20px;">
+                            <div class="empty-icon" style="font-size: 32px;">⏰</div>
+                            <div style="font-size: 14px;">暂无活动记录</div>
+                            <div style="font-size: 12px; color: #999;">点击"开始追踪"或"模拟活动"生成数据</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const activityHtml = activities.slice(0, 10).map(activity => {
+                    const time = new Date(activity.timestamp).toLocaleTimeString('zh-CN', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+                    
+                    let icon, title, meta;
+                    
+                    switch (activity.type) {
+                        case 'coding':
+                            icon = '💻';
+                            title = `编码: ${activity.details.file}`;
+                            meta = `+${activity.details.lines}行 · ${activity.details.language}`;
+                            break;
+                        case 'debugging':
+                            icon = '🐛';
+                            title = `调试: ${activity.details.file}`;
+                            meta = `时长: ${activity.details.duration}分钟`;
+                            break;
+                        case 'review':
+                            icon = '👀';
+                            title = `代码审查: ${activity.details.file}`;
+                            meta = `时长: ${activity.details.duration}分钟`;
+                            break;
+                        default:
+                            icon = '💡';
+                            title = '未知活动';
+                            meta = '';
+                    }
+                    
+                    return `
+                        <div class="timeline-item">
+                            <div class="timeline-icon">${icon}</div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">${title}</div>
+                                <div class="timeline-time">${time}</div>
+                                ${meta ? `<div class="timeline-meta">${meta}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                container.innerHTML = activityHtml;
+            }
+            
+            analyzeBottlenecks() {
+                const container = document.getElementById('bottleneckAnalysis');
+                const today = new Date().toISOString().split('T')[0];
+                const todayData = this.data[today] || {};
+                
+                const bottlenecks = [];
+                
+                // 检测低效率模式
+                if (todayData.hours < 2) {
+                    bottlenecks.push({
+                        type: '低编码时长',
+                        description: '今日编码时长较少，可能影响进度',
+                        severity: 'medium'
+                    });
+                }
+                
+                if (todayData.files && todayData.files.size > 10) {
+                    bottlenecks.push({
+                        type: '上下文切换频繁',
+                        description: '同时处理过多文件，建议专注核心任务',
+                        severity: 'high'
+                    });
+                }
+                
+                if (todayData.focusScore && todayData.focusScore < 50) {
+                    bottlenecks.push({
+                        type: '专注度较低',
+                        description: '专注指数偏低，可能存在干扰因素',
+                        severity: 'medium'
+                    });
+                }
+                
+                if (bottlenecks.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: #4caf50;">
+                            <div style="font-size: 32px; margin-bottom: 10px;">✅</div>
+                            <div style="font-size: 14px;">今日效率良好，暂无瓶颈</div>
+                        </div>
+                    `;
+                } else {
+                    const bottleneckHtml = bottlenecks.map(bottleneck => {
+                        const severityColor = bottleneck.severity === 'high' ? '#f44336' :
+                                            bottleneck.severity === 'medium' ? '#ff9800' : '#2196f3';
+                        
+                        return `
+                            <div style="padding: 12px; margin-bottom: 10px; background: #ffebee; border-left: 3px solid ${severityColor}; border-radius: 4px;">
+                                <div style="font-weight: 500; color: ${severityColor}; margin-bottom: 4px;">${bottleneck.type}</div>
+                                <div style="font-size: 13px; color: #666;">${bottleneck.description}</div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    container.innerHTML = bottleneckHtml;
+                }
+            }
+            
+            toggleSetting(element, setting) {
+                element.classList.toggle('active');
+                this.settings[setting] = element.classList.contains('active');
+                localStorage.setItem('devAnalyticsSettings', JSON.stringify(this.settings));
+                
+                const settingName = {
+                    trackTime: '编码时长记录',
+                    trackLines: '代码行数统计',
+                    trackLanguages: '语言分布分析',
+                    trackFocus: '专注度检测',
+                    trackActivities: '活动日志'
+                }[setting];
+                
+                this.showToast(`${settingName}已${this.settings[setting] ? '开启' : '关闭'}`, 'info');
+            }
+            
+            exportData() {
+                const exportData = {
+                    exportDate: new Date().toISOString(),
+                    data: this.data,
+                    summary: this.generateSummary()
+                };
+                
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `dev-analytics-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                this.showToast('数据已导出', 'success');
+            }
+            
+            generateSummary() {
+                const allDays = Object.values(this.data);
+                const totalHours = allDays.reduce((sum, day) => sum + (day.hours || 0), 0);
+                const totalLines = allDays.reduce((sum, day) => sum + (day.lines || 0), 0);
+                const avgFocus = allDays.reduce((sum, day) => sum + (day.focusScore || 0), 0) / allDays.length;
+                
+                return {
+                    totalHours: totalHours.toFixed(1),
+                    totalLines,
+                    avgFocus: Math.round(avgFocus),
+                    totalDays: allDays.length
+                };
+            }
+            
+            clearData() {
+                if (confirm('确定要清空所有开发数据吗？此操作不可恢复。')) {
+                    this.data = {};
+                    localStorage.removeItem('devAnalytics');
+                    this.updateDashboard();
+                    this.showToast('数据已清空', 'success');
+                }
+            }
+            
+            getRandomLanguage() {
+                const languages = ['JavaScript', 'TypeScript', 'CSS', 'HTML', 'Python', 'Java', 'Go', 'Rust'];
+                return languages[Math.floor(Math.random() * languages.length)];
+            }
+            
+            getRandomFile() {
+                const files = [
+                    'src/components/Button.js',
+                    'src/utils/helpers.ts',
+                    'src/styles/main.css',
+                    'src/App.tsx',
+                    'src/hooks/useAuth.js',
+                    'src/store/reducers/index.ts',
+                    'src/types/index.d.ts',
+                    'src/routes/PrivateRoute.js'
+                ];
+                return files[Math.floor(Math.random() * files.length)];
+            }
+            
+            saveToStorage() {
+                localStorage.setItem('devAnalytics', JSON.stringify(this.data));
+            }
+            
+            showToast(message, type = 'success') {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.className = 'toast show';
+                
+                const colors = {
+                    success: '#4caf50',
+                    error: '#f44336',
+                    warning: '#ff9800',
+                    info: '#2196f3'
+                };
+                toast.style.background = colors[type] || colors.success;
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+        }
+        
+        // 初始化
+        const da = new DevAnalytics();
+    </script>
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Markdown 预览</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .main { padding: 20px; max-width: 1200px; margin: 0 auto; }
+    .editor { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; min-height: calc(100vh - 120px); }
+    .panel { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; overflow: hidden; }
+    .panel-header { padding: 10px 16px; background: #1f2235; font-size: 12px; font-weight: 600; color: #8b90a7; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #2d3148; display: flex; justify-content: space-between; }
+    .copy-btn { padding: 3px 10px; background: #2d3148; border: none; border-radius: 4px; color: #8b90a7; cursor: pointer; font-size: 11px; }
+    .copy-btn:hover { background: #6366f1; color: #fff; }
+    textarea { width: 100%; background: #131520; color: #e2e8f0; border: none; padding: 16px; font-family: 'Cascadia Code', monospace; font-size: 13px; resize: none; outline: none; line-height: 1.6; }
+    .preview { width: 100%; background: #131520; padding: 16px; overflow-y: auto; font-size: 15px; line-height: 1.8; }
+    .btn-row { padding: 12px 16px; display: flex; gap: 8px; background: #1a1d2e; border-top: 1px solid #2d3148; }
+    .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; background: #2d3148; color: #c4c9e2; transition: all .2s; }
+    .btn:hover { background: #6366f1; color: #fff; }
+    /* Markdown 样式 */
+    .markdown-body { color: #e2e8f0; }
+    .markdown-body h1 { font-size: 28px; font-weight: 700; margin: 24px 0 16px; padding-bottom: 8px; border-bottom: 1px solid #2d3148; }
+    .markdown-body h2 { font-size: 24px; font-weight: 700; margin: 20px 0 12px; }
+    .markdown-body h3 { font-size: 20px; font-weight: 700; margin: 16px 0 10px; }
+    .markdown-body p { margin-bottom: 12px; }
+    .markdown-body code { background: #2d3148; color: #a5d6ff; padding: 2px 6px; border-radius: 3px; font-family: 'Cascadia Code', monospace; }
+    .markdown-body pre { background: #0f1117; border: 1px solid #2d3148; border-radius: 6px; padding: 12px; overflow-x: auto; margin: 12px 0; }
+    .markdown-body pre code { background: none; padding: 0; color: #e2e8f0; }
+    .markdown-body ul, .markdown-body ol { margin: 12px 0 12px 24px; }
+    .markdown-body li { margin-bottom: 4px; }
+    .markdown-body blockquote { background: #1f2235; border-left: 3px solid #6366f1; padding: 12px 16px; margin: 12px 0; border-radius: 4px; }
+    .markdown-body strong { font-weight: 700; color: #fbbf24; }
+    .markdown-body em { font-style: italic; color: #a5d6ff; }
+    .markdown-body a { color: #60a5fa; text-decoration: none; }
+    .markdown-body a:hover { text-decoration: underline; }
+    .markdown-body table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    .markdown-body th, .markdown-body td { border: 1px solid #2d3148; padding: 8px 12px; text-align: left; }
+    .markdown-body th { background: #1f2235; font-weight: 600; }
+    .markdown-body hr { border: none; border-top: 1px solid #2d3148; margin: 16px 0; }
+    @media (max-width: 768px) { .editor { grid-template-columns: 1fr; min-height: auto; } }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">📄</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">Markdown 预览</h1>
+    <p style="font-size:12px;color:#8b90a7;margin-top:2px">实时渲染，支持表格、代码高亮</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="editor">
+    <div class="panel">
+      <div class="panel-header">
+        输入 Markdown
+        <button class="copy-btn" onclick="copyCode()">复制</button>
+      </div>
+      <textarea id="md-input" oninput="render()" placeholder="输入 Markdown 语法..."># 我的文档
+
+## 这是一个二级标题
+
+这是一个段落，支持 **粗体**、*斜体* 和 `代码`。
+
+### 列表示例
+
+- 项目 1
+- 项目 2
+  - 嵌套项目
+- 项目 3
+
+### 代码块
+
+\`\`\`javascript
+function hello() {
+  console.log('Hello, World!');
+}
+\`\`\`
+
+### 表格
+
+| 姓名 | 部门 | 职位 |
+|------|------|------|
+| 张三 | 项目 | PM |
+| 李四 | 开发 | DEV |
+
+### 引用
+
+> 这是一个引用块
+> 可以包含多行内容
+
+### 链接和图片
+
+[访问 GitHub](https://github.com)
+
+---
+
+**粗体文本** 和 *斜体文本*</textarea>
+      <div class="btn-row">
+        <button class="btn" onclick="loadSample()">📋 加载示例</button>
+        <button class="btn" onclick="clearAll()">🗑️ 清空</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        预览
+        <button class="copy-btn" onclick="copyPreview()">复制 HTML</button>
+      </div>
+      <div class="preview markdown-body" id="md-preview"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function parseMarkdown(md) {
+  let html = md;
+
+  // 转义
+  html = html.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  // 代码块
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
+    `<pre><code class="language-${lang}">${code.trim()}</code></pre>`
+  );
+
+  // 行内代码
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // 标题
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+  // 粗体和斜体
+  html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+  html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+
+  // 链接
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+  // 分割线
+  html = html.replace(/^---+$/gm, '<hr>');
+
+  // 引用
+  html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+
+  // 表格简单处理
+  html = html.replace(/^\|(.+)\|$/gm, '<tr><td>' + '$1'.split('|').slice(1,-1).join('</td><td>') + '</td></tr>');
+  html = html.replace(/(<tr>[\s\S]*?<\/tr>)/g, (match) => {
+    const isHeader = match.includes('---');
+    if (isHeader) return '';
+    const first = match.indexOf('<tr>');
+    return first === 0 ? '<table>' + match + '</table>' : match;
+  });
+
+  // 列表
+  html = html.replace(/((?:^  [*\-+] .+\n?)+)/gm, (match) => {
+    const items = match.trim().split('\n').map(l => '<li>' + l.replace(/^  [*\-+] /, '') + '</li>').join('');
+    return '<ul style="margin-left:40px">' + items + '</ul>';
+  });
+  html = html.replace(/((?:^[*\-+] .+\n?)+)/gm, (match) => {
+    if (/^  /.test(match)) return match;
+    const items = match.trim().split('\n').map(l => '<li>' + l.replace(/^[*\-+] /, '') + '</li>').join('');
+    return '<ul>' + items + '</ul>';
+  });
+
+  // 有序列表
+  html = html.replace(/((?:^\d+\. .+\n?)+)/gm, (match) => {
+    const items = match.trim().split('\n').map(l => '<li>' + l.replace(/^\d+\. /, '') + '</li>').join('');
+    return '<ol>' + items + '</ol>';
+  });
+
+  // 段落
+  html = html.split('\n\n').map(block => {
+    block = block.trim();
+    if (!block) return '';
+    if (/^<[h1-6|ul|ol|pre|blockquote|hr|table]/.test(block)) return block;
+    return '<p>' + block.replace(/\n/g, '<br>') + '</p>';
+  }).join('\n');
+
+  return html;
+}
+
+function render() {
+  const md = document.getElementById('md-input').value;
+  const html = parseMarkdown(md);
+  document.getElementById('md-preview').innerHTML = html;
+}
+
+function copyCode() {
+  const v = document.getElementById('md-input').value;
+  navigator.clipboard.writeText(v).then(() => alert('已复制 Markdown 代码'));
+}
+
+function copyPreview() {
+  const v = document.getElementById('md-preview').innerHTML;
+  navigator.clipboard.writeText(v).then(() => alert('已复制 HTML'));
+}
+
+function loadSample() {
+  document.getElementById('md-input').value = `# 工作周报
+
+## 本周完成事项
+
+- ✅ 完成工具集导航站设计
+- ✅ 实现 15 个基础开发工具
+  - JSON 格式化器
+  - 正则表达式测试器
+  - Base64 编解码
+- ✅ 完成 API 文档编写
+
+## 下周计划
+
+1. 实现数据处理工具（CSV/JSON 转换、Diff 对比）
+2. 开发项目管理工具集
+3. 性能优化和用户体验改进
+
+## 阻塞问题
+
+> 目前无严重阻塞问题，进度正常推进
+
+---
+
+**报告人**：张三 | **报告时间**：2026-03-18`;
+  render();
+}
+
+function clearAll() {
+  document.getElementById('md-input').value = '';
+  document.getElementById('md-preview').innerHTML = '';
+}
+
+render();
+</script>
+</body>
+</html>

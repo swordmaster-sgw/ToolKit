@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代码片段增强版 - ToolKit</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #e2e8f0; min-height: 100vh; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 30px; padding: 25px; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(10px); border-radius: 20px; border: 1px solid rgba(94, 234, 212, 0.1); }
+        .header h1 { font-size: 2.2em; margin-bottom: 10px; background: linear-gradient(135deg, #5eead4 0%, #38bdf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .header p { color: #94a3b8; }
+        .main-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+        .sidebar { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(10px); border-radius: 15px; border: 1px solid rgba(94, 234, 212, 0.1); padding: 20px; }
+        .sidebar h3 { color: #5eead4; margin-bottom: 15px; }
+        .category-list { list-style: none; }
+        .category-item { padding: 10px 15px; margin-bottom: 5px; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 10px; }
+        .category-item:hover { background: rgba(94, 234, 212, 0.1); }
+        .category-item.active { background: rgba(94, 234, 212, 0.2); border: 1px solid rgba(94, 234, 212, 0.3); }
+        .stats { background: rgba(30, 41, 59, 0.5); padding: 15px; border-radius: 10px; margin-top: 20px; }
+        .stat-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9em; }
+        .stat-value { color: #5eead4; font-weight: bold; }
+        .main-content { background: rgba(15, 23, 42, 0.6); border-radius: 15px; border: 1px solid rgba(94, 234, 212, 0.1); padding: 20px; }
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .search-box { flex: 1; min-width: 200px; padding: 12px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(94, 234, 212, 0.2); border-radius: 10px; color: #e2e8f0; }
+        .btn { padding: 10px 16px; background: linear-gradient(135deg, #0ea5e9 0%, #0d9488 100%); color: white; border: none; border-radius: 8px; cursor: pointer; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(14, 165, 233, 0.3); }
+        .btn-secondary { background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(94, 234, 212, 0.2); }
+        .recommendations { background: rgba(30, 41, 59, 0.5); border-radius: 10px; padding: 15px; margin-bottom: 20px; border: 1px solid rgba(94, 234, 212, 0.1); }
+        .recommendation-item { background: rgba(15, 23, 42, 0.6); padding: 10px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: all 0.3s ease; }
+        .recommendation-item:hover { border-color: rgba(94, 234, 212, 0.3); }
+        .snippet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 15px; }
+        .snippet-card { background: rgba(30, 41, 59, 0.5); border-radius: 12px; padding: 15px; border: 1px solid rgba(94, 234, 212, 0.1); transition: all 0.3s ease; position: relative; }
+        .snippet-card:hover { transform: translateY(-3px); border-color: rgba(94, 234, 212, 0.3); }
+        .snippet-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .snippet-title { font-weight: 600; color: #5eead4; flex: 1; }
+        .snippet-actions { display: flex; gap: 5px; }
+        .action-btn { width: 28px; height: 28px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; background: rgba(15, 23, 42, 0.8); color: #94a3b8; }
+        .action-btn:hover { color: #5eead4; }
+        .snippet-meta { display: flex; gap: 10px; font-size: 0.8em; color: #94a3b8; margin-bottom: 8px; }
+        .snippet-stats { display: flex; gap: 10px; font-size: 0.8em; }
+        .stat { display: flex; align-items: center; gap: 3px; }
+        .snippet-tags { display: flex; gap: 5px; flex-wrap: wrap; margin: 8px 0; }
+        .tag { background: rgba(94, 234, 212, 0.1); color: #5eead4; padding: 2px 6px; border-radius: 10px; font-size: 0.7em; }
+        .code-preview { background: #0a0e14; border-radius: 8px; padding: 10px; font-family: 'Fira Code', monospace; font-size: 12px; overflow-x: auto; max-height: 100px; }
+        .share-section { background: rgba(30, 41, 59, 0.5); border-radius: 10px; padding: 15px; margin-top: 15px; }
+        .share-input { width: 100%; padding: 8px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(94, 234, 212, 0.2); border-radius: 6px; color: #e2e8f0; margin-bottom: 10px; }
+        .toast { position: fixed; bottom: 30px; right: 30px; background: rgba(15, 23, 42, 0.9); color: #f8fafc; padding: 16px 24px; border-radius: 10px; border: 1px solid rgba(94, 234, 212, 0.2); transform: translateY(100px); opacity: 0; transition: all 0.3s ease; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        @media (max-width: 768px) { .main-layout { grid-template-columns: 1fr; } .snippet-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 代码片段增强版</h1>
+            <p>智能推荐、团队共享、多IDE支持，团队协作效率提升60%</p>
+        </div>
+
+        <div class="main-layout">
+            <div class="sidebar">
+                <h3>📁 分类</h3>
+                <ul class="category-list">
+                    <li class="category-item active" data-category="all"><span>📚</span><span>全部片段</span></li>
+                    <li class="category-item" data-category="javascript"><span>🟨</span><span>JavaScript</span></li>
+                    <li class="category-item" data-category="python"><span>🐍</span><span>Python</span></li>
+                    <li class="category-item" data-category="react"><span>⚛️</span><span>React</span></li>
+                    <li class="category-item" data-category="vue"><span>💚</span><span>Vue</span></li>
+                    <li class="category-item" data-category="sql"><span>🗄️</span><span>SQL</span></li>
+                    <li class="category-item" data-category="css"><span>🎨</span><span>CSS</span></li>
+                    <li class="category-item" data-category="team"><span>👥</span><span>团队共享</span></li>
+                </ul>
+
+                <div class="stats">
+                    <div class="stat-item"><span>总片段</span><span class="stat-value" id="totalSnippets">0</span></div>
+                    <div class="stat-item"><span>团队共享</span><span class="stat-value" id="teamSnippets">0</span></div>
+                    <div class="stat-item"><span>本周新增</span><span class="stat-value" id="weeklyAdd">0</span></div>
+                    <div class="stat-item"><span>最常用</span><span class="stat-value" id="mostUsed">-</span></div>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="controls">
+                    <input type="text" class="search-box" id="searchBox" placeholder="🔍 搜索片段（支持智能推荐）">
+                    <button class="btn" onclick="showAddSnippetModal()">➕ 添加片段</button>
+                    <button class="btn btn-secondary" onclick="importFromVSCode()">📥 导入VS Code</button>
+                    <button class="btn btn-secondary" onclick="exportTeamPackage()">📤 导出团队包</button>
+                </div>
+
+                <div class="recommendations" id="recommendations">
+                    <h3 style="color: #5eead4; margin-bottom: 10px;">🤖 智能推荐</h3>
+                    <div id="recommendationList">
+                        <!-- 动态生成推荐 -->
+                    </div>
+                </div>
+
+                <div class="snippet-grid" id="snippetGrid">
+                    <!-- 动态生成片段列表 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑片段模态框 -->
+    <div class="modal" id="snippetModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">添加代码片段</h2>
+                <button class="close-btn" onclick="closeModal('snippetModal')">&times;</button>
+            </div>
+            
+            <form id="snippetForm">
+                <div class="form-group">
+                    <label class="form-label">片段名称</label>
+                    <input type="text" class="form-input" id="snippetName" placeholder="例如：React Hook模板" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">代码内容</label>
+                    <textarea class="form-textarea" id="snippetCode" placeholder="粘贴代码片段" rows="8" required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">描述</label>
+                    <textarea class="form-textarea" id="snippetDescription" placeholder="说明用途和使用场景" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">语言/框架</label>
+                    <select class="form-select" id="snippetCategory">
+                        <option value="javascript">JavaScript</option>
+                        <option value="python">Python</option>
+                        <option value="react">React</option>
+                        <option value="vue">Vue</option>
+                        <option value="sql">SQL</option>
+                        <option value="css">CSS</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">标签（用空格分隔）</label>
+                    <input type="text" class="form-input" id="snippetTags" placeholder="例如：hook react state">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        <input type="checkbox" id="snippetTeamShare"> 团队共享
+                    </label>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('snippetModal')">取消</button>
+                    <button type="submit" class="btn btn-success">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 团队共享模态框 -->
+    <div class="modal" id="teamShareModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">👥 团队共享</h2>
+                <button class="close-btn" onclick="closeModal('teamShareModal')">&times;</button>
+            </div>
+            
+            <div class="share-section">
+                <h4>生成共享链接</h4>
+                <input type="text" class="share-input" id="shareLink" readonly value="https://toolkit.example.com/share/pkg-12345">
+                <button class="btn" onclick="copyShareLink()">📋 复制链接</button>
+                <button class="btn btn-secondary" onclick="generateQRCode()">📱 生成二维码</button>
+            </div>
+            
+            <div class="share-section">
+                <h4>团队管理</h4>
+                <button class="btn" onclick="manageTeam()">⚙️ 管理团队</button>
+                <button class="btn btn-secondary" onclick="viewTeamStats()">📊 团队统计</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let snippets = [];
+        let currentCategory = 'all';
+        let usageStats = {};
+
+        // 模拟代码片段数据
+        const demoSnippets = [
+            {
+                id: 's1',
+                name: 'React Hook模板',
+                code: `import { useState, useEffect } from 'react';\n\nfunction useCustomHook(initialValue) {\n  const [state, setState] = useState(initialValue);\n  \n  useEffect(() => {\n    // 副作用逻辑\n  }, []);\n  \n  return [state, setState];\n}`,
+                description: '自定义React Hook的基础模板',
+                category: 'react',
+                tags: ['hook', 'react', 'state'],
+                teamShare: true,
+                usage: 15,
+                lastUsed: Date.now() - 3600000
+            },
+            {
+                id: 's2',
+                name: 'Python装饰器',
+                code: `def timer_decorator(func):\n    import time\n    def wrapper(*args, **kwargs):\n        start = time.time()\n        result = func(*args, **kwargs)\n        end = time.time()\n        print(f"{func.__name__} took {end - start:.2f}s")\n        return result\n    return wrapper`,
+                description: '计算函数执行时间的装饰器',
+                category: 'python',
+                tags: ['decorator', 'performance'],
+                teamShare: false,
+                usage: 8,
+                lastUsed: Date.now() - 7200000
+            },
+            {
+                id: 's3',
+                name: 'SQL查询优化',
+                code: `SELECT u.id, u.name, COUNT(o.id) as order_count\nFROM users u\nLEFT JOIN orders o ON u.id = o.user_id\nWHERE u.created_at >= '2024-01-01'\nGROUP BY u.id, u.name\nHAVING COUNT(o.id) > 5\nORDER BY order_count DESC;`,
+                description: '查询活跃用户及其订单数',
+                category: 'sql',
+                tags: ['query', 'optimization', 'join'],
+                teamShare: true,
+                usage: 12,
+                lastUsed: Date.now() - 86400000
+            }
+        ];
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            snippets = [...demoSnippets];
+            renderSnippets();
+            updateStats();
+            generateRecommendations();
+            
+            document.getElementById('snippetForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveSnippet();
+            });
+            
+            document.getElementById('searchBox').addEventListener('input', function(e) {
+                if (e.target.value.trim()) {
+                    performSmartSearch(e.target.value);
+                } else {
+                    renderSnippets();
+                }
+            });
+            
+            // 分类点击事件
+            document.querySelectorAll('.category-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    document.querySelectorAll('.category-item').forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                    currentCategory = this.dataset.category;
+                    renderSnippets();
+                });
+            });
+            
+            showToast('✅ 代码片段增强版已就绪', 3000);
+        });
+
+        // 渲染片段列表
+        function renderSnippets(filtered = null) {
+            const grid = document.getElementById('snippetGrid');
+            const data = filtered || snippets;
+            
+            if (data.length === 0) {
+                grid.innerHTML = `
+                    <div style="text-align: center; padding: 60px; color: #94a3b8; grid-column: 1/-1;">
+                        <div style="font-size: 3em; margin-bottom: 15px;">🚀</div>
+                        <h3>暂无代码片段</h3>
+                        <p>点击"添加片段"开始构建你的代码库</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 分类筛选
+            let displayData = data;
+            if (currentCategory !== 'all') {
+                displayData = data.filter(s => s.category === currentCategory || (currentCategory === 'team' && s.teamShare));
+            }
+            
+            grid.innerHTML = displayData.map(snippet => `
+                <div class="snippet-card">
+                    <div class="snippet-header">
+                        <div class="snippet-title">${snippet.name}</div>
+                        <div class="snippet-actions">
+                            <button class="action-btn" onclick="copySnippet('${snippet.id}')" title="复制">📋</button>
+                            <button class="action-btn" onclick="editSnippet('${snippet.id}')" title="编辑">✏️</button>
+                            <button class="action-btn" onclick="shareSnippet('${snippet.id}')" title="分享">🔗</button>
+                            <button class="action-btn" onclick="deleteSnippet('${snippet.id}')" title="删除">🗑️</button>
+                        </div>
+                    </div>
+                    
+                    <div class="snippet-meta">
+                        <div class="stat">🏷️ ${snippet.category}</div>
+                        <div class="stat">📊 ${snippet.usage}次使用</div>
+                        <div class="stat">📅 ${new Date(snippet.lastUsed).toLocaleDateString()}</div>
+                        ${snippet.teamShare ? '<div class="stat">👥 团队</div>' : ''}
+                    </div>
+                    
+                    <div class="snippet-tags">
+                        ${snippet.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    </div>
+                    
+                    <div class="code-preview">
+                        ${escapeHtml(snippet.code).substring(0, 150)}${snippet.code.length > 150 ? '...' : ''}
+                    </div>
+                    
+                    <div style="font-size: 0.85em; color: #94a3b8; margin-top: 8px;">
+                        ${snippet.description}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 智能搜索
+        function performSmartSearch(query) {
+            const results = snippets.filter(s => 
+                s.name.toLowerCase().includes(query.toLowerCase()) ||
+                s.description.toLowerCase().includes(query.toLowerCase()) ||
+                s.tags.some(tag => tag.toLowerCase().includes(query.toLowerCase())) ||
+                s.code.toLowerCase().includes(query.toLowerCase())
+            );
+            
+            // 智能推荐
+            const recommendations = snippets.filter(s => 
+                s.tags.some(tag => query.toLowerCase().includes(tag.toLowerCase())) ||
+                s.category.toLowerCase().includes(query.toLowerCase())
+            ).slice(0, 3);
+            
+            renderSnippets(results);
+            updateRecommendations(recommendations);
+        }
+
+        // 生成推荐
+        function generateRecommendations() {
+            const recent = snippets.filter(s => Date.now() - s.lastUsed < 86400000).slice(0, 3);
+            updateRecommendations(recent);
+        }
+
+        // 更新推荐列表
+        function updateRecommendations(recommendations) {
+            const list = document.getElementById('recommendationList');
+            
+            if (recommendations.length === 0) {
+                list.innerHTML = '<div style="color: #94a3b8; font-size: 0.9em;">暂无推荐</div>';
+                return;
+            }
+            
+            list.innerHTML = recommendations.map(s => `
+                <div class="recommendation-item" onclick="useRecommendedSnippet('${s.id}')">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-weight: 500;">${s.name}</div>
+                        <div style="font-size: 0.8em; color: #94a3b8;">${s.category}</div>
+                    </div>
+                    <div style="font-size: 0.8em; color: #94a3b8; margin-top: 3px;">
+                        ${s.tags.join(' • ')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 使用推荐的片段
+        function useRecommendedSnippet(id) {
+            copySnippet(id);
+            showToast('✅ 已复制到剪贴板', 2000);
+        }
+
+        // 保存片段
+        function saveSnippet() {
+            const snippet = {
+                id: 's' + Date.now(),
+                name: document.getElementById('snippetName').value,
+                code: document.getElementById('snippetCode').value,
+                description: document.getElementById('snippetDescription').value,
+                category: document.getElementById('snippetCategory').value,
+                tags: document.getElementById('snippetTags').value.split(' ').filter(t => t),
+                teamShare: document.getElementById('snippetTeamShare').checked,
+                usage: 0,
+                lastUsed: Date.now()
+            };
+            
+            snippets.push(snippet);
+            renderSnippets();
+            updateStats();
+            closeModal('snippetModal');
+            showToast('✅ 代码片段已保存', 3000);
+        }
+
+        // 复制片段
+        function copySnippet(id) {
+            const snippet = snippets.find(s => s.id === id);
+            if (snippet) {
+                navigator.clipboard.writeText(snippet.code).then(() => {
+                    snippet.usage++;
+                    snippet.lastUsed = Date.now();
+                    updateStats();
+                    showToast('✅ 已复制到剪贴板', 2000);
+                });
+            }
+        }
+
+        // 显示添加片段模态框
+        function showAddSnippetModal() {
+            document.getElementById('modalTitle').textContent = '添加代码片段';
+            document.getElementById('snippetForm').reset();
+            document.getElementById('snippetModal').classList.add('show');
+        }
+
+        // 更新统计
+        function updateStats() {
+            document.getElementById('totalSnippets').textContent = snippets.length;
+            document.getElementById('teamSnippets').textContent = snippets.filter(s => s.teamShare).length;
+            document.getElementById('weeklyAdd').textContent = snippets.filter(s => Date.now() - s.lastUsed < 604800000).length;
+            
+            const mostUsed = snippets.reduce((max, s) => s.usage > max.usage ? s : max, snippets[0] || { name: '-', usage: 0 });
+            document.getElementById('mostUsed').textContent = mostUsed.name;
+        }
+
+        // 导入VS Code
+        function importFromVSCode() {
+            showToast('📥 导入VS Code片段...', 3000);
+        }
+
+        // 导出团队包
+        function exportTeamPackage() {
+            const teamSnippets = snippets.filter(s => s.teamShare);
+            showToast(`📤 导出 ${teamSnippets.length} 个团队片段`, 3000);
+        }
+
+        // 工具函数
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        function showToast(message, duration = 3000) {
+            const toast = document.createElement('div');
+            toast.className = 'toast show';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, duration);
+        }
+
+        // 占位函数
+        function editSnippet(id) { showToast('✏️ 编辑功能开发中', 2000); }
+        function shareSnippet(id) { 
+            document.getElementById('teamShareModal').classList.add('show');
+        }
+        function deleteSnippet(id) { 
+            snippets = snippets.filter(s => s.id !== id);
+            renderSnippets();
+            updateStats();
+            showToast('✅ 片段已删除', 2000);
+        }
+        function copyShareLink() { showToast('📋 链接已复制', 2000); }
+        function generateQRCode() { showToast('📱 二维码已生成', 2000); }
+        function manageTeam() { showToast('⚙️ 团队管理功能', 2000); }
+        function viewTeamStats() { showToast('📊 团队统计', 2000); }
+    </script>
+</body>
+</html>

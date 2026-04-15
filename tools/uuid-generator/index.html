@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UUID 生成器</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; cursor: pointer; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .main { padding: 20px; max-width: 800px; margin: 0 auto; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+    .options { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+    .label { font-size: 13px; color: #8b90a7; }
+    .input { background: #131520; border: 1px solid #363b5e; border-radius: 6px; padding: 7px 12px; color: #e2e8f0; font-size: 13px; outline: none; width: 80px; }
+    .input:focus { border-color: #6366f1; }
+    .checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #c4c9e2; cursor: pointer; }
+    input[type=checkbox] { accent-color: #6366f1; }
+    .btn { padding: 8px 20px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-primary:hover { background: #5457d4; }
+    .btn-secondary { background: #2d3148; color: #c4c9e2; }
+    .btn-secondary:hover { background: #363b5e; }
+    .uuid-list { list-style: none; }
+    .uuid-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #2d314866; }
+    .uuid-item:last-child { border-bottom: none; }
+    .uuid-text { font-family: 'Cascadia Code', Consolas, monospace; font-size: 14px; color: #a5d6ff; flex: 1; letter-spacing: .5px; }
+    .copy-single { padding: 3px 10px; background: #2d3148; border: none; border-radius: 4px; color: #8b90a7; cursor: pointer; font-size: 11px; transition: all .2s; }
+    .copy-single:hover { background: #6366f1; color: #fff; }
+    .btn-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .stat { font-size: 12px; color: #4a4f6a; margin-top: 8px; }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">🆔</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">UUID 生成器</h1>
+    <p style="font-size:12px;color:#8b90a7;margin-top:2px">批量生成 UUID v4，支持多种格式</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="card">
+    <div class="options">
+      <span class="label">生成数量：</span>
+      <input class="input" id="count" type="number" value="10" min="1" max="100">
+      <label class="checkbox-label"><input type="checkbox" id="uppercase"> 大写</label>
+      <label class="checkbox-label"><input type="checkbox" id="no-dash"> 不含横杠</label>
+      <label class="checkbox-label"><input type="checkbox" id="with-braces"> 含大括号 {}</label>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="generate()">✨ 生成</button>
+      <button class="btn btn-secondary" onclick="copyAll()">📋 复制全部</button>
+      <button class="btn btn-secondary" onclick="clearList()">🗑️ 清空</button>
+    </div>
+    <ul class="uuid-list" id="uuid-list"></ul>
+    <div class="stat" id="stat"></div>
+  </div>
+</div>
+
+<script>
+function uuidv4() {
+  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+  );
+}
+
+function formatUUID(uuid) {
+  let v = uuid;
+  if (document.getElementById('no-dash').checked) v = v.replace(/-/g, '');
+  if (document.getElementById('uppercase').checked) v = v.toUpperCase();
+  if (document.getElementById('with-braces').checked) v = '{' + v + '}';
+  return v;
+}
+
+function generate() {
+  const count = Math.min(parseInt(document.getElementById('count').value) || 10, 100);
+  const list = document.getElementById('uuid-list');
+  list.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const uuid = formatUUID(uuidv4());
+    list.innerHTML += `
+      <li class="uuid-item">
+        <span class="uuid-text">${uuid}</span>
+        <button class="copy-single" onclick="copyOne('${uuid}', this)">复制</button>
+      </li>
+    `;
+  }
+  document.getElementById('stat').textContent = `已生成 ${count} 个 UUID v4`;
+}
+
+function copyOne(val, btn) {
+  navigator.clipboard.writeText(val).then(() => {
+    btn.textContent = '✓';
+    setTimeout(() => btn.textContent = '复制', 1200);
+  });
+}
+
+function copyAll() {
+  const uuids = [...document.querySelectorAll('.uuid-text')].map(el => el.textContent).join('\n');
+  navigator.clipboard.writeText(uuids).then(() => {
+    document.getElementById('stat').textContent = '✅ 已复制全部 UUID';
+  });
+}
+
+function clearList() {
+  document.getElementById('uuid-list').innerHTML = '';
+  document.getElementById('stat').textContent = '';
+}
+
+generate();
+</script>
+</body>
+</html>

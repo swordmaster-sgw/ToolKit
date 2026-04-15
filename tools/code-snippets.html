@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代码片段极速插入</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: flex;
+            height: calc(100vh - 40px);
+        }
+        
+        .sidebar {
+            width: 280px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sidebar-header {
+            padding: 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .sidebar-header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .sidebar-header p {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        
+        .search-box {
+            padding: 16px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 10px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .category-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .category-item {
+            padding: 12px 24px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+        
+        .category-item:hover {
+            background: #e9ecef;
+        }
+        
+        .category-item.active {
+            background: #e3f2fd;
+            border-left-color: #667eea;
+        }
+        
+        .category-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .category-count {
+            font-size: 12px;
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .main-header {
+            padding: 24px;
+            background: white;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .main-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .btn-secondary:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+        
+        .snippets-grid {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            align-content: start;
+        }
+        
+        .snippet-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .snippet-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .snippet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .snippet-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .snippet-tag {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .snippet-description {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+        
+        .snippet-code {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 120px;
+            overflow-y: auto;
+            color: #333;
+        }
+        
+        .snippet-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .snippet-btn {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        .snippet-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .modal-close {
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            background: none;
+            border: none;
+        }
+        
+        .modal-close:hover {
+            color: #333;
+        }
+        
+        .modal-body {
+            padding: 24px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 10px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .form-select {
+            width: 100%;
+            padding: 10px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .modal-footer {
+            padding: 24px;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #333;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            z-index: 1001;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+            grid-column: 1 / -1;
+        }
+        
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+        
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>💻 代码片段</h1>
+                <p>快捷键: Ctrl+Shift+S</p>
+            </div>
+            
+            <div class="search-box">
+                <input type="text" class="search-input" id="searchInput" placeholder="搜索片段... (Ctrl+F)">
+            </div>
+            
+            <div class="category-list" id="categoryList">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="main-header">
+                <div class="main-title" id="currentCategory">全部片段</div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="sm.importSnippets()">
+                        📥 导入
+                    </button>
+                    <button class="btn btn-primary" onclick="sm.showAddModal()">
+                        ➕ 新建片段
+                    </button>
+                </div>
+            </div>
+            
+            <div class="snippets-grid" id="snippetsGrid">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- 添加/编辑模态框 -->
+    <div class="modal" id="snippetModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">新建代码片段</div>
+                <button class="modal-close" onclick="sm.hideModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">片段名称 *</label>
+                    <input type="text" class="form-input" id="snippetName" placeholder="例如：console.log调试">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">分类</label>
+                    <select class="form-select" id="snippetCategory">
+                        <option value="前端">前端</option>
+                        <option value="后端">后端</option>
+                        <option value="工具">工具</option>
+                        <option value="数据库">数据库</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">描述</label>
+                    <input type="text" class="form-input" id="snippetDescription" placeholder="简短描述用途">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">代码内容 *</label>
+                    <textarea class="form-input form-textarea" id="snippetCode" placeholder="代码内容，支持用 {cursor} 标记光标位置"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">快捷键（可选）</label>
+                    <input type="text" class="form-input" id="snippetShortcut" placeholder="例如：log">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="sm.hideModal()">取消</button>
+                <button class="btn btn-primary" onclick="sm.saveSnippet()">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 代码片段管理器
+        class SnippetManager {
+            constructor() {
+                this.snippets = this.loadSnippets();
+                this.currentCategory = '全部';
+                this.editingId = null;
+                this.init();
+            }
+            
+            init() {
+                this.renderCategories();
+                this.renderSnippets();
+                this.bindEvents();
+            }
+            
+            loadSnippets() {
+                const saved = localStorage.getItem('codeSnippets');
+                if (saved) {
+                    return JSON.parse(saved);
+                }
+                
+                // 默认示例数据
+                return [
+                    {
+                        id: 1,
+                        name: 'console.log调试',
+                        category: '前端',
+                        description: '快速插入console.log调试语句',
+                        code: "console.log('{cursor}:', {cursor});",
+                        shortcut: 'log'
+                    },
+                    {
+                        id: 2,
+                        name: '箭头函数',
+                        category: '前端',
+                        description: 'ES6箭头函数模板',
+                        code: 'const {cursor} = ({cursor}) => {\n  {cursor}\n};',
+                        shortcut: 'af'
+                    },
+                    {
+                        id: 3,
+                        name: 'async/await函数',
+                        category: '前端',
+                        description: '异步函数模板',
+                        code: 'async function {cursor}() {\n  try {\n    const result = await {cursor};\n    return result;\n  } catch (error) {\n    console.error(error);\n  }\n}',
+                        shortcut: 'async'
+                    },
+                    {
+                        id: 4,
+                        name: 'React组件',
+                        category: '前端',
+                        description: 'React函数组件模板',
+                        code: "import React from 'react';\n\nconst {cursor} = () => {\n  return (\n    <div>\n      {cursor}\n    </div>\n  );\n};\n\nexport default {cursor};",
+                        shortcut: 'rfc'
+                    },
+                    {
+                        id: 5,
+                        name: 'Vue组件',
+                        category: '前端',
+                        description: 'Vue 3组合式API组件',
+                        code: '<template>\n  <div>\n    {cursor}\n  </div>\n</template>\n\n<script setup>\nimport { ref } from "vue";\n\nconst {cursor} = ref(null);\n</script>\n\n<style scoped>\n</style>',
+                        shortcut: 'vue'
+                    },
+                    {
+                        id: 6,
+                        name: 'FastAPI路由',
+                        category: '后端',
+                        description: 'FastAPI路由模板',
+                        code: '@router.get("/{cursor}")\nasync def {cursor}():\n    """\n    {cursor}\n    """\n    return {"message": "{cursor}"}',
+                        shortcut: 'fa'
+                    },
+                    {
+                        id: 7,
+                        name: 'SQL查询',
+                        category: '数据库',
+                        description: 'SELECT查询模板',
+                        code: 'SELECT {cursor}\nFROM {cursor}\nWHERE {cursor}\nORDER BY {cursor}\nLIMIT {cursor};',
+                        shortcut: 'sel'
+                    },
+                    {
+                        id: 8,
+                        name: 'Git提交',
+                        category: '工具',
+                        description: 'Git提交命令模板',
+                        code: 'git add .\ngit commit -m "{cursor}"\ngit push',
+                        shortcut: 'gcp'
+                    }
+                ];
+            }
+            
+            saveSnippets() {
+                localStorage.setItem('codeSnippets', JSON.stringify(this.snippets));
+            }
+            
+            renderCategories() {
+                const categories = this.getCategories();
+                const list = document.getElementById('categoryList');
+                
+                list.innerHTML = `
+                    <div class="category-item ${this.currentCategory === '全部' ? 'active' : ''}" 
+                         onclick="sm.selectCategory('全部')">
+                        <span class="category-name">全部</span>
+                        <span class="category-count">${this.snippets.length}</span>
+                    </div>
+                    ${categories.map(cat => `
+                        <div class="category-item ${this.currentCategory === cat.name ? 'active' : ''}"
+                             onclick="sm.selectCategory('${cat.name}')">
+                            <span class="category-name">${cat.name}</span>
+                            <span class="category-count">${cat.count}</span>
+                        </div>
+                    `).join('')}
+                `;
+            }
+            
+            getCategories() {
+                const categoryMap = {};
+                this.snippets.forEach(s => {
+                    categoryMap[s.category] = (categoryMap[s.category] || 0) + 1;
+                });
+                
+                return Object.entries(categoryMap)
+                    .map(([name, count]) => ({ name, count }))
+                    .sort((a, b) => a.name.localeCompare(b.name));
+            }
+            
+            selectCategory(category) {
+                this.currentCategory = category;
+                document.getElementById('currentCategory').textContent = 
+                    category === '全部' ? '全部片段' : category;
+                this.renderCategories();
+                this.renderSnippets();
+            }
+            
+            renderSnippets() {
+                const grid = document.getElementById('snippetsGrid');
+                const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                
+                let filtered = this.snippets;
+                
+                // 分类过滤
+                if (this.currentCategory !== '全部') {
+                    filtered = filtered.filter(s => s.category === this.currentCategory);
+                }
+                
+                // 搜索过滤
+                if (searchTerm) {
+                    filtered = filtered.filter(s => 
+                        s.name.toLowerCase().includes(searchTerm) ||
+                        s.description.toLowerCase().includes(searchTerm) ||
+                        s.code.toLowerCase().includes(searchTerm) ||
+                        (s.shortcut && s.shortcut.toLowerCase().includes(searchTerm))
+                    );
+                }
+                
+                if (filtered.length === 0) {
+                    grid.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📝</div>
+                            <div class="empty-text">暂无代码片段</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                grid.innerHTML = filtered.map(s => `
+                    <div class="snippet-card" onclick="sm.copySnippet(${s.id})">
+                        <div class="snippet-header">
+                            <span class="snippet-name">${this.escapeHtml(s.name)}</span>
+                            ${s.shortcut ? `<span class="snippet-tag">${s.shortcut}</span>` : ''}
+                        </div>
+                        <div class="snippet-description">${this.escapeHtml(s.description)}</div>
+                        <div class="snippet-code">${this.escapeHtml(s.code)}</div>
+                        <div class="snippet-actions">
+                            <button class="snippet-btn" onclick="event.stopPropagation(); sm.copySnippet(${s.id})">
+                                📋 复制
+                            </button>
+                            <button class="snippet-btn" onclick="event.stopPropagation(); sm.editSnippet(${s.id})">
+                                ✏️ 编辑
+                            </button>
+                            <button class="snippet-btn" onclick="event.stopPropagation(); sm.deleteSnippet(${s.id})">
+                                🗑️ 删除
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            showAddModal() {
+                this.editingId = null;
+                document.getElementById('modalTitle').textContent = '新建代码片段';
+                document.getElementById('snippetName').value = '';
+                document.getElementById('snippetCategory').value = '前端';
+                document.getElementById('snippetDescription').value = '';
+                document.getElementById('snippetCode').value = '';
+                document.getElementById('snippetShortcut').value = '';
+                document.getElementById('snippetModal').classList.add('show');
+            }
+            
+            editSnippet(id) {
+                const snippet = this.snippets.find(s => s.id === id);
+                if (!snippet) return;
+                
+                this.editingId = id;
+                document.getElementById('modalTitle').textContent = '编辑代码片段';
+                document.getElementById('snippetName').value = snippet.name;
+                document.getElementById('snippetCategory').value = snippet.category;
+                document.getElementById('snippetDescription').value = snippet.description;
+                document.getElementById('snippetCode').value = snippet.code;
+                document.getElementById('snippetShortcut').value = snippet.shortcut || '';
+                document.getElementById('snippetModal').classList.add('show');
+            }
+            
+            hideModal() {
+                document.getElementById('snippetModal').classList.remove('show');
+            }
+            
+            saveSnippet() {
+                const name = document.getElementById('snippetName').value.trim();
+                const category = document.getElementById('snippetCategory').value;
+                const description = document.getElementById('snippetDescription').value.trim();
+                const code = document.getElementById('snippetCode').value;
+                const shortcut = document.getElementById('snippetShortcut').value.trim();
+                
+                if (!name || !code) {
+                    this.showToast('请填写名称和代码内容');
+                    return;
+                }
+                
+                if (this.editingId) {
+                    // 编辑
+                    const index = this.snippets.findIndex(s => s.id === this.editingId);
+                    if (index !== -1) {
+                        this.snippets[index] = {
+                            ...this.snippets[index],
+                            name,
+                            category,
+                            description,
+                            code,
+                            shortcut
+                        };
+                    }
+                } else {
+                    // 新建
+                    this.snippets.unshift({
+                        id: Date.now(),
+                        name,
+                        category,
+                        description,
+                        code,
+                        shortcut
+                    });
+                }
+                
+                this.saveSnippets();
+                this.renderCategories();
+                this.renderSnippets();
+                this.hideModal();
+                this.showToast(this.editingId ? '已更新' : '已添加');
+            }
+            
+            deleteSnippet(id) {
+                if (!confirm('确定要删除这个代码片段吗？')) return;
+                
+                this.snippets = this.snippets.filter(s => s.id !== id);
+                this.saveSnippets();
+                this.renderCategories();
+                this.renderSnippets();
+                this.showToast('已删除');
+            }
+            
+            copySnippet(id) {
+                const snippet = this.snippets.find(s => s.id === id);
+                if (!snippet) return;
+                
+                navigator.clipboard.writeText(snippet.code).then(() => {
+                    this.showToast('已复制到剪贴板');
+                });
+            }
+            
+            importSnippets() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const imported = JSON.parse(e.target.result);
+                            this.snippets = [...imported, ...this.snippets];
+                            this.saveSnippets();
+                            this.renderCategories();
+                            this.renderSnippets();
+                            this.showToast('导入成功');
+                        } catch (err) {
+                            this.showToast('导入失败：文件格式错误');
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+                input.click();
+            }
+            
+            exportSnippets() {
+                const blob = new Blob([JSON.stringify(this.snippets, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'code-snippets.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+            
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            bindEvents() {
+                // 搜索
+                document.getElementById('searchInput').addEventListener('input', () => {
+                    this.renderSnippets();
+                });
+                
+                // 快捷键
+                document.addEventListener('keydown', (e) => {
+                    // Ctrl+F 聚焦搜索
+                    if (e.ctrlKey && e.key === 'f') {
+                        e.preventDefault();
+                        document.getElementById('searchInput').focus();
+                    }
+                    
+                    // Esc关闭模态框
+                    if (e.key === 'Escape') {
+                        this.hideModal();
+                    }
+                });
+            }
+            
+            showToast(message) {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.classList.add('show');
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 2000);
+            }
+        }
+        
+        // 初始化
+        const sm = new SnippetManager();
+    </script>
+</body>
+</html>

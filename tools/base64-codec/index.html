@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Base64 编解码 - Base64 Codec</title>
+  <meta name="description" content="在线编码工具，支持 Base64/Base32/Base58/HEX 编解码、URL-safe、自动检测、实时预览、图片转换。">
+  <style>
+    :root {
+      --bg-base: #0d1117; --bg-surface: #161b27; --bg-elevated: #1c2133;
+      --border-default: #2a3050; --border-subtle: #1e2438;
+      --text-primary: #cdd6f4; --text-secondary: #8892b4; --text-muted: #4a5278;
+      --accent: #6366f1; --accent-light: #818cf8; --accent-green: #4ade80;
+      --accent-orange: #ff9e64; --accent-red: #f7768e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-base); color: var(--text-primary); min-height: 100vh; }
+    .header { background: var(--bg-surface); border-bottom: 1px solid var(--border-default); padding: 14px 20px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid var(--border-default); color: var(--text-muted); border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .main { padding: 20px; max-width: 1000px; margin: 0 auto; }
+    .card { background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: var(--bg-elevated); font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border-default); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+    .card-body { padding: 16px; }
+    textarea { width: 100%; background: var(--bg-base); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 12px; font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 13px; resize: vertical; outline: none; min-height: 140px; transition: border-color .2s; line-height: 1.6; word-break: break-all; }
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: var(--text-muted); }
+
+    .btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-light); }
+    .btn-secondary { background: var(--border-default); color: var(--text-secondary); }
+    .btn-secondary:hover { background: var(--accent); color: #fff; }
+    .btn-sm { padding: 3px 10px; font-size: 11px; border-radius: 4px; cursor: pointer; border: 1px solid var(--border-subtle); background: transparent; color: var(--text-muted); transition: all .2s; }
+    .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-sm.active { border-color: var(--accent); color: var(--accent); background: rgba(99,102,241,.1); }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .mode-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+    .mode-tab { padding: 7px 18px; background: var(--border-default); border: none; border-radius: 6px; color: var(--text-muted); font-size: 12px; cursor: pointer; transition: all .2s; }
+    .mode-tab.active { background: var(--accent); color: #fff; }
+
+    .options { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; padding: 10px 0; }
+    .checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); cursor: pointer; }
+    input[type=checkbox] { accent-color: var(--accent); }
+
+    .status { padding: 8px 0; font-size: 12px; }
+    .status.ok { color: var(--accent-green); }
+    .status.err { color: var(--accent-red); }
+    .status.warn { color: var(--accent-orange); }
+
+    .drop-zone { border: 2px dashed var(--border-default); border-radius: 8px; padding: 40px; text-align: center; cursor: pointer; transition: all .2s; }
+    .drop-zone:hover, .drop-zone.dragover { border-color: var(--accent); background: rgba(99,102,241,.05); }
+
+    .preview-area { margin-top: 12px; }
+    .preview-img { max-width: 100%; max-height: 300px; border-radius: 8px; border: 1px solid var(--border-subtle); }
+    .info-row { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+    .info-row span { background: var(--bg-base); padding: 3px 10px; border-radius: 4px; white-space: nowrap; }
+
+    .format-tabs { display: flex; gap: 4px; }
+
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--bg-elevated); color: var(--text-primary); padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border-default); font-size: 13px; z-index: 1000; opacity: 0; transition: all .3s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .history-panel { background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+    .history-item { padding: 10px 16px; border-bottom: 1px solid var(--border-subtle); font-size: 12px; cursor: pointer; transition: background .15s; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .history-item:hover { background: var(--bg-elevated); }
+    .history-item:last-child { border-bottom: none; }
+    .history-label { color: var(--text-muted); min-width: 50px; }
+    .history-input, .history-output { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+    .history-time { color: var(--text-muted); font-size: 11px; white-space: nowrap; }
+    .history-empty { padding: 20px; text-align: center; color: var(--text-muted); font-size: 12px; }
+
+    select, .select-input { background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 4px 8px; color: var(--text-primary); font-size: 12px; outline: none; }
+
+    @media (max-width: 700px) {
+      .options { flex-direction: column; gap: 8px; align-items: flex-start; }
+      .card-title { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">&#x1F510;</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">Base64 编解码</h1>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:2px">Base64 / Base32 / Base58 / HEX 编解码 &#183; 自动检测 &#183; 实时预览 &#183; 历史记录</p>
+  </div>
+  <a class="back-btn" href="../../index.html">&larr; 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="mode-tabs">
+    <button class="mode-tab active" onclick="switchMode('text')">&#x1F4DD; 文本模式</button>
+    <button class="mode-tab" onclick="switchMode('file')">&#x1F4C1; 文件模式</button>
+    <button class="mode-tab" onclick="switchMode('decode-file')">&#x1F4C2; Base64 转文件</button>
+    <button class="mode-tab" onclick="switchMode('history')">&#x1F4DA; 历史记录</button>
+  </div>
+
+  <!-- Text Mode -->
+  <div id="text-mode">
+    <div class="card">
+      <div class="card-title">输入
+        <span class="format-tabs">
+          <button class="btn-sm active" onclick="setEncoding('base64')" id="enc-base64">Base64</button>
+          <button class="btn-sm" onclick="setEncoding('base32')" id="enc-base32">Base32</button>
+          <button class="btn-sm" onclick="setEncoding('base58')" id="enc-base58">Base58</button>
+          <button class="btn-sm" onclick="setEncoding('hex')" id="enc-hex">HEX</button>
+        </span>
+        <span class="format-tabs">
+          <button class="btn-sm active" onclick="setFormat('standard')" id="fmt-standard">标准</button>
+          <button class="btn-sm" onclick="setFormat('urlsafe')" id="fmt-urlsafe">URL-safe</button>
+        </span>
+        <span class="format-tabs" id="hex-format-tabs" style="display:none">
+          <button class="btn-sm active" onclick="setHexFormat('none')" id="hf-none">无分隔</button>
+          <button class="btn-sm" onclick="setHexFormat('space')" id="hf-space">空格</button>
+          <button class="btn-sm" onclick="setHexFormat('0x')" id="hf-0x">0x前缀</button>
+        </span>
+      </div>
+      <div class="card-body">
+        <textarea id="text-input" placeholder="输入要编码/解码的文本或编码字符串...&#10;&#10;自动检测模式: 粘贴编码字符串自动解码，输入明文自动编码" oninput="onInputChange()"></textarea>
+        <div class="info-row" id="input-stats" style="margin-top:8px;display:none">
+          <span>字符: <b id="inp-chars">0</b></span>
+          <span>字节: <b id="inp-bytes">0</b></span>
+          <span>行: <b id="inp-lines">0</b></span>
+          <span id="inp-detect" style="color:var(--accent-light);display:none">&#x1F50D; 检测到: <b id="inp-detect-type"></b></span>
+        </div>
+        <div class="options">
+          <label class="checkbox-label"><input type="checkbox" checked id="opt-auto"> 自动检测</label>
+          <label class="checkbox-label"><input type="checkbox" checked id="opt-realtime"> 实时编解码</label>
+          <label class="checkbox-label"><input type="checkbox" checked id="opt-unicode"> 支持中文</label>
+          <label class="checkbox-label"><input type="checkbox" id="opt-nolinebreak"> 去除换行</label>
+          <label class="checkbox-label"><input type="checkbox" id="opt-fallback"> 解码失败自动尝试其他编码</label>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="doEncode()">&#x1F512; 编码</button>
+          <button class="btn btn-primary" onclick="doDecode()">&#x1F513; 解码</button>
+          <button class="btn btn-secondary" onclick="convertToHex()">&#x27A1; 转 HEX</button>
+          <button class="btn btn-secondary" onclick="convertToBase64()">&#x27A1; 转 Base64</button>
+          <button class="btn btn-secondary" onclick="swapInputOutput()">&#x21C4; 交换</button>
+          <button class="btn btn-secondary" onclick="pasteInput()">&#x1F4CB; 粘贴</button>
+          <button class="btn btn-secondary" onclick="clearAll()">&#x1F5D1;&#xFE0F; 清空</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">输出 <span style="display:flex;gap:6px">
+        <button class="btn-sm" style="background:var(--accent);border:none;color:#fff;border-radius:4px" onclick="copyOutput()">&#x1F4CB; 复制</button>
+      </span></div>
+      <div class="card-body">
+        <textarea id="text-output" placeholder="结果将显示在此..."></textarea>
+        <div class="info-row" id="output-stats" style="margin-top:8px;display:none">
+          <span>字符: <b id="out-chars">0</b></span>
+          <span>字节: <b id="out-bytes">0</b></span>
+          <span>行: <b id="out-lines">0</b></span>
+        </div>
+        <div class="status" id="text-status"></div>
+        <div class="preview-area" id="preview-area"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- File Mode -->
+  <div id="file-mode" style="display:none">
+    <div class="card">
+      <div class="card-title">文件转 Base64</div>
+      <div class="card-body">
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+          <p style="font-size:14px;color:var(--text-secondary)">&#x1F4C1; 点击或拖拽文件到此处</p>
+          <p style="font-size:12px;color:var(--text-muted);margin-top:8px">支持图片、文档等任意文件（建议 &lt; 2MB，大文件仅生成 Data URI）</p>
+        </div>
+        <input type="file" id="file-input" style="display:none" onchange="handleFileEncode(event)">
+        <div id="file-result"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Base64 to File -->
+  <div id="decode-file-mode" style="display:none">
+    <div class="card">
+      <div class="card-title">Base64 转文件</div>
+      <div class="card-body">
+        <textarea id="b64-file-input" placeholder="粘贴 Base64 字符串或 Data URI...&#10;&#10;例如: data:image/png;base64,iVBORw0KGgo...&#10;或纯 Base64 字符串" style="min-height:160px"></textarea>
+        <div class="options">
+          <label class="checkbox-label">MIME 类型:
+            <select id="b64-mime">
+              <option value="auto">自动检测</option>
+              <option value="image/png">image/png</option>
+              <option value="image/jpeg">image/jpeg</option>
+              <option value="image/gif">image/gif</option>
+              <option value="image/webp">image/webp</option>
+              <option value="image/svg+xml">image/svg+xml</option>
+              <option value="application/pdf">application/pdf</option>
+              <option value="text/plain">text/plain</option>
+              <option value="application/json">application/json</option>
+              <option value="application/octet-stream">application/octet-stream</option>
+            </select>
+          </label>
+          <label class="checkbox-label">文件名:
+            <input type="text" id="b64-filename" placeholder="download" style="background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:4px;padding:4px 8px;color:var(--text-primary);font-size:12px;outline:none;width:120px">
+          </label>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="decodeBase64ToFile()">&#x1F513; 解码并预览</button>
+          <button class="btn btn-primary" onclick="downloadDecodedFile()">&#x1F4E5; 下载</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('b64-file-input').value='';document.getElementById('decode-preview').innerHTML=''">&#x1F5D1;&#xFE0F; 清空</button>
+        </div>
+        <div id="decode-preview" style="margin-top:16px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div id="history-mode" style="display:none">
+    <div class="card">
+      <div class="card-title">历史记录 <span>
+        <button class="btn-sm" style="background:transparent;border:1px solid var(--border-subtle);color:var(--text-muted);border-radius:4px" onclick="clearHistory()">&#x1F5D1;&#xFE0F; 清空</button>
+      </span></div>
+      <div id="history-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let outputFormat = 'standard';
+let currentEncoding = 'base64';
+let hexFormat = 'none';
+let lastDecodedBytes = null;
+let lastDecodedMime = null;
+let realtimeTimer = null;
+
+// ============== History ==============
+const HISTORY_KEY = 'base64-codec-history';
+const MAX_HISTORY = 10;
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch(e) { return []; }
+}
+
+function saveHistory(record) {
+  const list = loadHistory();
+  list.unshift(record);
+  if (list.length > MAX_HISTORY) list.length = MAX_HISTORY;
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+}
+
+function clearHistory() {
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+  showToast('✓ 历史已清空');
+}
+
+function renderHistory() {
+  const list = loadHistory();
+  const el = document.getElementById('history-list');
+  if (!list.length) { el.innerHTML = '<div class="history-empty">暂无历史记录</div>'; return; }
+  el.innerHTML = list.map((r, i) => {
+    const inp = r.input.length > 40 ? r.input.slice(0, 40) + '...' : r.input;
+    const out = r.output.length > 40 ? r.output.slice(0, 40) + '...' : r.output;
+    return '<div class="history-item" onclick="restoreHistory(' + i + ')">' +
+      '<span class="history-label">' + escapeHtml(r.type) + '</span>' +
+      '<span class="history-input" title="' + escapeHtml(r.input) + '">' + escapeHtml(inp) + '</span>' +
+      '<span style="color:var(--text-muted)">&#x27A1;</span>' +
+      '<span class="history-output" title="' + escapeHtml(r.output) + '">' + escapeHtml(out) + '</span>' +
+      '<span class="history-time">' + escapeHtml(r.time) + '</span></div>';
+  }).join('');
+}
+
+function restoreHistory(idx) {
+  const list = loadHistory();
+  if (!list[idx]) return;
+  const r = list[idx];
+  document.getElementById('text-input').value = r.input;
+  document.getElementById('text-output').value = r.output;
+  if (r.encoding) setEncoding(r.encoding);
+  switchMode('text');
+  updateInputStats();
+  updateOutputStats();
+  showToast('✓ 已恢复');
+}
+
+// ============== Toast & Clipboard ==============
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => showToast('✓ 已复制')).catch(() => {
+    const ta = document.createElement('textarea'); ta.value = text;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta); showToast('✓ 已复制');
+  });
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ============== Stats ==============
+function updateInputStats() {
+  const input = document.getElementById('text-input').value;
+  const stats = document.getElementById('input-stats');
+  if (!input) { stats.style.display = 'none'; document.getElementById('inp-detect').style.display = 'none'; return; }
+  stats.style.display = 'flex';
+  document.getElementById('inp-chars').textContent = input.length;
+  document.getElementById('inp-bytes').textContent = new Blob([input]).size;
+  document.getElementById('inp-lines').textContent = input.split('\n').length;
+
+  // Show detection hint
+  const detectEl = document.getElementById('inp-detect');
+  const detectType = document.getElementById('inp-detect-type');
+  if (document.getElementById('opt-auto').checked) {
+    const detected = detectEncoding(input);
+    if (detected !== 'plain') {
+      detectType.textContent = detected.toUpperCase();
+      detectEl.style.display = 'inline';
+    } else {
+      detectEl.style.display = 'none';
+    }
+  } else {
+    detectEl.style.display = 'none';
+  }
+}
+
+function updateOutputStats() {
+  const output = document.getElementById('text-output').value;
+  const stats = document.getElementById('output-stats');
+  if (!output) { stats.style.display = 'none'; return; }
+  stats.style.display = 'flex';
+  document.getElementById('out-chars').textContent = output.length;
+  document.getElementById('out-bytes').textContent = new Blob([output]).size;
+  document.getElementById('out-lines').textContent = output.split('\n').length;
+}
+
+// ============== Mode & Format Switch ==============
+function switchMode(mode) {
+  document.querySelectorAll('.mode-tab').forEach((t, i) => {
+    t.classList.toggle('active',
+      (i === 0 && mode === 'text') || (i === 1 && mode === 'file') ||
+      (i === 2 && mode === 'decode-file') || (i === 3 && mode === 'history'));
+  });
+  document.getElementById('text-mode').style.display = mode === 'text' ? 'block' : 'none';
+  document.getElementById('file-mode').style.display = mode === 'file' ? 'block' : 'none';
+  document.getElementById('decode-file-mode').style.display = mode === 'decode-file' ? 'block' : 'none';
+  document.getElementById('history-mode').style.display = mode === 'history' ? 'block' : 'none';
+  if (mode === 'history') renderHistory();
+}
+
+function setEncoding(enc) {
+  currentEncoding = enc;
+  ['base64', 'base32', 'base58', 'hex'].forEach(e => {
+    const el = document.getElementById('enc-' + e);
+    if (el) el.classList.toggle('active', e === enc);
+  });
+  document.getElementById('hex-format-tabs').style.display = enc === 'hex' ? 'flex' : 'none';
+  // Trigger realtime if enabled
+  if (document.getElementById('opt-realtime').checked) {
+    const input = document.getElementById('text-input').value;
+    if (input) realtimeEncodeDecode();
+  }
+}
+
+function setFormat(fmt) {
+  outputFormat = fmt;
+  ['standard', 'urlsafe'].forEach(f => {
+    document.getElementById('fmt-' + f).classList.toggle('active', f === fmt);
+  });
+  if (document.getElementById('opt-realtime').checked) realtimeEncodeDecode();
+}
+
+function setHexFormat(fmt) {
+  hexFormat = fmt;
+  ['none', 'space', '0x'].forEach(f => {
+    document.getElementById('hf-' + f).classList.toggle('active', f === fmt);
+  });
+  if (document.getElementById('opt-realtime').checked) realtimeEncodeDecode();
+}
+
+// ============== Base32 ==============
+const BASE32_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+function base32Encode(input) {
+  const bytes = new TextEncoder().encode(input);
+  let bits = '';
+  for (const b of bytes) bits += b.toString(2).padStart(8, '0');
+  while (bits.length % 5) bits += '0';
+  let result = '';
+  for (let i = 0; i < bits.length; i += 5) result += BASE32_CHARS[parseInt(bits.slice(i, i + 5), 2)];
+  while (result.length % 8) result += '=';
+  return result;
+}
+
+function base32Decode(str) {
+  str = str.replace(/\s/g, '').toUpperCase();
+  const lookup = {};
+  for (let i = 0; i < BASE32_CHARS.length; i++) lookup[BASE32_CHARS[i]] = i;
+  let bits = '';
+  for (const ch of str) {
+    if (ch === '=') break;
+    if (lookup[ch] === undefined) throw new Error('Invalid Base32 character: ' + ch);
+    bits += lookup[ch].toString(2).padStart(5, '0');
+  }
+  const bytes = [];
+  for (let i = 0; i + 8 <= bits.length; i += 8) bytes.push(parseInt(bits.slice(i, i + 8), 2));
+  return new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(bytes));
+}
+
+// ============== Base58 (Bitcoin) ==============
+const BASE58_CHARS = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+const BASE58_MAP = {};
+for (let i = 0; i < BASE58_CHARS.length; i++) BASE58_MAP[BASE58_CHARS[i]] = i;
+
+function base58Encode(input) {
+  const bytes = new TextEncoder().encode(input);
+  let num = 0n;
+  for (const b of bytes) num = num * 256n + BigInt(b);
+
+  let result = '';
+  while (num > 0n) {
+    result = BASE58_CHARS[Number(num % 58n)] + result;
+    num /= 58n;
+  }
+  // Leading zero bytes → leading '1's
+  for (const b of bytes) { if (b === 0) result = '1' + result; else break; }
+  return result || '1';
+}
+
+function base58Decode(str) {
+  str = str.trim();
+  let num = 0n;
+  for (const ch of str) {
+    if (BASE58_MAP[ch] === undefined) throw new Error('Invalid Base58 character: ' + ch);
+    num = num * 58n + BigInt(BASE58_MAP[ch]);
+  }
+
+  // Count leading '1's for leading zero bytes
+  let leadingZeros = 0;
+  for (const ch of str) { if (ch === '1') leadingZeros++; else break; }
+
+  // Convert to bytes
+  const bytes = [];
+  while (num > 0n) { bytes.unshift(Number(num % 256n)); num /= 256n; }
+  while (bytes.length < leadingZeros) bytes.unshift(0);
+  return new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(bytes));
+}
+
+// ============== HEX ==============
+function hexEncode(input, format) {
+  const bytes = new TextEncoder().encode(input);
+  let hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  if (format === 'space') hex = hex.match(/.{2}/g).join(' ');
+  else if (format === '0x') hex = hex.match(/.{2}/g).map(h => '0x' + h).join(' ');
+  return hex.toUpperCase();
+}
+
+function hexDecode(str) {
+  str = str.replace(/\s/g, '').replace(/0x/gi, '');
+  if (!/^[0-9a-fA-F]*$/.test(str) || str.length % 2 !== 0) throw new Error('Invalid HEX string');
+  const bytes = [];
+  for (let i = 0; i < str.length; i += 2) bytes.push(parseInt(str.slice(i, i + 2), 16));
+  return new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(bytes));
+}
+
+// ============== Cross-encoding Conversion ==============
+function base64ToHex(b64) {
+  const cleaned = b64.replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/');
+  let padded = cleaned;
+  while (padded.length % 4) padded += '=';
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+
+function hexToBase64(hex) {
+  hex = hex.replace(/\s/g, '').replace(/0x/gi, '');
+  const bytes = [];
+  for (let i = 0; i < hex.length; i += 2) bytes.push(String.fromCharCode(parseInt(hex.slice(i, i + 2), 16)));
+  return btoa(bytes.join(''));
+}
+
+function convertToHex() {
+  const input = document.getElementById('text-input').value.trim();
+  if (!input) { setStatus('请输入内容', 'err'); return; }
+  try {
+    let bytes = trySmartDecode(input);
+    let hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+    document.getElementById('text-output').value = formatHex(hex, hexFormat);
+    setStatus('✓ 转换为 HEX 成功', 'ok');
+    updateOutputStats();
+  } catch(e) { setStatus('✗ 转换失败: ' + e.message, 'err'); }
+}
+
+function convertToBase64() {
+  const input = document.getElementById('text-input').value.trim();
+  if (!input) { setStatus('请输入内容', 'err'); return; }
+  try {
+    let bytes = trySmartDecode(input);
+    let binary = '';
+    bytes.forEach(b => binary += String.fromCharCode(b));
+    document.getElementById('text-output').value = btoa(binary);
+    setStatus('✓ 转换为 Base64 成功', 'ok');
+    updateOutputStats();
+  } catch(e) { setStatus('✗ 转换失败: ' + e.message, 'err'); }
+}
+
+/**
+ * 智能解码: 先按当前 tab 尝试解码，失败则遍历其他编码格式。
+ * 全部失败则当明文处理（TextEncoder 编码为 UTF-8 字节）。
+ */
+function trySmartDecode(input) {
+  // 优先尝试当前 tab 对应的编码
+  const order = [currentEncoding, 'base64', 'hex', 'base32', 'base58'];
+  const tried = new Set();
+  for (const enc of order) {
+    if (tried.has(enc)) continue;
+    tried.add(enc);
+    const bytes = tryDecodeToBytes(input, enc);
+    if (bytes !== null) return bytes;
+  }
+  return new TextEncoder().encode(input);
+}
+
+function formatHex(hex, fmt) {
+  if (fmt === 'space') return hex.match(/.{2}/g).join(' ');
+  if (fmt === '0x') return hex.match(/.{2}/g).map(h => '0x' + h).join(' ');
+  return hex;
+}
+
+function tryDecodeToBytes(input, enc) {
+  try {
+    if (enc === 'base64') {
+      let b64 = input.replace(/-/g, '+').replace(/_/g, '/').replace(/\s/g, '');
+      while (b64.length % 4) b64 += '=';
+      const decoded = atob(b64);
+      const bytes = new Uint8Array(decoded.length);
+      for (let i = 0; i < decoded.length; i++) bytes[i] = decoded.charCodeAt(i);
+      // 校验：如果是合法 UTF-8 文本，则解码成功；否则可能是误判
+      try { new TextDecoder('utf-8', { fatal: true }).decode(bytes); return bytes; }
+      catch(e) { return null; }
+    } else if (enc === 'base32') {
+      const plain = base32Decode(input);
+      return new TextEncoder().encode(plain);
+    } else if (enc === 'base58') {
+      const bytes = new Uint8Array(base58Decode(input));
+      try { new TextDecoder('utf-8', { fatal: true }).decode(bytes); return bytes; }
+      catch(e) { return null; }
+    } else if (enc === 'hex') {
+      const hex = input.replace(/\s/g, '').replace(/0x/gi, '');
+      if (!/^[0-9a-fA-F]*$/.test(hex) || hex.length % 2 !== 0) return null;
+      const bytes = [];
+      for (let i = 0; i < hex.length; i += 2) bytes.push(parseInt(hex.slice(i, i + 2), 16));
+      return new Uint8Array(bytes);
+    }
+  } catch(e) {
+    return null;
+  }
+  return null;
+}
+
+// ============== Auto Detect ==============
+function detectEncoding(str) {
+  const trimmed = str.trim();
+  if (isLikelyBase64(trimmed)) return 'base64';
+  if (isLikelyBase58(trimmed)) return 'base58';
+  if (isLikelyBase32(trimmed)) return 'base32';
+  if (isLikelyHex(trimmed)) return 'hex';
+  return 'plain';
+}
+
+function isLikelyBase64(str) {
+  const cleaned = str.replace(/\s/g, '').replace(/^-{5}BEGIN.*-{5}\n?/, '').replace(/\n?-{5}END.*-{5}$/, '');
+  if (cleaned.startsWith('data:')) return true;
+  if (cleaned.length < 8) return false;
+  if (/^[A-Za-z0-9+/\-_]+=*$/.test(cleaned) && cleaned.length % 4 <= 2) return true;
+  const b64Chars = cleaned.replace(/[^A-Za-z0-9+/\-_=\s]/g, '').length;
+  return b64Chars / cleaned.length > 0.8 && cleaned.length > 20;
+}
+
+function isLikelyBase58(str) {
+  const cleaned = str.replace(/\s/g, '');
+  // Base58 doesn't contain 0,O,I,l — check if input only has Base58 chars and no 0/O/I/l
+  if (!/^[1-9A-HJ-NP-Za-km-z]+$/.test(cleaned)) return false;
+  if (cleaned.length < 4) return false;
+  // If it has no 0,O,I,l and is long enough, likely base58
+  const hasExcluded = /[0OIl]/.test(cleaned);
+  return !hasExcluded && cleaned.length >= 4;
+}
+
+function isLikelyBase32(str) {
+  const cleaned = str.replace(/\s/g, '').toUpperCase();
+  return /^[A-Z2-7]+=*$/.test(cleaned) && cleaned.length >= 8;
+}
+
+function isLikelyHex(str) {
+  const cleaned = str.replace(/\s/g, '').replace(/0x/gi, '');
+  return /^[0-9a-fA-F]+$/.test(cleaned) && cleaned.length >= 2 && cleaned.length % 2 === 0;
+}
+
+// ============== Realtime ==============
+function onInputChange() {
+  updateInputStats();
+  if (document.getElementById('opt-realtime').checked && document.getElementById('opt-auto').checked) {
+    clearTimeout(realtimeTimer);
+    realtimeTimer = setTimeout(realtimeEncodeDecode, 200);
+  }
+}
+
+function realtimeEncodeDecode() {
+  const input = document.getElementById('text-input').value.trim();
+  if (!input) {
+    document.getElementById('text-output').value = '';
+    document.getElementById('output-stats').style.display = 'none';
+    setStatus('', '');
+    document.getElementById('preview-area').innerHTML = '';
+    return;
+  }
+
+  const detected = detectEncoding(input);
+  if (detected !== 'plain') {
+    // Auto switch encoding tab
+    if (currentEncoding !== detected) setEncoding(detected);
+    silentDecode();
+  } else {
+    silentEncode();
+  }
+}
+
+function silentEncode() {
+  const input = document.getElementById('text-input').value;
+  if (!input) return;
+  try {
+    let encoded;
+    if (currentEncoding === 'base64') {
+      const bytes = new TextEncoder().encode(input);
+      let binary = '';
+      bytes.forEach(b => binary += String.fromCharCode(b));
+      encoded = btoa(binary);
+      if (document.getElementById('opt-nolinebreak').checked) encoded = encoded.replace(/\s/g, '');
+      if (outputFormat === 'urlsafe') encoded = encoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    } else if (currentEncoding === 'base32') {
+      encoded = base32Encode(input);
+    } else if (currentEncoding === 'base58') {
+      encoded = base58Encode(input);
+    } else if (currentEncoding === 'hex') {
+      encoded = hexEncode(input, hexFormat);
+    }
+    document.getElementById('text-output').value = encoded;
+    setStatus('✓ ' + currentEncoding.toUpperCase() + ' 编码成功，输出 ' + encoded.length + ' 字符', 'ok');
+    document.getElementById('preview-area').innerHTML = '';
+    updateOutputStats();
+  } catch(e) {
+    setStatus('✗ 编码失败: ' + e.message, 'err');
+  }
+}
+
+function silentDecode() {
+  const input = document.getElementById('text-input').value.trim();
+  if (!input) return;
+  try {
+    let result = '';
+    if (currentEncoding === 'base64') {
+      result = decodeBase64String(input);
+    } else if (currentEncoding === 'base32') {
+      result = base32Decode(input);
+    } else if (currentEncoding === 'base58') {
+      result = base58Decode(input);
+    } else if (currentEncoding === 'hex') {
+      result = hexDecode(input);
+    }
+    document.getElementById('text-output').value = result;
+    setStatus('✓ ' + currentEncoding.toUpperCase() + ' 解码成功', 'ok');
+    document.getElementById('preview-area').innerHTML = '';
+    updateOutputStats();
+  } catch(e) {
+    // Fallback: try other encodings
+    if (document.getElementById('opt-fallback').checked) {
+      tryFallbackDecode(input);
+    } else {
+      setStatus('✗ 解码失败: ' + e.message, 'err');
+      document.getElementById('preview-area').innerHTML = '';
+    }
+  }
+}
+
+function tryFallbackDecode(input) {
+  const encodings = ['base64', 'base32', 'hex', 'base58'];
+  for (const enc of encodings) {
+    if (enc === currentEncoding) continue;
+    try {
+      let result = '';
+      if (enc === 'base64') result = decodeBase64String(input);
+      else if (enc === 'base32') result = base32Decode(input);
+      else if (enc === 'hex') result = hexDecode(input);
+      else if (enc === 'base58') result = base58Decode(input);
+
+      setEncoding(enc);
+      document.getElementById('text-output').value = result;
+      setStatus('✓ 自动切换为 ' + enc.toUpperCase() + ' 解码成功', 'ok');
+      document.getElementById('preview-area').innerHTML = '';
+      updateOutputStats();
+      return;
+    } catch(e) { /* continue */ }
+  }
+  setStatus('✗ 所有编码格式均无法解码', 'err');
+  document.getElementById('preview-area').innerHTML = '';
+}
+
+function decodeBase64String(input) {
+  let b64 = input;
+  let mime = null;
+  if (b64.startsWith('data:')) {
+    const m = b64.match(/^data:([^;]+);base64,/);
+    if (m) { mime = m[1]; b64 = b64.slice(m[0].length); }
+  }
+  b64 = b64.replace(/^-{5}BEGIN.*-{5}\s*/m, '').replace(/\s*-{5}END.*-{5}$/m, '');
+  b64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+  b64 = b64.replace(/\s/g, '');
+  while (b64.length % 4) b64 += '=';
+  const decoded = atob(b64);
+  const bytes = new Uint8Array(decoded.length);
+  for (let i = 0; i < decoded.length; i++) bytes[i] = decoded.charCodeAt(i);
+
+  let previewHtml = '';
+  if (mime && mime.startsWith('image/')) {
+    previewHtml = '<div class="preview-area"><img class="preview-img" src="data:' + mime + ';base64,' + b64 + '"></div>';
+  }
+  document.getElementById('preview-area').innerHTML = previewHtml;
+
+  const result = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+  setStatus('✓ Base64 解码成功，输出 ' + result.length + ' 字符' + (mime ? ' (MIME: ' + mime + ')' : ''), 'ok');
+  return result;
+}
+
+// ============== Encode / Decode (manual) ==============
+function doEncode() {
+  const input = document.getElementById('text-input').value;
+  if (!input) { setStatus('请输入文本', 'err'); return; }
+  silentEncode();
+  // Save to history
+  saveHistory({ type: currentEncoding.toUpperCase() + ' 编码', input: input.slice(0, 500), output: document.getElementById('text-output').value.slice(0, 500), encoding: currentEncoding, time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) });
+}
+
+function doDecode() {
+  const input = document.getElementById('text-input').value.trim();
+  if (!input) { setStatus('请输入编码字符串', 'err'); return; }
+
+  try {
+    let result = '';
+    if (currentEncoding === 'base64') {
+      result = decodeBase64String(input);
+    } else if (currentEncoding === 'base32') {
+      result = base32Decode(input);
+      document.getElementById('preview-area').innerHTML = '';
+      setStatus('✓ Base32 解码成功，输出 ' + result.length + ' 字符', 'ok');
+    } else if (currentEncoding === 'base58') {
+      result = base58Decode(input);
+      document.getElementById('preview-area').innerHTML = '';
+      setStatus('✓ Base58 解码成功，输出 ' + result.length + ' 字符', 'ok');
+    } else if (currentEncoding === 'hex') {
+      result = hexDecode(input);
+      document.getElementById('preview-area').innerHTML = '';
+      setStatus('✓ HEX 解码成功，输出 ' + result.length + ' 字符', 'ok');
+    }
+    document.getElementById('text-output').value = result;
+    updateOutputStats();
+    saveHistory({ type: currentEncoding.toUpperCase() + ' 解码', input: input.slice(0, 500), output: result.slice(0, 500), encoding: currentEncoding, time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) });
+  } catch(e) {
+    if (document.getElementById('opt-fallback').checked) {
+      tryFallbackDecode(input);
+      if (document.getElementById('text-output').value) {
+        saveHistory({ type: currentEncoding.toUpperCase() + ' 解码(自动)', input: input.slice(0, 500), output: document.getElementById('text-output').value.slice(0, 500), encoding: currentEncoding, time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) });
+      }
+    } else {
+      setStatus('✗ 解码失败: ' + e.message, 'err');
+      document.getElementById('preview-area').innerHTML = '';
+    }
+  }
+}
+
+// ============== File Encode ==============
+function handleFileEncode(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('⚠️ 文件较大 (' + (file.size / 1024 / 1024).toFixed(1) + ' MB)，编码可能较慢');
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUri = e.target.result;
+    const base64 = dataUri.split(',')[1];
+    const sizeInfo = file.size < 1024 ? file.size + ' B' :
+                     file.size < 1048576 ? (file.size / 1024).toFixed(1) + ' KB' :
+                     (file.size / 1048576).toFixed(1) + ' MB';
+
+    const resultEl = document.getElementById('file-result');
+    resultEl.innerHTML = '';
+
+    const infoRow = document.createElement('div');
+    infoRow.className = 'info-row';
+    infoRow.innerHTML = '<span>&#x1F4C4; ' + escapeHtml(file.name) + '</span><span>&#x1F4CF; ' + sizeInfo + '</span><span>&#x1F4CB; ' + escapeHtml(file.type || 'unknown') + '</span>';
+    resultEl.appendChild(infoRow);
+
+    if (file.type.startsWith('image/')) {
+      const previewDiv = document.createElement('div');
+      previewDiv.className = 'preview-area';
+      const img = document.createElement('img');
+      img.className = 'preview-img';
+      img.src = dataUri;
+      previewDiv.appendChild(img);
+      resultEl.appendChild(previewDiv);
+    }
+
+    const ta = document.createElement('textarea');
+    ta.readOnly = true;
+    ta.value = base64;
+    ta.style.cssText = 'width:100%;height:100px;background:var(--bg-base);color:var(--text-secondary);border:1px solid var(--border-subtle);border-radius:6px;padding:10px;font-size:11px;font-family:monospace;resize:vertical;margin-top:8px';
+    resultEl.appendChild(ta);
+
+    const btnRow = document.createElement('div');
+    btnRow.className = 'btn-row';
+    btnRow.style.marginTop = '8px';
+
+    const btn1 = document.createElement('button');
+    btn1.className = 'btn btn-primary';
+    btn1.textContent = '&#x1F4CB; 复制 Base64';
+    btn1.onclick = () => copyToClipboard(base64);
+
+    const btn2 = document.createElement('button');
+    btn2.className = 'btn btn-secondary';
+    btn2.textContent = '&#x1F4CB; 复制 Data URI';
+    btn2.onclick = () => copyToClipboard(dataUri);
+
+    btnRow.appendChild(btn1);
+    btnRow.appendChild(btn2);
+    resultEl.appendChild(btnRow);
+
+    showToast('✓ 文件编码完成');
+  };
+  reader.readAsDataURL(file);
+}
+
+// ============== Base64 to File ==============
+function decodeBase64ToFile() {
+  const input = document.getElementById('b64-file-input').value.trim();
+  if (!input) { showToast('请输入 Base64 字符串'); return; }
+
+  let b64 = input;
+  let mime = document.getElementById('b64-mime').value;
+
+  if (b64.startsWith('data:')) {
+    const m = b64.match(/^data:([^;,]+);base64,/);
+    if (m) { if (mime === 'auto') mime = m[1]; b64 = b64.slice(m[0].length); }
+  }
+
+  b64 = b64.replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4) b64 += '=';
+
+  try {
+    const decoded = atob(b64);
+    const bytes = new Uint8Array(decoded.length);
+    for (let i = 0; i < decoded.length; i++) bytes[i] = decoded.charCodeAt(i);
+
+    lastDecodedBytes = bytes;
+    lastDecodedMime = mime === 'auto' ? detectMime(bytes) : mime;
+
+    let previewHtml = '';
+    if (lastDecodedMime.startsWith('image/')) {
+      const blob = new Blob([bytes], { type: lastDecodedMime });
+      previewHtml = '<img class="preview-img" src="' + URL.createObjectURL(blob) + '">';
+    } else if (lastDecodedMime === 'application/pdf') {
+      previewHtml = '<div style="padding:12px;background:var(--bg-base);border-radius:6px;font-size:13px;color:var(--text-secondary)">&#x1F4C4; PDF 文件 (' + bytes.length + ' 字节)，点击下载查看</div>';
+    } else if (lastDecodedMime.startsWith('text/')) {
+      const text = new TextDecoder().decode(bytes);
+      previewHtml = '<textarea style="width:100%;height:120px;background:var(--bg-base);color:var(--text-primary);border:1px solid var(--border-subtle);border-radius:6px;padding:10px;font-size:12px;font-family:monospace;resize:vertical" readonly>' + escapeHtml(text) + '</textarea>';
+    }
+
+    const ext = mimeToExt(lastDecodedMime);
+    previewHtml += '<div class="info-row"><span>类型: ' + lastDecodedMime + '</span><span>大小: ' + (bytes.length / 1024).toFixed(1) + ' KB</span><span>扩展名: ' + ext + '</span></div>';
+
+    document.getElementById('decode-preview').innerHTML = previewHtml;
+    showToast('✓ 解码成功');
+  } catch(e) {
+    showToast('✗ 解码失败: 不是有效的 Base64');
+  }
+}
+
+function downloadDecodedFile() {
+  if (!lastDecodedBytes) { showToast('请先解码'); return; }
+  const blob = new Blob([lastDecodedBytes], { type: lastDecodedMime });
+  const ext = mimeToExt(lastDecodedMime);
+  const filename = (document.getElementById('b64-filename').value || 'download') + '.' + ext;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('✓ 已下载: ' + filename);
+}
+
+function detectMime(bytes) {
+  if (bytes[0] === 0x89 && bytes[1] === 0x50) return 'image/png';
+  if (bytes[0] === 0xFF && bytes[1] === 0xD8) return 'image/jpeg';
+  if (bytes[0] === 0x47 && bytes[1] === 0x49) return 'image/gif';
+  if (bytes[0] === 0x52 && bytes[1] === 0x49) return 'image/webp';
+  if (bytes[0] === 0x25 && bytes[1] === 0x50) return 'application/pdf';
+  if (bytes[0] === 0x7B || bytes[0] === 0x5B) return 'application/json';
+  return 'application/octet-stream';
+}
+
+function mimeToExt(mime) {
+  const map = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp',
+    'image/svg+xml': 'svg', 'application/pdf': 'pdf', 'text/plain': 'txt', 'application/json': 'json' };
+  return map[mime] || 'bin';
+}
+
+// ============== Utilities ==============
+function setStatus(msg, type) {
+  const el = document.getElementById('text-status');
+  el.textContent = msg;
+  el.className = 'status ' + (type || '');
+}
+
+function copyOutput() {
+  const text = document.getElementById('text-output').value;
+  if (!text) { showToast('输出为空'); return; }
+  copyToClipboard(text);
+}
+
+function swapInputOutput() {
+  const inp = document.getElementById('text-input');
+  const out = document.getElementById('text-output');
+  [inp.value, out.value] = [out.value, inp.value];
+  updateInputStats();
+  updateOutputStats();
+}
+
+function pasteInput() {
+  navigator.clipboard.readText().then(text => {
+    document.getElementById('text-input').value = text;
+    showToast('✓ 已粘贴');
+    updateInputStats();
+    if (document.getElementById('opt-auto').checked) {
+      setTimeout(realtimeEncodeDecode, 100);
+    }
+  }).catch(() => showToast('无法读取剪贴板'));
+}
+
+function clearAll() {
+  document.getElementById('text-input').value = '';
+  document.getElementById('text-output').value = '';
+  setStatus('', '');
+  document.getElementById('preview-area').innerHTML = '';
+  document.getElementById('input-stats').style.display = 'none';
+  document.getElementById('output-stats').style.display = 'none';
+}
+
+// ============== Drag & Drop ==============
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) handleFileEncode({ target: { files: [e.dataTransfer.files[0]] } });
+});
+
+// Auto detect on paste
+document.getElementById('text-input').addEventListener('paste', () => {
+  setTimeout(() => {
+    updateInputStats();
+    if (document.getElementById('opt-auto').checked) {
+      if (document.getElementById('opt-realtime').checked) {
+        realtimeEncodeDecode();
+      } else {
+        doAutoDetect();
+      }
+    }
+  }, 50);
+});
+
+function doAutoDetect() {
+  const input = document.getElementById('text-input').value.trim();
+  if (!input || !document.getElementById('opt-auto').checked) return;
+
+  const detected = detectEncoding(input);
+  if (detected !== 'plain') {
+    if (currentEncoding !== detected) setEncoding(detected);
+    doDecode();
+  } else {
+    doEncode();
+  }
+}
+
+// ============== Keyboard Shortcuts ==============
+document.addEventListener('keydown', (e) => {
+  const isCtrl = e.ctrlKey || e.metaKey;
+  if (isCtrl && e.key === 'Enter') { e.preventDefault(); doEncode(); }
+  if (isCtrl && e.key === 's') { e.preventDefault(); copyOutput(); }
+});
+</script>
+</body>
+</html>

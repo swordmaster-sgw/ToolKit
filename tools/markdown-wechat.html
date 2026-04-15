@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown微信公众号编辑器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            height: calc(100vh - 40px);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-left h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .header-left p {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        
+        .header-right {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .editor-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #e9ecef;
+        }
+        
+        .editor-toolbar {
+            padding: 12px 24px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .toolbar-btn {
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        .toolbar-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .toolbar-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .editor-textarea {
+            flex: 1;
+            padding: 24px;
+            border: none;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+        }
+        
+        .preview-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .preview-toolbar {
+            padding: 12px 24px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .preview-content {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+            background: white;
+            font-size: 16px;
+            line-height: 1.8;
+            color: #333;
+        }
+        
+        /* 微信排版样式 */
+        .preview-content.wechat-style {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            line-height: 1.75;
+            color: #333;
+            padding: 20px 16px;
+        }
+        
+        .preview-content.wechat-style h1 {
+            font-size: 22px;
+            font-weight: 600;
+            margin: 24px 0 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .preview-content.wechat-style h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 24px 0 12px;
+            padding-left: 12px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .preview-content.wechat-style h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 20px 0 12px;
+        }
+        
+        .preview-content.wechat-style p {
+            margin: 16px 0;
+            text-align: justify;
+        }
+        
+        .preview-content.wechat-style code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #e83e8c;
+        }
+        
+        .preview-content.wechat-style pre {
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 16px 0;
+        }
+        
+        .preview-content.wechat-style pre code {
+            background: none;
+            padding: 0;
+            color: #333;
+        }
+        
+        .preview-content.wechat-style blockquote {
+            border-left: 4px solid #667eea;
+            padding: 12px 16px;
+            margin: 16px 0;
+            background: #f8f9fa;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .preview-content.wechat-style ul, .preview-content.wechat-style ol {
+            margin: 16px 0;
+            padding-left: 24px;
+        }
+        
+        .preview-content.wechat-style li {
+            margin: 8px 0;
+        }
+        
+        .preview-content.wechat-style img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 16px auto;
+            border-radius: 8px;
+        }
+        
+        .preview-content.wechat-style a {
+            color: #667eea;
+            text-decoration: none;
+            border-bottom: 1px solid #667eea;
+        }
+        
+        .preview-content.wechat-style strong {
+            font-weight: 600;
+            color: #000;
+        }
+        
+        .preview-content.wechat-style em {
+            font-style: italic;
+            color: #666;
+        }
+        
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 600px;
+            max-width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .modal-close {
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            background: none;
+            border: none;
+        }
+        
+        .modal-body {
+            padding: 24px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 10px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        
+        .template-item {
+            padding: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .template-item:hover {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+        
+        .template-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .template-desc {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .modal-footer {
+            padding: 24px;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .btn-secondary:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #333;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            z-index: 1001;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1>📝 Markdown微信公众号编辑器</h1>
+                <p>专为技术公众号优化的排版工具，一键复制微信格式</p>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-secondary" onclick="mw.showTemplateModal()">
+                    📄 模板
+                </button>
+                <button class="btn btn-secondary" onclick="mw.insertImage()">
+                    🖼️ 插入图片
+                </button>
+                <button class="btn btn-primary" onclick="mw.copyToClipboard()">
+                    📋 复制微信格式
+                </button>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="editor-panel">
+                <div class="editor-toolbar">
+                    <button class="toolbar-btn" onclick="mw.insertHeader()" title="插入标题">H</button>
+                    <button class="toolbar-btn" onclick="mw.insertBold()" title="加粗"><strong>B</strong></button>
+                    <button class="toolbar-btn" onclick="mw.insertItalic()" title="斜体"><em>I</em></button>
+                    <button class="toolbar-btn" onclick="mw.insertCode()" title="行内代码">`code`</button>
+                    <button class="toolbar-btn" onclick="mw.insertCodeBlock()" title="代码块">```</button>
+                    <button class="toolbar-btn" onclick="mw.insertLink()" title="链接">🔗</button>
+                    <button class="toolbar-btn" onclick="mw.insertList()" title="列表">• List</button>
+                    <button class="toolbar-btn" onclick="mw.insertQuote()" title="引用">"</button>
+                    <button class="toolbar-btn" onclick="mw.insertTable()" title="表格">⊞</button>
+                    <button class="toolbar-btn" onclick="mw.clearFormat()" title="清除格式">🧹</button>
+                </div>
+                <textarea class="editor-textarea" id="markdownInput" placeholder="在这里输入 Markdown 内容..."></textarea>
+            </div>
+            
+            <div class="preview-panel">
+                <div class="preview-toolbar">
+                    <div style="font-weight: 500;">预览</div>
+                    <div>
+                        <button class="toolbar-btn active" onclick="mw.setPreviewStyle('wechat')" id="wechatStyleBtn">微信</button>
+                        <button class="toolbar-btn" onclick="mw.setPreviewStyle('standard')" id="standardStyleBtn">标准</button>
+                    </div>
+                </div>
+                <div class="preview-content wechat-style" id="previewContent">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 模板模态框 -->
+    <div class="modal" id="templateModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">选择模板</div>
+                <button class="modal-close" onclick="mw.hideTemplateModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="template-grid">
+                    <div class="template-item" onclick="mw.useTemplate('tech-article')">
+                        <div class="template-title">📚 技术文章</div>
+                        <div class="template-desc">适合技术分享、教程类文章</div>
+                    </div>
+                    <div class="template-item" onclick="mw.useTemplate('project-intro')">
+                        <div class="template-title">🚀 项目介绍</div>
+                        <div class="template-desc">适合开源项目、产品发布</div>
+                    </div>
+                    <div class="template-item" onclick="mw.useTemplate('interview')">
+                        <div class="template-title">💼 面试经验</div>
+                        <div class="template-desc">适合面经分享、求职经验</div>
+                    </div>
+                    <div class="template-item" onclick="mw.useTemplate('weekly')">
+                        <div class="template-title">📅 周刊/月报</div>
+                        <div class="template-desc">适合技术周刊、月度总结</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // Markdown微信编辑器
+        class MarkdownWechatEditor {
+            constructor() {
+                this.markdownInput = document.getElementById('markdownInput');
+                this.previewContent = document.getElementById('previewContent');
+                this.currentStyle = 'wechat';
+                this.init();
+            }
+            
+            init() {
+                this.bindEvents();
+                this.render();
+            }
+            
+            bindEvents() {
+                this.markdownInput.addEventListener('input', () => {
+                    this.render();
+                });
+                
+                // 快捷键
+                document.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                        switch(e.key) {
+                            case 'b':
+                                e.preventDefault();
+                                this.insertBold();
+                                break;
+                            case 'i':
+                                e.preventDefault();
+                                this.insertItalic();
+                                break;
+                            case 'k':
+                                e.preventDefault();
+                                this.insertLink();
+                                break;
+                        }
+                    }
+                });
+            }
+            
+            render() {
+                const markdown = this.markdownInput.value;
+                const html = this.parseMarkdown(markdown);
+                this.previewContent.innerHTML = html;
+            }
+            
+            parseMarkdown(markdown) {
+                if (!markdown.trim()) {
+                    return '<div style="text-align: center; color: #999; padding: 60px;">预览内容将在这里显示</div>';
+                }
+                
+                let html = markdown;
+                
+                // 代码块（必须在行内代码之前处理）
+                html = html.replace(/```([\s\S]*?)```/g, (match, code) => {
+                    return `<pre><code>${this.escapeHtml(code.trim())}</code></pre>`;
+                });
+                
+                // 标题（支持到六级标题）
+                html = html.replace(/^###### (.*?)$/gm, '<h6>$1</h6>');
+                html = html.replace(/^##### (.*?)$/gm, '<h5>$1</h5>');
+                html = html.replace(/^#### (.*?)$/gm, '<h4>$1</h4>');
+                html = html.replace(/^### (.*?)$/gm, '<h3>$1</h3>');
+                html = html.replace(/^## (.*?)$/gm, '<h2>$1</h2>');
+                html = html.replace(/^# (.*?)$/gm, '<h1>$1</h1>');
+                
+                // 分隔线
+                html = html.replace(/^---$/gm, '<hr>');
+                html = html.replace(/^\*\*\*$/gm, '<hr>');
+                html = html.replace(/^___$/gm, '<hr>');
+                
+                // 引用（支持多行引用）
+                html = html.replace(/^> (.*$\n?)+/gm, (match) => {
+                    const content = match.replace(/^> /gm, '');
+                    return `<blockquote>${this.parseMarkdown(content)}</blockquote>`;
+                });
+                
+                // 任务列表（必须在普通列表之前处理）
+                html = html.replace(/^- \[x\] (.*?)$/gm, '<li><input type="checkbox" checked disabled> $1</li>');
+                html = html.replace(/^- \[ \] (.*?)$/gm, '<li><input type="checkbox" disabled> $1</li>');
+                
+                // 粗体
+                html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
+                
+                // 斜体
+                html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                html = html.replace(/_(.*?)_/g, '<em>$1</em>');
+                
+                // 删除线
+                html = html.replace(/~~(.*?)~~/g, '<del>$1</del>');
+                
+                // 行内代码
+                html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+                
+                // 链接
+                html = html.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+                
+                // 图片
+                html = html.replace(/!\[([^\]]*)\]\(([^\)]+)\)/g, '<img src="$2" alt="$1">');
+                
+                // 表格
+                html = html.replace(/\n\|(.+?)\|\n\|([-:]+[-+:]*)\|\n((?:\|.*\|\n)+)/g, (match, header, separator, rows) => {
+                    const headerCells = header.split('|').map(cell => cell.trim()).filter(cell => cell);
+                    const rowLines = rows.trim().split('\n');
+                    
+                    let tableHTML = '<table><thead><tr>';
+                    headerCells.forEach(cell => {
+                        tableHTML += `<th>${cell}</th>`;
+                    });
+                    tableHTML += '</tr></thead><tbody>';
+                    
+                    rowLines.forEach(row => {
+                        if (row.startsWith('|')) {
+                            const cells = row.split('|').map(cell => cell.trim()).filter(cell => cell);
+                            if (cells.length > 0) {
+                                tableHTML += '<tr>';
+                                cells.forEach(cell => {
+                                    tableHTML += `<td>${cell}</td>`;
+                                });
+                                tableHTML += '</tr>';
+                            }
+                        }
+                    });
+                    
+                    tableHTML += '</tbody></table>';
+                    return tableHTML;
+                });
+                
+                // 列表（必须在段落之前处理）
+                html = this.parseLists(html);
+                
+                // 段落
+                html = html.replace(/\n\n+/g, '</p><p>');
+                html = '<p>' + html + '</p>';
+                
+                // 清理多余的p标签
+                html = html.replace(/<p><\/p>/g, '');
+                html = html.replace(/<p><blockquote>/g, '<blockquote>');
+                html = html.replace(/<\/blockquote><\/p>/g, '</blockquote>');
+                html = html.replace(/<p><pre>/g, '<pre>');
+                html = html.replace(/<\/pre><\/p>/g, '</pre>');
+                html = html.replace(/<p><h1>/g, '<h1>');
+                html = html.replace(/<\/h1><\/p>/g, '</h1>');
+                html = html.replace(/<p><h2>/g, '<h2>');
+                html = html.replace(/<\/h2><\/p>/g, '</h2>');
+                html = html.replace(/<p><h3>/g, '<h3>');
+                html = html.replace(/<\/h3><\/p>/g, '</h3>');
+                html = html.replace(/<p><h4>/g, '<h4>');
+                html = html.replace(/<\/h4><\/p>/g, '</h4>');
+                html = html.replace(/<p><h5>/g, '<h5>');
+                html = html.replace(/<\/h5><\/p>/g, '</h5>');
+                html = html.replace(/<p><h6>/g, '<h6>');
+                html = html.replace(/<\/h6><\/p>/g, '</h6>');
+                html = html.replace(/<p><ul>/g, '<ul>');
+                html = html.replace(/<\/ul><\/p>/g, '</ul>');
+                html = html.replace(/<p><ol>/g, '<ol>');
+                html = html.replace(/<\/ol><\/p>/g, '</ol>');
+                html = html.replace(/<p><table>/g, '<table>');
+                html = html.replace(/<\/table><\/p>/g, '</table>');
+                html = html.replace(/<p><hr>/g, '<hr>');
+                html = html.replace(/<hr><\/p>/g, '<hr>');
+                
+                // 处理列表项不在ul/ol中的情况
+                html = html.replace(/<p>(<li>.*<\/li>)<\/p>/g, '$1');
+                
+                return html;
+            }
+            
+            parseLists(markdown) {
+                // 处理无序列表
+                let inUl = false;
+                let lines = markdown.split('\n');
+                let result = [];
+                
+                for (let line of lines) {
+                    if (line.match(/^\s*[-*+]\s+/)) {
+                        if (!inUl) {
+                            result.push('<ul>');
+                            inUl = true;
+                        }
+                        const content = line.replace(/^\s*[-*+]\s+/, '');
+                        result.push(`<li>${content}</li>`);
+                    } else {
+                        if (inUl) {
+                            result.push('</ul>');
+                            inUl = false;
+                        }
+                        result.push(line);
+                    }
+                }
+                if (inUl) result.push('</ul>');
+                
+                // 处理有序列表
+                let inOl = false;
+                lines = result.join('\n').split('\n');
+                result = [];
+                
+                for (let line of lines) {
+                    if (line.match(/^\s*\d+\.\s+/)) {
+                        if (!inOl) {
+                            result.push('<ol>');
+                            inOl = true;
+                        }
+                        const content = line.replace(/^\s*\d+\.\s+/, '');
+                        result.push(`<li>${content}</li>`);
+                    } else {
+                        if (inOl) {
+                            result.push('</ol>');
+                            inOl = false;
+                        }
+                        result.push(line);
+                    }
+                }
+                if (inOl) result.push('</ol>');
+                
+                return result.join('\n');
+            }
+            
+            // 工具栏功能
+            insertHeader() {
+                this.insertText('## ', '');
+            }
+            
+            insertBold() {
+                this.wrapText('**', '**');
+            }
+            
+            insertItalic() {
+                this.wrapText('*', '*');
+            }
+            
+            insertCode() {
+                this.wrapText('`', '`');
+            }
+            
+            insertCodeBlock() {
+                this.insertText('\n\n```javascript\n', '\n```\n\n');
+            }
+            
+            insertLink() {
+                const url = prompt('请输入链接地址:');
+                const text = prompt('请输入链接文字:');
+                if (url && text) {
+                    this.insertText(`[${text}](${url})`, '');
+                }
+            }
+            
+            insertList() {
+                this.insertText('\n- 项目1\n- 项目2\n- 项目3\n', '');
+            }
+            
+            insertQuote() {
+                this.insertText('\n> 引用内容\n', '');
+            }
+            
+            insertTable() {
+                const table = `\n| 列1 | 列2 | 列3 |\n|-----|-----|-----|\n| 内容1 | 内容2 | 内容3 |\n| 内容4 | 内容5 | 内容6 |\n`;
+                this.insertText(table, '');
+            }
+            
+            insertImage() {
+                const url = prompt('请输入图片地址:');
+                const alt = prompt('请输入图片描述（可选）:');
+                if (url) {
+                    this.insertText(`\n![${alt || '图片'}](${url})\n`, '');
+                }
+            }
+            
+            clearFormat() {
+                this.markdownInput.value = '';
+                this.render();
+            }
+            
+            // 文本操作辅助方法
+            insertText(before, after) {
+                const start = this.markdownInput.selectionStart;
+                const end = this.markdownInput.selectionEnd;
+                const text = this.markdownInput.value;
+                
+                const newText = text.substring(0, start) + before + after + text.substring(end);
+                this.markdownInput.value = newText;
+                
+                const newCursor = start + before.length;
+                this.markdownInput.setSelectionRange(newCursor, newCursor);
+                this.markdownInput.focus();
+                
+                this.render();
+            }
+            
+            wrapText(before, after) {
+                const start = this.markdownInput.selectionStart;
+                const end = this.markdownInput.selectionEnd;
+                const text = this.markdownInput.value;
+                
+                const selectedText = text.substring(start, end);
+                if (selectedText) {
+                    const newText = text.substring(0, start) + before + selectedText + after + text.substring(end);
+                    this.markdownInput.value = newText;
+                    this.markdownInput.setSelectionRange(start + before.length + selectedText.length, start + before.length + selectedText.length);
+                } else {
+                    this.insertText(before, after);
+                    return;
+                }
+                
+                this.markdownInput.focus();
+                this.render();
+            }
+            
+            // 模板功能
+            showTemplateModal() {
+                document.getElementById('templateModal').classList.add('show');
+            }
+            
+            hideTemplateModal() {
+                document.getElementById('templateModal').classList.remove('show');
+            }
+            
+            useTemplate(templateName) {
+                const templates = {
+                    'tech-article': `# 标题：如何使用XXX技术解决YYY问题
+
+## 引言
+
+在开发[项目名称]时，我们遇到了[问题描述]。本文将介绍如何使用[技术名称]来解决这个问题。
+
+## 问题背景
+
+详细描述问题的背景、场景和影响。
+
+## 解决方案
+
+### 方案设计
+
+介绍解决方案的设计思路。
+
+### 实现步骤
+
+1. 第一步...
+2. 第二步...
+3. 第三步...
+
+### 核心代码
+
+\`\`\`javascript
+// 在这里展示核心代码
+const example = '代码示例';
+\`\`\`
+
+## 效果对比
+
+使用前后的对比数据或效果。
+
+## 总结
+
+总结本文的主要内容和收获。
+
+## 参考资料
+
+- [链接1](https://example.com)
+- [链接2](https://example.com)`,
+                    
+                    'project-intro': `# 项目名称
+
+> 一句话介绍项目的核心功能和价值
+
+## 项目特点
+
+- ✨ 特点1
+- 🚀 特点2  
+- 💡 特点3
+
+## 快速开始
+
+### 安装
+
+\`\`\`bash
+npm install your-package
+\`\`\`
+
+### 使用示例
+
+\`\`\`javascript
+import YourPackage from 'your-package';
+
+// 使用示例
+const result = YourPackage.doSomething();
+\`\`\`
+
+## 技术架构
+
+简要介绍技术架构设计。
+
+## 开源地址
+
+[GitHub仓库](https://github.com/yourusername/project)
+
+## 贡献指南
+
+欢迎提交Issue和Pull Request！`,
+                    
+                    'interview': `# XXX公司面试经验分享
+
+## 面试岗位
+
+- 公司名称：XXX公司
+- 岗位：XXX工程师
+- 面试轮数：X轮
+
+## 面试流程
+
+### 第一轮：技术面试
+
+**面试时间**：X分钟
+
+**面试问题**：
+
+1. 问题1...
+2. 问题2...
+3. 问题3...
+
+**回答思路**：
+
+- 问题1的回答...
+- 问题2的回答...
+
+### 第二轮：项目面试
+
+**面试重点**：项目经验
+
+**项目深挖**：
+
+- 项目中遇到的挑战
+- 如何解决问题的
+- 项目的架构设计
+
+## 面试心得
+
+- 准备建议
+- 注意事项
+- 面试技巧
+
+## 总结
+
+整体面试体验...`,
+                    
+                    'weekly': `# 技术周刊第X期
+
+## 📌 本期要点
+
+- 要点1
+- 要点2
+- 要点3
+
+## 🚀 技术动态
+
+### 新闻1
+
+新闻内容...
+
+### 新闻2
+
+新闻内容...
+
+## 💡 技术文章
+
+### 文章1：[标题]
+
+文章简介...
+
+**阅读地址**：[链接]
+
+### 文章2：[标题]
+
+文章简介...
+
+**阅读地址**：[链接]
+
+## 🛠️ 工具推荐
+
+- 工具1：简介
+- 工具2：简介
+
+## 📚 学习资源
+
+- 资源1
+- 资源2
+
+## 💬 读者讨论
+
+本期话题：...`
+                };
+                
+                this.markdownInput.value = templates[templateName];
+                this.render();
+                this.hideTemplateModal();
+                this.showToast('模板已加载');
+            }
+            
+            // 预览样式切换
+            setPreviewStyle(style) {
+                this.currentStyle = style;
+                document.getElementById('previewContent').className = 
+                    style === 'wechat' ? 'preview-content wechat-style' : 'preview-content';
+                
+                document.getElementById('wechatStyleBtn').classList.toggle('active', style === 'wechat');
+                document.getElementById('standardStyleBtn').classList.toggle('active', style === 'standard');
+                
+                this.render();
+            }
+            
+            // 复制功能
+            copyToClipboard() {
+                const html = this.previewContent.innerHTML;
+                
+                // 创建临时元素
+                const temp = document.createElement('div');
+                temp.innerHTML = html;
+                
+                // 选择并复制
+                document.body.appendChild(temp);
+                const range = document.createRange();
+                range.selectNodeContents(temp);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+                
+                try {
+                    document.execCommand('copy');
+                    this.showToast('已复制微信格式到剪贴板');
+                } catch (err) {
+                    this.showToast('复制失败');
+                }
+                
+                document.body.removeChild(temp);
+                selection.removeAllRanges();
+            }
+            
+            // 辅助方法
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            showToast(message) {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.classList.add('show');
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 2000);
+            }
+        }
+        
+        // 初始化
+        const mw = new MarkdownWechatEditor();
+        
+        // 加载示例内容
+        setTimeout(() => {
+            mw.markdownInput.value = `# 欢迎使用Markdown微信公众号编辑器
+
+这是一个专为技术公众号优化的Markdown编辑器，让你专注于内容创作，无需担心排版问题。
+
+## ✨ 核心功能
+
+### 1. 微信排版优化
+- 自动适配微信文章样式
+- 代码高亮显示
+- 图片自动居中
+- 中英文之间自动空格
+
+### 2. 实时预览
+左侧编辑Markdown，右侧实时预览效果，所见即所得。
+
+### 3. 一键复制
+点击"复制微信格式"按钮，直接粘贴到公众号编辑器，保留所有样式。
+
+### 4. 内置模板
+提供多种常用模板：
+- 技术文章
+- 项目介绍  
+- 面试经验
+- 周刊/月报
+
+## 💡 使用技巧
+
+1. **快捷键**
+   - Ctrl+B: 加粗
+   - Ctrl+I: 斜体
+   - Ctrl+K: 插入链接
+
+2. **代码高亮**
+
+\`\`\`javascript
+const greeting = 'Hello World';
+console.log(greeting);
+\`\`\`
+
+3. **图片插入**
+
+支持拖拽或点击工具栏插入图片。
+
+## 📋 写作建议
+
+> 好的技术文章应该：
+> - 有清晰的结构
+> - 代码示例完整
+> - 配有适当的图表
+> - 总结关键点
+
+**开始创作你的技术文章吧！**`;
+            mw.render();
+        }, 100);
+    </script>
+</body>
+</html>

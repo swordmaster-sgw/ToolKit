@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>格式转换器 YAML / JSON / TOML</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 12px 20px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .header h1 { font-size: 15px; font-weight: 600; }
+    .header p { font-size: 11px; color: #8b90a7; margin-top: 2px; }
+    .back-btn { margin-left: auto; padding: 5px 12px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 12px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+
+    .toolbar { padding: 10px 16px; background: #161b27; border-bottom: 1px solid #2d3148; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .format-bar { display: flex; gap: 4px; align-items: center; }
+    .fmt-label { font-size: 12px; color: #8b90a7; margin-right: 4px; }
+    .fmt-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid #363b5e; font-size: 12px; font-weight: 600; cursor: pointer; background: #2d3148; color: #8b90a7; transition: all .2s; }
+    .fmt-btn.active { background: #6366f1; color: #fff; border-color: #6366f1; }
+    .fmt-btn:hover:not(.active) { background: #363b5e; color: #e2e8f0; }
+    .arrow { font-size: 18px; color: #4a4f6a; margin: 0 8px; }
+    .btn { padding: 6px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 12px; font-weight: 500; transition: all .2s; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-primary:hover { background: #5457d4; }
+    .btn-secondary { background: #2d3148; color: #c4c9e2; }
+    .btn-secondary:hover { background: #363b5e; }
+    .btn-swap { background: #1a1d2e; border: 1px solid #363b5e; color: #8b90a7; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all .2s; }
+    .btn-swap:hover { border-color: #6366f1; color: #6366f1; }
+
+    .workspace { flex: 1; display: grid; grid-template-columns: 1fr auto 1fr; min-height: 0; }
+    .panel { display: flex; flex-direction: column; min-height: 0; }
+    .panel-header { padding: 8px 14px; background: #161b27; border-bottom: 1px solid #2d3148; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .panel-label { font-size: 11px; color: #8b90a7; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+    .format-tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 700; margin-left: 8px; }
+    .tag-json { background: #f59e0b22; color: #fbbf24; }
+    .tag-yaml { background: #22c55e22; color: #22c55e; }
+    .tag-toml { background: #3b82f622; color: #60a5fa; }
+    .icon-btn { padding: 3px 8px; background: #2d3148; border: none; border-radius: 4px; color: #8b90a7; cursor: pointer; font-size: 11px; }
+    .icon-btn:hover { background: #363b5e; color: #e2e8f0; }
+    textarea { flex: 1; background: #0d1117; color: #e2e8f0; border: none; padding: 14px; font-family: 'Cascadia Code', monospace; font-size: 12px; resize: none; outline: none; line-height: 1.7; min-height: 0; }
+    textarea::placeholder { color: #3d4363; }
+    .output-area { flex: 1; overflow-y: auto; padding: 14px; font-family: 'Cascadia Code', monospace; font-size: 12px; line-height: 1.7; white-space: pre-wrap; background: #0d1117; word-break: break-all; }
+    .divider { width: 48px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; background: #0f1117; border-left: 1px solid #2d3148; border-right: 1px solid #2d3148; }
+    .convert-arrow { font-size: 20px; color: #6366f1; opacity: .7; }
+
+    .status-bar { padding: 5px 14px; background: #161b27; border-top: 1px solid #2d3148; font-size: 11px; color: #8b90a7; display: flex; gap: 16px; flex-shrink: 0; }
+    .ok { color: #22c55e; }
+    .err { color: #ef4444; }
+
+    /* 语法高亮 */
+    .jk { color: #79c0ff; }
+    .js { color: #a5d6ff; }
+    .jn { color: #ffa657; }
+    .jb,.jl { color: #ff7b72; }
+    .yk { color: #79c0ff; }  /* yaml key */
+    .yv { color: #a5d6ff; }  /* yaml string value */
+    .yn { color: #ffa657; }  /* yaml number */
+    .yc { color: #6b7280; }  /* yaml comment */
+    .tk { color: #79c0ff; }  /* toml key */
+    .ts { color: #a5d6ff; }  /* toml string */
+    .tn { color: #ffa657; }  /* toml number */
+    .tsec { color: #22c55e; font-weight: 600; } /* toml section */
+
+    @media (max-width: 900px) {
+      .workspace { grid-template-columns: 1fr; grid-template-rows: 1fr auto 1fr; }
+      .divider { width: 100%; height: 40px; flex-direction: row; border-left: none; border-right: none; border-top: 1px solid #2d3148; border-bottom: 1px solid #2d3148; }
+    }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:20px">🔄</span>
+  <div>
+    <h1>格式转换器</h1>
+    <p>YAML ↔ JSON ↔ TOML 互相转换，支持配置文件格式化</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回</a>
+</div>
+
+<div class="toolbar">
+  <div class="format-bar">
+    <span class="fmt-label">输入格式：</span>
+    <button class="fmt-btn active" id="src-json" onclick="setSrc('json')">JSON</button>
+    <button class="fmt-btn" id="src-yaml" onclick="setSrc('yaml')">YAML</button>
+    <button class="fmt-btn" id="src-toml" onclick="setSrc('toml')">TOML</button>
+  </div>
+  <button class="btn-swap" onclick="swapFormats()" title="交换输入/输出格式">⇄ 交换</button>
+  <div class="format-bar">
+    <span class="fmt-label">输出格式：</span>
+    <button class="fmt-btn" id="dst-json" onclick="setDst('json')">JSON</button>
+    <button class="fmt-btn active" id="dst-yaml" onclick="setDst('yaml')">YAML</button>
+    <button class="fmt-btn" id="dst-toml" onclick="setDst('toml')">TOML</button>
+  </div>
+  <div style="margin-left:auto;display:flex;gap:6px">
+    <button class="btn btn-primary" onclick="convert()">▶ 转换</button>
+    <button class="btn btn-secondary" onclick="loadSample()">示例</button>
+    <button class="btn btn-secondary" onclick="clearAll()">清空</button>
+  </div>
+</div>
+
+<div class="workspace">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-label">输入 <span class="format-tag" id="src-tag">JSON</span></span>
+      <button class="icon-btn" onclick="copyEl('input-text')">复制</button>
+    </div>
+    <textarea id="input-text" placeholder="粘贴你的配置/数据..." oninput="onInputChange()"></textarea>
+  </div>
+
+  <div class="divider">
+    <span class="convert-arrow">→</span>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-label">输出 <span class="format-tag" id="dst-tag">YAML</span></span>
+      <button class="icon-btn" onclick="copyOutput()">复制</button>
+    </div>
+    <div class="output-area" id="output-area"><span style="color:#4a4f6a">转换结果显示在这里...</span></div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <span id="status-msg">准备就绪</span>
+  <span id="status-detail" style="margin-left:auto"></span>
+</div>
+
+<script>
+// ========== 状态 ==========
+let srcFmt = 'json';
+let dstFmt = 'yaml';
+let autoTimer;
+let lastOutput = '';
+
+// ========== 格式切换 ==========
+const tagColors = { json: 'tag-json', yaml: 'tag-yaml', toml: 'tag-toml' };
+function setSrc(fmt) {
+  srcFmt = fmt;
+  ['json','yaml','toml'].forEach(f => document.getElementById('src-' + f).classList.toggle('active', f === fmt));
+  const tag = document.getElementById('src-tag');
+  tag.textContent = fmt.toUpperCase();
+  tag.className = 'format-tag ' + tagColors[fmt];
+  if (srcFmt === dstFmt) setDst(srcFmt === 'json' ? 'yaml' : 'json');
+  convert();
+}
+
+function setDst(fmt) {
+  dstFmt = fmt;
+  ['json','yaml','toml'].forEach(f => document.getElementById('dst-' + f).classList.toggle('active', f === fmt));
+  const tag = document.getElementById('dst-tag');
+  tag.textContent = fmt.toUpperCase();
+  tag.className = 'format-tag ' + tagColors[fmt];
+  if (srcFmt === dstFmt) setSrc(dstFmt === 'json' ? 'yaml' : 'json');
+  convert();
+}
+
+function swapFormats() {
+  const tmp = srcFmt;
+  // 将输出内容放到输入框
+  const outText = lastOutput;
+  setSrc(dstFmt);
+  setDst(tmp);
+  if (outText) {
+    document.getElementById('input-text').value = outText;
+    convert();
+  }
+}
+
+// ========== 核心转换 ==========
+function convert() {
+  const input = document.getElementById('input-text').value.trim();
+  if (!input) {
+    document.getElementById('output-area').innerHTML = '<span style="color:#4a4f6a">转换结果显示在这里...</span>';
+    setStatus('准备就绪', '');
+    return;
+  }
+
+  try {
+    // 1. 解析输入
+    let data;
+    if (srcFmt === 'json') {
+      data = JSON.parse(input);
+    } else if (srcFmt === 'yaml') {
+      data = parseYAML(input);
+    } else if (srcFmt === 'toml') {
+      data = parseTOML(input);
+    }
+
+    // 2. 序列化输出
+    let output;
+    if (dstFmt === 'json') {
+      output = JSON.stringify(data, null, 2);
+    } else if (dstFmt === 'yaml') {
+      output = toYAML(data, 0);
+    } else if (dstFmt === 'toml') {
+      output = toTOML(data);
+    }
+
+    lastOutput = output;
+    document.getElementById('output-area').innerHTML = highlight(output, dstFmt);
+    setStatus(`✅ 转换成功 (${srcFmt.toUpperCase()} → ${dstFmt.toUpperCase()})`, 'ok');
+    document.getElementById('status-detail').textContent = `输出 ${output.length} 字符`;
+  } catch(e) {
+    lastOutput = '';
+    document.getElementById('output-area').innerHTML = `<span style="color:#ef4444">❌ 解析失败: ${escHtml(e.message)}</span>`;
+    setStatus('解析错误: ' + e.message, 'err');
+    document.getElementById('status-detail').textContent = '';
+  }
+}
+
+function onInputChange() {
+  clearTimeout(autoTimer);
+  autoTimer = setTimeout(convert, 500);
+}
+
+// ========== YAML 解析器 ==========
+function parseYAML(text) {
+  const lines = text.split('\n');
+  const root = {};
+  const stack = [{ indent: -1, obj: root }];
+
+  function parseValue(v) {
+    v = v.trim();
+    if (v === 'null' || v === '~') return null;
+    if (v === 'true') return true;
+    if (v === 'false') return false;
+    if (/^-?\d+$/.test(v)) return parseInt(v);
+    if (/^-?\d*\.\d+$/.test(v)) return parseFloat(v);
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+      return v.slice(1, -1).replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
+    }
+    return v;
+  }
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.trim() === '' || line.trim().startsWith('#')) { i++; continue; }
+
+    const indent = line.search(/\S/);
+    const content = line.trim();
+
+    // 弹出比当前缩进更深的层级
+    while (stack.length > 1 && stack[stack.length - 1].indent >= indent) stack.pop();
+    const parent = stack[stack.length - 1].obj;
+
+    if (content.startsWith('- ')) {
+      // 列表项
+      if (!Array.isArray(parent)) {
+        // 找到最近的数组容器
+      }
+      const val = content.slice(2).trim();
+      if (Array.isArray(parent)) {
+        if (val === '' || val.includes(':')) {
+          const obj = {};
+          parent.push(obj);
+          stack.push({ indent, obj });
+          if (val) {
+            const [k, v] = val.split(/:(.+)/);
+            obj[k.trim()] = v ? parseValue(v.trim()) : undefined;
+          }
+        } else {
+          parent.push(parseValue(val));
+        }
+      }
+    } else if (content.includes(':')) {
+      const colonIdx = content.indexOf(':');
+      const key = content.slice(0, colonIdx).trim().replace(/^["']|["']$/g, '');
+      const rest = content.slice(colonIdx + 1).trim();
+
+      if (Array.isArray(parent)) {
+        // skip
+      } else if (rest === '' || rest.startsWith('#')) {
+        // 值在下一行
+        const nextIndent = i + 1 < lines.length ? lines[i + 1].search(/\S/) : -1;
+        if (i + 1 < lines.length && lines[i + 1].trim().startsWith('- ')) {
+          parent[key] = [];
+          stack.push({ indent: nextIndent, obj: parent[key] });
+        } else {
+          parent[key] = {};
+          stack.push({ indent: nextIndent, obj: parent[key] });
+        }
+      } else {
+        parent[key] = parseValue(rest);
+      }
+    }
+    i++;
+  }
+  return root;
+}
+
+// ========== YAML 序列化 ==========
+function toYAML(obj, indent) {
+  const pad = '  '.repeat(indent);
+  if (obj === null) return 'null';
+  if (obj === true) return 'true';
+  if (obj === false) return 'false';
+  if (typeof obj === 'number') return String(obj);
+  if (typeof obj === 'string') {
+    if (obj.includes('\n') || obj.includes(':') || obj.includes('#') || obj.startsWith(' ') || obj.endsWith(' ')) {
+      return `"${obj.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n')}"`;
+    }
+    if (/^(true|false|null|yes|no|on|off)$/i.test(obj) || /^\d/.test(obj)) {
+      return `"${obj}"`;
+    }
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    if (obj.length === 0) return '[]';
+    return obj.map(item => {
+      const v = toYAML(item, indent + 1);
+      if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
+        const entries = Object.entries(item);
+        return entries.map((e, i) => `${pad}- ${i === 0 ? '' : '  '}${e[0]}: ${toYAML(e[1], indent + 1)}`).join('\n');
+      }
+      return `${pad}- ${v}`;
+    }).join('\n');
+  }
+  if (typeof obj === 'object') {
+    if (Object.keys(obj).length === 0) return '{}';
+    return Object.entries(obj).map(([k, v]) => {
+      const safeKey = /[:#\[\]{},&*?|<>=!%@`]/.test(k) || k.includes(' ') ? `"${k}"` : k;
+      if (typeof v === 'object' && v !== null) {
+        return `${pad}${safeKey}:\n${toYAML(v, indent + 1)}`;
+      }
+      return `${pad}${safeKey}: ${toYAML(v, indent)}`;
+    }).join('\n');
+  }
+  return String(obj);
+}
+
+// ========== TOML 解析器 ==========
+function parseTOML(text) {
+  const root = {};
+  let current = root;
+  const lines = text.split('\n');
+
+  function parseVal(v) {
+    v = v.trim();
+    if (v === 'true') return true;
+    if (v === 'false') return false;
+    if (v.startsWith('"')) return v.slice(1, -1).replace(/\\n/g,'\n').replace(/\\t/g,'\t').replace(/\\"/g,'"');
+    if (v.startsWith("'")) return v.slice(1, -1);
+    if (v.startsWith('[')) {
+      return v.slice(1, -1).split(',').map(i => parseVal(i.trim())).filter(i => i !== '');
+    }
+    if (/^-?\d+$/.test(v)) return parseInt(v);
+    if (/^-?\d*\.\d+/.test(v)) return parseFloat(v);
+    return v;
+  }
+
+  for (const line of lines) {
+    const t = line.trim();
+    if (!t || t.startsWith('#')) continue;
+    if (t.startsWith('[') && t.endsWith(']') && !t.startsWith('[[')) {
+      const keys = t.slice(1, -1).split('.');
+      current = root;
+      keys.forEach(k => { if (!current[k]) current[k] = {}; current = current[k]; });
+    } else if (t.includes('=')) {
+      const eq = t.indexOf('=');
+      const key = t.slice(0, eq).trim();
+      const val = t.slice(eq + 1).trim().replace(/#.*$/, '').trim();
+      current[key] = parseVal(val);
+    }
+  }
+  return root;
+}
+
+// ========== TOML 序列化 ==========
+function toTOML(obj, prefix) {
+  let out = '';
+  const scalars = {};
+  const tables = {};
+
+  Object.entries(obj).forEach(([k, v]) => {
+    if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+      tables[k] = v;
+    } else {
+      scalars[k] = v;
+    }
+  });
+
+  // 先写标量
+  Object.entries(scalars).forEach(([k, v]) => {
+    out += `${k} = ${tomlVal(v)}\n`;
+  });
+
+  // 再写表
+  Object.entries(tables).forEach(([k, v]) => {
+    const sectionKey = prefix ? `${prefix}.${k}` : k;
+    out += `\n[${sectionKey}]\n`;
+    out += toTOML(v, sectionKey);
+  });
+
+  return out;
+}
+
+function tomlVal(v) {
+  if (v === null) return '""';
+  if (typeof v === 'boolean') return String(v);
+  if (typeof v === 'number') return String(v);
+  if (typeof v === 'string') return `"${v.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n')}"`;
+  if (Array.isArray(v)) return `[${v.map(tomlVal).join(', ')}]`;
+  return `"${JSON.stringify(v)}"`;
+}
+
+// ========== 语法高亮 ==========
+function highlight(code, fmt) {
+  if (fmt === 'json') return highlightJSON(code);
+  if (fmt === 'yaml') return highlightYAML(code);
+  if (fmt === 'toml') return highlightTOML(code);
+  return escHtml(code);
+}
+
+function highlightJSON(json) {
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let out = '', i = 0;
+  while (i < json.length) {
+    if (json[i] === '"') {
+      let j = i + 1;
+      while (j < json.length) { if (json[j] === '\\') { j += 2; continue; } if (json[j] === '"') { j++; break; } j++; }
+      const raw = json.slice(i, j);
+      let k = j; while (k < json.length && ' \n\r\t'.includes(json[k])) k++;
+      out += json[k] === ':' ? `<span class="jk">${esc(raw)}</span>` : `<span class="js">${esc(raw)}</span>`;
+      i = j; continue;
+    }
+    const nm = json.slice(i).match(/^-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/);
+    if (nm) { out += `<span class="jn">${nm[0]}</span>`; i += nm[0].length; continue; }
+    if (json.slice(i,i+4)==='true') { out += `<span class="jb">true</span>`; i+=4; continue; }
+    if (json.slice(i,i+5)==='false') { out += `<span class="jb">false</span>`; i+=5; continue; }
+    if (json.slice(i,i+4)==='null') { out += `<span class="jl">null</span>`; i+=4; continue; }
+    out += esc(json[i]); i++;
+  }
+  return out;
+}
+
+function highlightYAML(yaml) {
+  return yaml.split('\n').map(line => {
+    const e = escHtml(line);
+    if (line.trim().startsWith('#')) return `<span class="yc">${e}</span>`;
+    const m = line.match(/^(\s*)([\w\-"']+)(\s*:\s*)(.*)$/);
+    if (m) {
+      const val = m[4].trim();
+      let vSpan;
+      if (/^-?\d+(\.\d+)?$/.test(val)) vSpan = `<span class="yn">${escHtml(val)}</span>`;
+      else if (val === 'true' || val === 'false' || val === 'null') vSpan = `<span class="jb">${val}</span>`;
+      else if (val) vSpan = `<span class="yv">${escHtml(val)}</span>`;
+      else vSpan = '';
+      return `${escHtml(m[1])}<span class="yk">${escHtml(m[2])}</span>${escHtml(m[3])}${vSpan}`;
+    }
+    return e;
+  }).join('\n');
+}
+
+function highlightTOML(toml) {
+  return toml.split('\n').map(line => {
+    const e = escHtml(line);
+    if (line.trim().startsWith('#')) return `<span class="yc">${e}</span>`;
+    if (/^\[.+\]/.test(line.trim())) return `<span class="tsec">${e}</span>`;
+    const m = line.match(/^(\s*)([\w\-]+)(\s*=\s*)(.*)$/);
+    if (m) {
+      const val = m[4].trim();
+      let vSpan;
+      if (/^".*"$/.test(val) || /^'.*'$/.test(val)) vSpan = `<span class="ts">${escHtml(val)}</span>`;
+      else if (/^-?\d+(\.\d+)?$/.test(val)) vSpan = `<span class="tn">${escHtml(val)}</span>`;
+      else if (val === 'true' || val === 'false') vSpan = `<span class="jb">${val}</span>`;
+      else vSpan = escHtml(val);
+      return `${escHtml(m[1])}<span class="tk">${escHtml(m[2])}</span>${escHtml(m[3])}${vSpan}`;
+    }
+    return e;
+  }).join('\n');
+}
+
+// ========== 工具 ==========
+function clearAll() {
+  document.getElementById('input-text').value = '';
+  document.getElementById('output-area').innerHTML = '<span style="color:#4a4f6a">转换结果显示在这里...</span>';
+  setStatus('已清空', '');
+}
+
+function loadSample() {
+  const samples = {
+    json: `{
+  "server": {
+    "host": "localhost",
+    "port": 8080,
+    "debug": true
+  },
+  "database": {
+    "url": "postgres://localhost/mydb",
+    "pool_size": 10,
+    "timeout": 30
+  },
+  "features": ["auth", "logging", "cache"],
+  "version": "2.0.0"
+}`,
+    yaml: `server:
+  host: localhost
+  port: 8080
+  debug: true
+database:
+  url: "postgres://localhost/mydb"
+  pool_size: 10
+  timeout: 30
+features:
+  - auth
+  - logging
+  - cache
+version: "2.0.0"`,
+    toml: `version = "2.0.0"
+
+[server]
+host = "localhost"
+port = 8080
+debug = true
+
+[database]
+url = "postgres://localhost/mydb"
+pool_size = 10
+timeout = 30`
+  };
+  document.getElementById('input-text').value = samples[srcFmt];
+  convert();
+}
+
+function setStatus(msg, cls) {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.className = cls;
+}
+
+function copyEl(id) { navigator.clipboard.writeText(document.getElementById(id).value).catch(() => {}); }
+
+function copyOutput() {
+  navigator.clipboard.writeText(lastOutput).then(() => {
+    const btn = document.querySelector('.panel:last-child .icon-btn');
+    if (btn) { const o = btn.textContent; btn.textContent = '✓ 已复制'; setTimeout(() => btn.textContent = o, 1500); }
+  });
+}
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// 初始化，设置默认输出 tag
+setSrc('json'); setDst('yaml');
+</script>
+</body>
+</html>

@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>剪贴板工作台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .header-stats {
+            display: flex;
+            gap: 24px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        .toolbar {
+            background: #f8f9fa;
+            padding: 16px 24px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .search-box {
+            flex: 1;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .filter-btn {
+            padding: 10px 20px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .filter-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+        
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .main-content {
+            display: flex;
+            height: 600px;
+        }
+        
+        .history-list {
+            flex: 2;
+            overflow-y: auto;
+            border-right: 1px solid #e9ecef;
+        }
+        
+        .history-item {
+            padding: 16px 24px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .history-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .history-item.selected {
+            background: #e3f2fd;
+            border-left: 3px solid #667eea;
+        }
+        
+        .history-item.pinned {
+            background: #fff9e6;
+            border-left: 3px solid #ffc107;
+        }
+        
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .item-type {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: #e0e0e0;
+            color: #666;
+        }
+        
+        .item-type.text {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .item-type.code {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+        
+        .item-type.url {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .item-time {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .item-preview {
+            font-size: 13px;
+            color: #333;
+            line-height: 1.5;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .item-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .history-item:hover .item-actions {
+            opacity: 1;
+        }
+        
+        .action-btn {
+            padding: 4px 12px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .action-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .action-btn.pin {
+            color: #ffc107;
+            border-color: #ffc107;
+        }
+        
+        .action-btn.pin:hover {
+            background: #ffc107;
+            color: white;
+        }
+        
+        .detail-panel {
+            flex: 1;
+            padding: 24px;
+            background: #fafafa;
+            overflow-y: auto;
+        }
+        
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .detail-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .detail-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .detail-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        
+        .detail-btn.primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .detail-btn.primary:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+        }
+        
+        .detail-btn.secondary {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .detail-btn.secondary:hover {
+            background: #f8f9fa;
+        }
+        
+        .detail-content {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .quick-actions {
+            margin-top: 16px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .quick-btn {
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        
+        .quick-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+        
+        .empty-text {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        
+        .empty-hint {
+            font-size: 13px;
+            color: #bbb;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #333;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 剪贴板工作台</h1>
+            <div class="header-stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalCount">0</div>
+                    <div class="stat-label">总记录</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="todayCount">0</div>
+                    <div class="stat-label">今日</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="pinnedCount">0</div>
+                    <div class="stat-label">置顶</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="toolbar">
+            <div class="search-box">
+                <input type="text" class="search-input" id="searchInput" placeholder="搜索剪贴板内容... (支持快捷键 Ctrl+F)">
+            </div>
+            <button class="filter-btn active" data-filter="all">全部</button>
+            <button class="filter-btn" data-filter="text">文本</button>
+            <button class="filter-btn" data-filter="code">代码</button>
+            <button class="filter-btn" data-filter="url">链接</button>
+            <button class="filter-btn" data-filter="pinned">置顶</button>
+        </div>
+        
+        <div class="main-content">
+            <div class="history-list" id="historyList">
+                <!-- 动态生成内容 -->
+            </div>
+            
+            <div class="detail-panel" id="detailPanel">
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <div class="empty-text">选择一条记录查看详情</div>
+                    <div class="empty-hint">点击左侧历史记录项查看完整内容</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 剪贴板历史管理器
+        class ClipboardManager {
+            constructor() {
+                this.history = this.loadHistory();
+                this.selectedId = null;
+                this.currentFilter = 'all';
+                this.init();
+            }
+            
+            init() {
+                this.bindEvents();
+                this.render();
+                this.updateStats();
+                this.setupKeyboardShortcuts();
+                
+                // 自动监听剪贴板（如果是在Electron环境）
+                if (typeof require !== 'undefined') {
+                    this.startClipboardWatch();
+                }
+            }
+            
+            loadHistory() {
+                const saved = localStorage.getItem('clipboardHistory');
+                return saved ? JSON.parse(saved) : [];
+            }
+            
+            saveHistory() {
+                // 只保留最近200条
+                const toSave = this.history.slice(0, 200);
+                localStorage.setItem('clipboardHistory', JSON.stringify(toSave));
+            }
+            
+            addItem(content, type = 'text') {
+                const item = {
+                    id: Date.now(),
+                    content: content,
+                    type: this.detectType(content),
+                    timestamp: new Date().toISOString(),
+                    pinned: false,
+                    copyCount: 1
+                };
+                
+                this.history.unshift(item);
+                this.saveHistory();
+                this.render();
+                this.updateStats();
+                this.showToast('已添加到剪贴板历史');
+            }
+            
+            detectType(content) {
+                // 检测内容类型
+                if (content.match(/^https?:\/\//)) return 'url';
+                if (content.match(/^(function|const|let|var|import|export|class|if|for|while|return)/)) return 'code';
+                if (content.match(/[{}();\[\]]/)) return 'code';
+                return 'text';
+            }
+            
+            deleteItem(id) {
+                this.history = this.history.filter(item => item.id !== id);
+                this.saveHistory();
+                this.render();
+                this.updateStats();
+                this.showToast('已删除');
+            }
+            
+            togglePin(id) {
+                const item = this.history.find(i => i.id === id);
+                if (item) {
+                    item.pinned = !item.pinned;
+                    this.saveHistory();
+                    this.render();
+                    this.updateStats();
+                    this.showToast(item.pinned ? '已置顶' : '已取消置顶');
+                }
+            }
+            
+            copyItem(id) {
+                const item = this.history.find(i => i.id === id);
+                if (item) {
+                    navigator.clipboard.writeText(item.content).then(() => {
+                        item.copyCount++;
+                        this.saveHistory();
+                        this.showToast('已复制到剪贴板');
+                    });
+                }
+            }
+            
+            selectItem(id) {
+                this.selectedId = id;
+                this.render();
+                this.showDetail(id);
+            }
+            
+            showDetail(id) {
+                const item = this.history.find(i => i.id === id);
+                if (!item) return;
+                
+                const panel = document.getElementById('detailPanel');
+                panel.innerHTML = `
+                    <div class="detail-header">
+                        <div class="detail-title">${this.getTypeLabel(item.type)}</div>
+                        <div class="detail-actions">
+                            <button class="detail-btn primary" onclick="cm.copyItem(${item.id})">
+                                复制
+                            </button>
+                            <button class="detail-btn secondary" onclick="cm.togglePin(${item.id})">
+                                ${item.pinned ? '取消置顶' : '置顶'}
+                            </button>
+                            <button class="detail-btn secondary" onclick="cm.deleteItem(${item.id})">
+                                删除
+                            </button>
+                        </div>
+                    </div>
+                    <div class="detail-content">${this.escapeHtml(item.content)}</div>
+                    <div class="quick-actions">
+                        <button class="quick-btn" onclick="cm.processContent('json', ${item.id})">
+                            📋 JSON格式化
+                        </button>
+                        <button class="quick-btn" onclick="cm.processContent('urlDecode', ${item.id})">
+                            🔗 URL解码
+                        </button>
+                        <button class="quick-btn" onclick="cm.processContent('base64Decode', ${item.id})">
+                            🔐 Base64解码
+                        </button>
+                        <button class="quick-btn" onclick="cm.processContent('sort', ${item.id})">
+                            📊 排序去重
+                        </button>
+                        <button class="quick-btn" onclick="cm.processContent('upper', ${item.id})">
+                            🔼 转大写
+                        </button>
+                        <button class="quick-btn" onclick="cm.processContent('lower', ${item.id})">
+                            🔽 转小写
+                        </button>
+                    </div>
+                `;
+            }
+            
+            processContent(operation, id) {
+                const item = this.history.find(i => i.id === id);
+                if (!item) return;
+                
+                let result = item.content;
+                
+                try {
+                    switch(operation) {
+                        case 'json':
+                            result = JSON.stringify(JSON.parse(item.content), null, 2);
+                            break;
+                        case 'urlDecode':
+                            result = decodeURIComponent(item.content);
+                            break;
+                        case 'base64Decode':
+                            result = atob(item.content);
+                            break;
+                        case 'sort':
+                            const lines = item.content.split('\n').filter(l => l.trim());
+                            result = [...new Set(lines)].sort().join('\n');
+                            break;
+                        case 'upper':
+                            result = item.content.toUpperCase();
+                            break;
+                        case 'lower':
+                            result = item.content.toLowerCase();
+                            break;
+                    }
+                    
+                    // 将处理后的内容添加到历史
+                    this.addItem(result);
+                } catch (e) {
+                    this.showToast('处理失败: ' + e.message);
+                }
+            }
+            
+            getTypeLabel(type) {
+                const labels = {
+                    text: '📝 文本',
+                    code: '💻 代码',
+                    url: '🔗 链接'
+                };
+                return labels[type] || '文本';
+            }
+            
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            formatTime(timestamp) {
+                const date = new Date(timestamp);
+                const now = new Date();
+                const diff = now - date;
+                
+                if (diff < 60000) return '刚刚';
+                if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
+                if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
+                
+                return date.toLocaleDateString('zh-CN', {
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+            
+            render() {
+                const list = document.getElementById('historyList');
+                const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                
+                let filtered = this.history;
+                
+                // 应用过滤器
+                if (this.currentFilter !== 'all') {
+                    if (this.currentFilter === 'pinned') {
+                        filtered = filtered.filter(item => item.pinned);
+                    } else {
+                        filtered = filtered.filter(item => item.type === this.currentFilter);
+                    }
+                }
+                
+                // 应用搜索
+                if (searchTerm) {
+                    filtered = filtered.filter(item => 
+                        item.content.toLowerCase().includes(searchTerm)
+                    );
+                }
+                
+                // 置顶项优先
+                filtered.sort((a, b) => {
+                    if (a.pinned && !b.pinned) return -1;
+                    if (!a.pinned && b.pinned) return 1;
+                    return b.id - a.id;
+                });
+                
+                if (filtered.length === 0) {
+                    list.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📋</div>
+                            <div class="empty-text">暂无记录</div>
+                            <div class="empty-hint">复制内容后会自动记录到这里</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                list.innerHTML = filtered.map(item => `
+                    <div class="history-item ${item.id === this.selectedId ? 'selected' : ''} ${item.pinned ? 'pinned' : ''}"
+                         onclick="cm.selectItem(${item.id})">
+                        <div class="item-header">
+                            <span class="item-type ${item.type}">${this.getTypeLabel(item.type)}</span>
+                            <span class="item-time">${this.formatTime(item.timestamp)}</span>
+                        </div>
+                        <div class="item-preview">${this.escapeHtml(item.content.substring(0, 100))}</div>
+                        <div class="item-actions">
+                            <button class="action-btn" onclick="event.stopPropagation(); cm.copyItem(${item.id})">
+                                复制
+                            </button>
+                            <button class="action-btn pin" onclick="event.stopPropagation(); cm.togglePin(${item.id})">
+                                ${item.pinned ? '取消置顶' : '置顶'}
+                            </button>
+                            <button class="action-btn" onclick="event.stopPropagation(); cm.deleteItem(${item.id})">
+                                删除
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            updateStats() {
+                document.getElementById('totalCount').textContent = this.history.length;
+                
+                const today = new Date().toDateString();
+                const todayCount = this.history.filter(item => 
+                    new Date(item.timestamp).toDateString() === today
+                ).length;
+                document.getElementById('todayCount').textContent = todayCount;
+                
+                const pinnedCount = this.history.filter(item => item.pinned).length;
+                document.getElementById('pinnedCount').textContent = pinnedCount;
+            }
+            
+            bindEvents() {
+                // 搜索
+                document.getElementById('searchInput').addEventListener('input', () => {
+                    this.render();
+                });
+                
+                // 过滤器
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.currentFilter = btn.dataset.filter;
+                        this.render();
+                    });
+                });
+            }
+            
+            setupKeyboardShortcuts() {
+                document.addEventListener('keydown', (e) => {
+                    // Ctrl+F 聚焦搜索
+                    if (e.ctrlKey && e.key === 'f') {
+                        e.preventDefault();
+                        document.getElementById('searchInput').focus();
+                    }
+                    
+                    // Ctrl+V 添加剪贴板内容（测试用）
+                    if (e.ctrlKey && e.key === 'v' && !e.target.matches('input, textarea')) {
+                        navigator.clipboard.readText().then(text => {
+                            if (text) {
+                                this.addItem(text);
+                            }
+                        });
+                    }
+                });
+            }
+            
+            startClipboardWatch() {
+                // Electron环境下监听剪贴板
+                try {
+                    const { clipboard } = require('electron');
+                    let lastText = clipboard.readText();
+                    
+                    setInterval(() => {
+                        const text = clipboard.readText();
+                        if (text && text !== lastText) {
+                            lastText = text;
+                            this.addItem(text);
+                        }
+                    }, 500);
+                } catch (e) {
+                    console.log('Not in Electron environment');
+                }
+            }
+            
+            showToast(message) {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.classList.add('show');
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 2000);
+            }
+        }
+        
+        // 初始化
+        const cm = new ClipboardManager();
+        
+        // 添加一些示例数据（仅演示）
+        if (cm.history.length === 0) {
+            const demoData = [
+                { content: 'console.log("Hello World");', type: 'code' },
+                { content: 'https://github.com/example/project', type: 'url' },
+                { content: '这是一段测试文本，用于演示剪贴板历史管理功能。', type: 'text' },
+                { content: '{"name": "张三", "age": 25, "city": "北京"}', type: 'code' },
+                { content: 'SELECT * FROM users WHERE status = "active"', type: 'code' }
+            ];
+            
+            demoData.forEach((item, index) => {
+                setTimeout(() => {
+                    cm.addItem(item.content, item.type);
+                }, index * 100);
+            });
+        }
+    </script>
+</body>
+</html>

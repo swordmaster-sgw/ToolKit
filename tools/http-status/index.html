@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTTP 状态码速查</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .main { padding: 20px; max-width: 1000px; margin: 0 auto; }
+    .search { display: flex; gap: 10px; margin-bottom: 16px; }
+    .search input { flex: 1; background: #1a1d2e; border: 1px solid #2d3148; border-radius: 8px; padding: 10px 16px; color: #e2e8f0; font-size: 14px; outline: none; }
+    .search input:focus { border-color: #6366f1; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .tab { padding: 8px 16px; background: #1a1d2e; border: 1px solid #2d3148; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; }
+    .tab.active { background: #6366f1; border-color: #6366f1; }
+    .code-item { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+    .code-header { padding: 12px 16px; background: #1f2235; display: flex; gap: 12px; align-items: center; cursor: pointer; }
+    .code-badge { font-size: 20px; font-weight: 700; min-width: 40px; }
+    .code-title { flex: 1; font-weight: 600; }
+    .code-expand { color: #8b90a7; }
+    .code-body { padding: 16px; border-top: 1px solid #2d3148; max-height: 200px; overflow-y: auto; }
+    .desc-item { margin-bottom: 10px; }
+    .desc-label { font-size: 12px; font-weight: 600; color: #8b90a7; text-transform: uppercase; }
+    .desc-val { font-size: 13px; color: #c4c9e2; line-height: 1.5; }
+    .badge-1xx { color: #60a5fa; }
+    .badge-2xx { color: #22c55e; }
+    .badge-3xx { color: #f59e0b; }
+    .badge-4xx { color: #ef4444; }
+    .badge-5xx { color: #a855f7; }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">🌐</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">HTTP 状态码速查</h1>
+    <p style="font-size:12px;color:#8b90a7;margin-top:2px">完整状态码说明与排查建议</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="search">
+    <input id="search-input" placeholder="搜索状态码..." oninput="filter()">
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="filter('all')">全部</div>
+    <div class="tab" onclick="filter('1xx')">1xx 信息</div>
+    <div class="tab" onclick="filter('2xx')">2xx 成功</div>
+    <div class="tab" onclick="filter('3xx')">3xx 重定向</div>
+    <div class="tab" onclick="filter('4xx')">4xx 客户端错误</div>
+    <div class="tab" onclick="filter('5xx')">5xx 服务器错误</div>
+  </div>
+
+  <div id="codes-list"></div>
+</div>
+
+<script>
+const CODES = [
+  { code: 200, title: 'OK', desc: '请求成功，服务器返回了客户端请求的数据', category: '2xx', tips: '正常情况' },
+  { code: 201, title: 'Created', desc: '请求成功，并且服务器创建了新的资源', category: '2xx', tips: '创建资源成功' },
+  { code: 204, title: 'No Content', desc: '请求成功，但响应体为空', category: '2xx', tips: '删除操作成功' },
+  { code: 301, title: 'Moved Permanently', desc: '永久重定向，资源已移到新的 URL', category: '3xx', tips: '更新书签，客户端会缓存' },
+  { code: 302, title: 'Found', desc: '临时重定向，资源暂时移到另一个 URL', category: '3xx', tips: '临时跳转，下次仍会请求原 URL' },
+  { code: 304, title: 'Not Modified', desc: '资源未修改，使用缓存版本', category: '3xx', tips: '浏览器会直接使用本地缓存' },
+  { code: 400, title: 'Bad Request', desc: '客户端请求错误，服务器无法处理', category: '4xx', tips: '检查请求参数、格式、编码' },
+  { code: 401, title: 'Unauthorized', desc: '请求需要身份认证，未提供有效凭证', category: '4xx', tips: '检查 Token / 登录状态' },
+  { code: 403, title: 'Forbidden', desc: '服务器拒绝请求，客户端无权访问', category: '4xx', tips: '检查权限和访问控制' },
+  { code: 404, title: 'Not Found', desc: '请求的资源不存在', category: '4xx', tips: '检查 URL 路径、拼写' },
+  { code: 409, title: 'Conflict', desc: '请求与服务器状态冲突', category: '4xx', tips: '可能是重复提交或版本冲突' },
+  { code: 429, title: 'Too Many Requests', desc: '请求过于频繁，被限流', category: '4xx', tips: '检查请求频率，实现指数退避' },
+  { code: 500, title: 'Internal Server Error', desc: '服务器内部错误，请求失败', category: '5xx', tips: '查看服务器日志，联系管理员' },
+  { code: 502, title: 'Bad Gateway', desc: '网关错误，上游服务器无响应', category: '5xx', tips: '检查上游服务可用性、网络连接' },
+  { code: 503, title: 'Service Unavailable', desc: '服务暂时不可用，通常因为维护或超负荷', category: '5xx', tips: '稍后重试，实现自动重试逻辑' },
+  { code: 504, title: 'Gateway Timeout', desc: '网关超时，等待上游服务响应超时', category: '5xx', tips: '增加超时时间、检查网络' },
+];
+
+let currentFilter = 'all';
+let currentSearch = '';
+
+function filter(type) {
+  currentFilter = type || 'all';
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  if (type && type !== 'all') {
+    document.querySelector(`.tab:nth-child(${{all:1,'1xx':2,'2xx':3,'3xx':4,'4xx':5,'5xx':6}[type]})`).classList.add('active');
+  } else {
+    document.querySelector('.tab').classList.add('active');
+  }
+  render();
+}
+
+function render() {
+  const search = document.getElementById('search-input').value.toLowerCase();
+  const filtered = CODES.filter(c => {
+    if (currentFilter !== 'all' && !c.category.startsWith(currentFilter.slice(0,1))) return false;
+    return c.code.toString().includes(search) || c.title.toLowerCase().includes(search) || c.desc.toLowerCase().includes(search);
+  });
+
+  const html = filtered.map(c => {
+    const badgeClass = `badge-${c.category.slice(0,1)}xx`;
+    return `<div class="code-item">
+      <div class="code-header" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">
+        <span class="code-badge ${badgeClass}">${c.code}</span>
+        <span class="code-title">${c.title}</span>
+        <span class="code-expand">▼</span>
+      </div>
+      <div class="code-body">
+        <div class="desc-item">
+          <div class="desc-label">说明</div>
+          <div class="desc-val">${c.desc}</div>
+        </div>
+        <div class="desc-item">
+          <div class="desc-label">排查建议</div>
+          <div class="desc-val">${c.tips}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('codes-list').innerHTML = html || '<p style="color:#4a4f6a">未找到匹配的状态码</p>';
+}
+
+render();
+</script>
+</body>
+</html>

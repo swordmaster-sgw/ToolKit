@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>久坐健康提醒</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: rgba(255, 255, 255, 0.95); border-radius: 16px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); overflow: hidden; min-height: calc(100vh - 40px); display: flex; flex-direction: column; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 32px; display: flex; justify-content: space-between; align-items: center; }
+        .header-left h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+        .header-left p { font-size: 13px; opacity: 0.9; }
+        .header-right { display: flex; gap: 12px; align-items: center; }
+        .status-indicator { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; }
+        .status-dot.active { background: #4caf50; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.3s; }
+        .btn-primary { background: rgba(255, 255, 255, 0.2); color: white; }
+        .btn-primary:hover { background: rgba(255, 255, 255, 0.3); transform: translateY(-2px); }
+        .btn-secondary { background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255, 255, 255, 0.3); }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.2); }
+        .main-content { flex: 1; padding: 32px; overflow-y: auto; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 32px; }
+        .stat-card { background: white; border: 2px solid #e9ecef; border-radius: 12px; padding: 24px; text-align: center; }
+        .stat-value { font-size: 36px; font-weight: 700; color: #667eea; margin-bottom: 8px; }
+        .stat-label { font-size: 14px; color: #666; }
+        .reminder-settings { background: #f8f9fa; border-radius: 12px; padding: 24px; margin-bottom: 32px; }
+        .section-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+        .setting-item { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #e9ecef; }
+        .setting-item:last-child { border-bottom: none; }
+        .setting-info { flex: 1; }
+        .setting-name { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+        .setting-desc { font-size: 12px; color: #999; }
+        .toggle-switch { position: relative; width: 48px; height: 24px; background: #ccc; border-radius: 12px; cursor: pointer; transition: background 0.3s; }
+        .toggle-switch.active { background: #4caf50; }
+        .toggle-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: transform 0.3s; }
+        .toggle-switch.active::after { transform: translateX(24px); }
+        .health-tips { background: white; border: 2px solid #e9ecef; border-radius: 12px; padding: 24px; }
+        .tips-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+        .tip-item { background: #f8f9fa; border-radius: 8px; padding: 16px; border-left: 4px solid #667eea; }
+        .tip-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+        .tip-content { font-size: 13px; color: #666; line-height: 1.5; }
+        .toast { position: fixed; bottom: 24px; right: 24px; background: #333; color: white; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); opacity: 0; transform: translateY(20px); transition: all 0.3s; z-index: 1001; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1>🌱 久坐健康提醒</h1>
+                <p>专为996程序员设计的健康保护工具，定时提醒休息</p>
+            </div>
+            <div class="header-right">
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">提醒未开启</span>
+                </div>
+                <button class="btn btn-secondary" onclick="hr.toggleReminder()" id="toggleBtn">开启提醒</button>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="sittingHours">0</div>
+                    <div class="stat-label">今日久坐时长（小时）</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="reminderCount">0</div>
+                    <div class="stat-label">提醒次数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="waterCount">0</div>
+                    <div class="stat-label">喝水次数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="healthScore">100</div>
+                    <div class="stat-label">健康评分</div>
+                </div>
+            </div>
+            
+            <div class="reminder-settings">
+                <div class="section-title">⏰ 提醒设置</div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-name">喝水提醒</div>
+                        <div class="setting-desc">每小时提醒喝水，保持身体水分</div>
+                    </div>
+                    <div class="toggle-switch active" onclick="hr.toggleSetting('water')" id="waterToggle"></div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-name">眼保健操</div>
+                        <div class="setting-desc">每2小时提醒做眼保健操，保护视力</div>
+                    </div>
+                    <div class="toggle-switch active" onclick="hr.toggleSetting('eye')" id="eyeToggle"></div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-name">站立/拉伸</div>
+                        <div class="setting-desc">每1.5小时提醒站立或拉伸，缓解肌肉疲劳</div>
+                    </div>
+                    <div class="toggle-switch active" onclick="hr.toggleSetting('stretch')" id="stretchToggle"></div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-name">下班提醒</div>
+                        <div class="setting-desc">晚上9点提醒准备下班，避免过度加班</div>
+                    </div>
+                    <div class="toggle-switch active" onclick="hr.toggleSetting('offwork')" id="offworkToggle"></div>
+                </div>
+            </div>
+            
+            <div class="health-tips">
+                <div class="section-title">💡 健康小贴士</div>
+                <div class="tips-grid">
+                    <div class="tip-item">
+                        <div class="tip-title">👀 保护视力</div>
+                        <div class="tip-content">每20分钟看20英尺外的物体20秒，缓解眼部疲劳。保持显示器与眼睛50-70cm的距离。</div>
+                    </div>
+                    <div class="tip-item">
+                        <div class="tip-title">🪑 正确坐姿</div>
+                        <div class="tip-content">背部挺直，肩膀放松，腰部有支撑。膝盖与臀部保持同一水平，双脚平放地面。</div>
+                    </div>
+                    <div class="tip-item">
+                        <div class="tip-title">💧 补充水分</div>
+                        <div class="tip-content">每天饮水量不少于2000ml。保持身体水分充足，有助于新陈代谢和排毒。</div>
+                    </div>
+                    <div class="tip-item">
+                        <div class="tip-title">🏃 适当运动</div>
+                        <div class="tip-content">每小时起身活动5分钟。简单的颈部、肩部、腰部拉伸运动，预防颈椎病和腰椎病。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 健康提醒工具
+        class HealthReminder {
+            constructor() {
+                this.isRunning = false;
+                this.reminders = {
+                    water: { enabled: true, interval: 60 * 60 * 1000, last: 0 }, // 1小时
+                    eye: { enabled: true, interval: 2 * 60 * 60 * 1000, last: 0 }, // 2小时
+                    stretch: { enabled: true, interval: 90 * 60 * 1000, last: 0 }, // 1.5小时
+                    offwork: { enabled: true, time: '21:00', last: 0 }
+                };
+                this.stats = this.loadStats();
+                this.init();
+            }
+            
+            init() {
+                this.updateStats();
+                this.loadSettings();
+            }
+            
+            toggleReminder() {
+                if (this.isRunning) {
+                    this.stopReminder();
+                } else {
+                    this.startReminder();
+                }
+            }
+            
+            startReminder() {
+                this.isRunning = true;
+                this.updateStatus();
+                this.showToast('健康提醒已开启');
+                
+                // 开始定时检查
+                this.checkInterval = setInterval(() => {
+                    this.checkReminders();
+                }, 60000); // 每分钟检查一次
+                
+                // 立即检查一次
+                this.checkReminders();
+            }
+            
+            stopReminder() {
+                this.isRunning = false;
+                this.updateStatus();
+                this.showToast('健康提醒已关闭');
+                
+                if (this.checkInterval) {
+                    clearInterval(this.checkInterval);
+                }
+            }
+            
+            checkReminders() {
+                const now = Date.now();
+                const currentTime = new Date().toTimeString().substring(0, 5);
+                
+                // 喝水提醒
+                if (this.reminders.water.enabled && now - this.reminders.water.last > this.reminders.water.interval) {
+                    this.showReminder('喝水时间到！', '该喝水了，保持身体水分充足 💧', 'water');
+                    this.reminders.water.last = now;
+                    this.stats.waterCount++;
+                }
+                
+                // 眼保健操提醒
+                if (this.reminders.eye.enabled && now - this.reminders.eye.last > this.reminders.eye.interval) {
+                    this.showReminder('眼保健操时间！', '让眼睛休息一下，做做眼保健操 👀', 'eye');
+                    this.reminders.eye.last = now;
+                }
+                
+                // 站立/拉伸提醒
+                if (this.reminders.stretch.enabled && now - this.reminders.stretch.last > this.reminders.stretch.interval) {
+                    this.showReminder('该活动一下了！', '站起来走走，做些简单的拉伸运动 🏃', 'stretch');
+                    this.reminders.stretch.last = now;
+                    this.stats.reminderCount++;
+                }
+                
+                // 下班提醒
+                if (this.reminders.offwork.enabled && currentTime === this.reminders.offwork.time && now - this.reminders.offwork.last > 60 * 60 * 1000) {
+                    this.showReminder('下班提醒！', '已经晚上9点了，准备下班吧 🌙', 'offwork');
+                    this.reminders.offwork.last = now;
+                }
+                
+                this.updateStats();
+                this.saveStats();
+            }
+            
+            showReminder(title, message, type) {
+                // 显示浏览器通知
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification(title, {
+                        body: message,
+                        icon: '🌱',
+                        requireInteraction: true
+                    });
+                } else {
+                    // 使用Toast提示
+                    this.showToast(`${title} ${message}`);
+                }
+                
+                // 播放提示音（如果支持）
+                this.playSound();
+            }
+            
+            playSound() {
+                // 创建简单的提示音
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = 800;
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                } catch (e) {
+                    console.log('无法播放提示音');
+                }
+            }
+            
+            toggleSetting(type) {
+                this.reminders[type].enabled = !this.reminders[type].enabled;
+                const toggle = document.getElementById(type + 'Toggle');
+                toggle.classList.toggle('active', this.reminders[type].enabled);
+                
+                this.showToast(`${this.getTypeName(type)}已${this.reminders[type].enabled ? '开启' : '关闭'}`);
+                this.saveSettings();
+            }
+            
+            getTypeName(type) {
+                const names = {
+                    water: '喝水提醒',
+                    eye: '眼保健操',
+                    stretch: '站立/拉伸',
+                    offwork: '下班提醒'
+                };
+                return names[type];
+            }
+            
+            updateStatus() {
+                const statusDot = document.getElementById('statusDot');
+                const statusText = document.getElementById('statusText');
+                const toggleBtn = document.getElementById('toggleBtn');
+                
+                if (this.isRunning) {
+                    statusDot.classList.add('active');
+                    statusText.textContent = '提醒运行中';
+                    toggleBtn.textContent = '关闭提醒';
+                } else {
+                    statusDot.classList.remove('active');
+                    statusText.textContent = '提醒未开启';
+                    toggleBtn.textContent = '开启提醒';
+                }
+            }
+            
+            updateStats() {
+                document.getElementById('sittingHours').textContent = (this.stats.sittingTime / 3600000).toFixed(1);
+                document.getElementById('reminderCount').textContent = this.stats.reminderCount;
+                document.getElementById('waterCount').textContent = this.stats.waterCount;
+                document.getElementById('healthScore').textContent = Math.max(0, 100 - this.stats.reminderCount * 2);
+            }
+            
+            loadSettings() {
+                const saved = localStorage.getItem('healthSettings');
+                if (saved) {
+                    const settings = JSON.parse(saved);
+                    Object.keys(settings).forEach(key => {
+                        if (this.reminders[key]) {
+                            this.reminders[key].enabled = settings[key];
+                            const toggle = document.getElementById(key + 'Toggle');
+                            if (toggle) {
+                                toggle.classList.toggle('active', settings[key]);
+                            }
+                        }
+                    });
+                }
+            }
+            
+            saveSettings() {
+                const settings = {};
+                Object.keys(this.reminders).forEach(key => {
+                    settings[key] = this.reminders[key].enabled;
+                });
+                localStorage.setItem('healthSettings', JSON.stringify(settings));
+            }
+            
+            loadStats() {
+                const today = new Date().toDateString();
+                const saved = localStorage.getItem('healthStats');
+                const stats = saved ? JSON.parse(saved) : { date: today, sittingTime: 0, reminderCount: 0, waterCount: 0 };
+                
+                if (stats.date !== today) {
+                    return { date: today, sittingTime: 0, reminderCount: 0, waterCount: 0 };
+                }
+                
+                // 模拟久坐时间增长
+                setInterval(() => {
+                    if (this.isRunning) {
+                        this.stats.sittingTime += 60000; // 每分钟增加1分钟
+                        this.updateStats();
+                        this.saveStats();
+                    }
+                }, 60000);
+                
+                return stats;
+            }
+            
+            saveStats() {
+                localStorage.setItem('healthStats', JSON.stringify(this.stats));
+            }
+            
+            showToast(message) {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 2000);
+            }
+            
+            requestNotificationPermission() {
+                if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
+            }
+        }
+        
+        // 初始化
+        const hr = new HealthReminder();
+        
+        // 请求通知权限
+        hr.requestNotificationPermission();
+        
+        // 页面加载完成提示
+        setTimeout(() => {
+            hr.showToast('健康提醒工具已就绪！记得开启提醒保护健康');
+        }, 1000);
+    </script>
+</body>
+</html>

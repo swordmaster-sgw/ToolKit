@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bug 报告生成器</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .main { padding: 20px; max-width: 1100px; margin: 0 auto; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: #1f2235; font-size: 12px; font-weight: 600; color: #8b90a7; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #2d3148; }
+    .card-body { padding: 16px; }
+    .input, textarea { width: 100%; background: #131520; border: 1px solid #363b5e; border-radius: 6px; padding: 8px 12px; color: #e2e8f0; font-size: 13px; outline: none; margin-bottom: 10px; }
+    .input:focus, textarea:focus { border-color: #6366f1; }
+    textarea { font-family: 'Cascadia Code', monospace; resize: vertical; min-height: 100px; }
+    .btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-primary:hover { background: #5457d4; }
+    .btn-secondary { background: #2d3148; color: #c4c9e2; }
+    .btn-secondary:hover { background: #363b5e; }
+    .copy-btn { padding: 3px 10px; background: #2d3148; border: none; border-radius: 4px; color: #8b90a7; cursor: pointer; font-size: 11px; }
+    .copy-btn:hover { background: #6366f1; color: #fff; }
+    @media (max-width: 768px) { .grid2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">🐛</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">Bug 报告生成器</h1>
+    <p style="font-size:12px;color:#8b90a7;margin-top:2px">规范格式 Bug 报告，快速提交问题</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Bug 信息</div>
+      <div class="card-body">
+        <input class="input" id="title" placeholder="Bug 标题（简要描述问题）">
+        <select class="input" id="severity">
+          <option>🔴 严重（系统崩溃/数据丢失）</option>
+          <option>🟠 高（功能无法使用）</option>
+          <option>🟡 中（功能异常/体验差）</option>
+          <option>🟢 低（界面问题/错别字）</option>
+        </select>
+        <input class="input" id="env" placeholder="环境（如：测试环境 v1.2.3）">
+        <textarea id="reproduce" placeholder="复现步骤：&#10;1. 打开页面&#10;2. 点击按钮&#10;3. 查看结果"></textarea>
+        <textarea id="expected" placeholder="预期结果：&#10;应该显示成功提示"></textarea>
+        <textarea id="actual" placeholder="实际结果：&#10;显示错误提示，请求返回 500"></textarea>
+        <textarea id="screenshot" placeholder="截图或附件（可选）"></textarea>
+        <button class="btn btn-primary" style="width:100%" onclick="generate()">📝 生成报告</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        Bug 报告
+        <button class="copy-btn" onclick="copyReport()">复制</button>
+      </div>
+      <textarea id="report" readonly placeholder="生成的 Bug 报告将显示在此..."></textarea>
+    </div>
+  </div>
+</div>
+
+<script>
+function generate() {
+  const title = document.getElementById('title').value.trim() || '未命名';
+  const severity = document.getElementById('severity').value;
+  const env = document.getElementById('env').value.trim() || '未指定';
+  const reproduce = document.getElementById('reproduce').value.trim() || '无';
+  const expected = document.getElementById('expected').value.trim() || '无';
+  const actual = document.getElementById('actual').value.trim() || '无';
+  const screenshot = document.getElementById('screenshot').value.trim() || '无';
+
+  const report = `【BUG 报告】${title}
+
+${severity}
+
+## 基本信息
+
+- 标题: ${title}
+- 环境: ${env}
+- 报告时间: ${new Date().toLocaleString('zh-CN', {timeZone:'Asia/Shanghai'})}
+
+## 问题描述
+
+### 复现步骤
+${reproduce.split('\n').map(l => l.trim() ? '- ' + l.trim() : '').filter(l => l).join('\n') || '- 无'}
+
+### 预期结果
+${expected}
+
+### 实际结果
+${actual}
+
+## 附件信息
+
+${screenshot}
+
+---
+
+请指派给相关负责人进行处理。`;
+
+  document.getElementById('report').value = report;
+}
+
+function copyReport() {
+  const v = document.getElementById('report').value;
+  navigator.clipboard.writeText(v).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ 已复制';
+    setTimeout(() => btn.textContent = '复制', 1200);
+  });
+}
+</script>
+</body>
+</html>

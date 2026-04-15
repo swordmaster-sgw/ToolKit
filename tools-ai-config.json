@@ -1,0 +1,349 @@
+{
+  "tools": [
+    {
+      "id": "json-formatter",
+      "ai_callable": true,
+      "ai_description": "格式化或压缩 JSON 数据，检查 JSON 语法是否正确",
+      "ai_params": {
+        "input": { "type": "string", "required": true, "description": "要处理的 JSON 字符串" },
+        "action": { "type": "string", "required": false, "description": "操作类型: format(格式化), minify(压缩), validate(校验)", "default": "format" },
+        "indent": { "type": "number", "required": false, "description": "缩进空格数", "default": 2 }
+      }
+    },
+    {
+      "id": "regex-tester",
+      "ai_callable": true,
+      "ai_description": "测试正则表达式是否匹配目标文本",
+      "ai_params": {
+        "pattern": { "type": "string", "required": true, "description": "正则表达式" },
+        "text": { "type": "string", "required": true, "description": "要匹配的文本" },
+        "flags": { "type": "string", "required": false, "description": "标志: g(全局), i(忽略大小写), m(多行)", "default": "g" }
+      }
+    },
+    {
+      "id": "base64-codec",
+      "ai_callable": true,
+      "ai_description": "对文本进行 Base64 编码或解码",
+      "ai_params": {
+        "text": { "type": "string", "required": true, "description": "要处理的文本" },
+        "action": { "type": "string", "required": false, "description": "操作: encode(编码), decode(解码)", "default": "encode" }
+      }
+    },
+    {
+      "id": "timestamp-converter",
+      "ai_callable": true,
+      "ai_description": "将 Unix 时间戳转换为可读日期，或将日期转换为时间戳",
+      "ai_params": {
+        "value": { "type": "string", "required": true, "description": "时间戳或日期字符串" },
+        "action": { "type": "string", "required": false, "description": "操作: toDate(转日期), toTimestamp(转时间戳)", "default": "toDate" },
+        "milliseconds": { "type": "boolean", "required": false, "description": "是否为毫秒时间戳", "default": false }
+      }
+    },
+    {
+      "id": "uuid-generator",
+      "ai_callable": true,
+      "ai_description": "批量生成随机 UUID v4",
+      "ai_params": {
+        "count": { "type": "number", "required": false, "description": "生成数量", "default": 1 },
+        "uppercase": { "type": "boolean", "required": false, "description": "是否大写", "default": false },
+        "hyphen": { "type": "boolean", "required": false, "description": "是否带横杠", "default": true }
+      }
+    },
+    {
+      "id": "hash-calculator",
+      "ai_callable": true,
+      "ai_description": "计算文本的 Hash 摘要值（MD5/SHA256等）",
+      "ai_params": {
+        "text": { "type": "string", "required": true, "description": "要计算 Hash 的文本" },
+        "algorithm": { "type": "string", "required": false, "description": "算法: md5, sha1, sha256, sha512", "default": "sha256" }
+      }
+    },
+    {
+      "id": "jwt-decoder",
+      "ai_callable": true,
+      "ai_description": "解析 JWT Token 的内容，查看其中的用户信息和过期时间",
+      "ai_params": {
+        "token": { "type": "string", "required": true, "description": "JWT Token 字符串" }
+      }
+    },
+    {
+      "id": "url-codec",
+      "ai_callable": true,
+      "ai_description": "对 URL 进行编码或解码，解析 URL 参数",
+      "ai_params": {
+        "text": { "type": "string", "required": true, "description": "要处理的 URL" },
+        "action": { "type": "string", "required": false, "description": "操作: encode(编码), decode(解码), parse(解析参数)", "default": "encode" }
+      }
+    },
+    {
+      "id": "cron-helper",
+      "ai_callable": true,
+      "ai_description": "生成或解析 Cron 定时表达式，查看下次执行时间",
+      "ai_params": {
+        "expression": { "type": "string", "required": true, "description": "Cron 表达式" },
+        "action": { "type": "string", "required": false, "description": "操作: parse(解析), next(查看下次执行)", "default": "parse" }
+      }
+    },
+    {
+      "id": "color-converter",
+      "ai_callable": true,
+      "ai_description": "在 HEX、RGB、HSL 之间转换颜色格式",
+      "ai_params": {
+        "color": { "type": "string", "required": true, "description": "颜色值 (如 #FF5733 或 rgb(255,87,51))" },
+        "targetFormat": { "type": "string", "required": false, "description": "目标格式: hex, rgb, hsl", "default": "all" }
+      }
+    },
+    {
+      "id": "number-converter",
+      "ai_callable": true,
+      "ai_description": "在不同数字进制之间进行转换（二进制、八进制、十进制、十六进制）",
+      "ai_params": {
+        "value": { "type": "string", "required": true, "description": "要转换的数字" },
+        "fromBase": { "type": "number", "required": false, "description": "源进制 (2/8/10/16)", "default": 10 },
+        "toBase": { "type": "number", "required": false, "description": "目标进制 (2/8/10/16)", "default": 16 }
+      }
+    },
+    {
+      "id": "csv-json",
+      "ai_callable": true,
+      "ai_description": "将 CSV 数据转换为 JSON，或将 JSON 转换为 CSV",
+      "ai_params": {
+        "data": { "type": "string", "required": true, "description": "CSV 或 JSON 字符串" },
+        "action": { "type": "string", "required": false, "description": "操作: csvToJson, jsonToCsv", "default": "csvToJson" },
+        "delimiter": { "type": "string", "required": false, "description": "CSV 分隔符", "default": "," }
+      }
+    },
+    {
+      "id": "text-diff",
+      "ai_callable": true,
+      "ai_description": "对比两段文本的差异，高亮显示增删改的内容",
+      "ai_params": {
+        "oldText": { "type": "string", "required": true, "description": "原始文本" },
+        "newText": { "type": "string", "required": true, "description": "新文本" }
+      }
+    },
+    {
+      "id": "markdown-preview",
+      "ai_callable": true,
+      "ai_description": "预览 Markdown 文本的渲染效果",
+      "ai_params": {
+        "content": { "type": "string", "required": true, "description": "Markdown 内容" }
+      }
+    },
+    {
+      "id": "sql-formatter",
+      "ai_callable": true,
+      "ai_description": "格式化和美化 SQL 语句",
+      "ai_params": {
+        "sql": { "type": "string", "required": true, "description": "SQL 语句" },
+        "action": { "type": "string", "required": false, "description": "操作: format(格式化), minify(压缩)", "default": "format" }
+      }
+    },
+    {
+      "id": "data-masking",
+      "ai_callable": true,
+      "ai_description": "对敏感数据（手机号、身份证等）进行脱敏处理",
+      "ai_params": {
+        "data": { "type": "string", "required": true, "description": "包含敏感数据的文本" },
+        "type": { "type": "string", "required": false, "description": "数据类型: phone, idCard, email, bankCard, all", "default": "all" }
+      }
+    },
+    {
+      "id": "gantt-chart",
+      "ai_callable": true,
+      "ai_description": "创建项目甘特图，管理任务时间线和排期",
+      "ai_params": {
+        "tasks": { "type": "string", "required": true, "description": "任务列表 JSON" },
+        "format": { "type": "string", "required": false, "description": "输出格式: markdown, mermaid, html", "default": "mermaid" }
+      }
+    },
+    {
+      "id": "priority-matrix",
+      "ai_callable": true,
+      "ai_description": "使用四象限矩阵管理和排列需求优先级",
+      "ai_params": {
+        "items": { "type": "string", "required": true, "description": "需求项 JSON 数组" }
+      }
+    },
+    {
+      "id": "standup-helper",
+      "ai_callable": true,
+      "ai_description": "记录每日站会内容，生成标准格式的站会汇报",
+      "ai_params": {
+        "yesterday": { "type": "string", "required": false, "description": "昨日完成" },
+        "today": { "type": "string", "required": false, "description": "今日计划" },
+        "blockers": { "type": "string", "required": false, "description": "阻塞问题" },
+        "format": { "type": "string", "required": false, "description": "输出格式: markdown, text", "default": "markdown" }
+      }
+    },
+    {
+      "id": "meeting-minutes",
+      "ai_callable": true,
+      "ai_description": "记录会议内容并生成标准格式的会议纪要",
+      "ai_params": {
+        "title": { "type": "string", "required": true, "description": "会议标题" },
+        "participants": { "type": "string", "required": false, "description": "参会人员" },
+        "decisions": { "type": "string", "required": false, "description": "决议事项" },
+        "actions": { "type": "string", "required": false, "description": "行动项" }
+      }
+    },
+    {
+      "id": "weekly-report",
+      "ai_callable": true,
+      "ai_description": "生成工作周报，整理本周完成事项和下周计划",
+      "ai_params": {
+        "thisWeek": { "type": "string", "required": false, "description": "本周工作" },
+        "nextWeek": { "type": "string", "required": false, "description": "下周计划" },
+        "highlights": { "type": "string", "required": false, "description": "亮点工作" }
+      }
+    },
+    {
+      "id": "ppt-outline",
+      "ai_callable": true,
+      "ai_description": "根据主题生成 PPT 演示文稿的结构化大纲",
+      "ai_params": {
+        "topic": { "type": "string", "required": true, "description": "汇报主题" },
+        "slides": { "type": "number", "required": false, "description": "页数", "default": 10 }
+      }
+    },
+    {
+      "id": "tech-doc-template",
+      "ai_callable": true,
+      "ai_description": "生成技术方案文档，包含背景、方案设计、风险评估等章节",
+      "ai_params": {
+        "title": { "type": "string", "required": true, "description": "方案标题" },
+        "background": { "type": "string", "required": false, "description": "背景介绍" },
+        "requirements": { "type": "string", "required": false, "description": "需求概述" }
+      }
+    },
+    {
+      "id": "flowchart-maker",
+      "ai_callable": true,
+      "ai_description": "使用 Mermaid 语法创建流程图、序列图等",
+      "ai_params": {
+        "type": { "type": "string", "required": false, "description": "图表类型: flowchart, sequence, class, state", "default": "flowchart" },
+        "content": { "type": "string", "required": true, "description": "Mermaid 语法内容" }
+      }
+    },
+    {
+      "id": "http-status",
+      "ai_callable": true,
+      "ai_description": "查询 HTTP 状态码的含义和处理建议",
+      "ai_params": {
+        "code": { "type": "string", "required": true, "description": "HTTP 状态码 (如 404, 500)" }
+      }
+    },
+    {
+      "id": "log-analyzer",
+      "ai_callable": true,
+      "ai_description": "分析和过滤日志内容，提取错误和关键信息",
+      "ai_params": {
+        "log": { "type": "string", "required": true, "description": "日志内容" },
+        "level": { "type": "string", "required": false, "description": "过滤级别: error, warn, info, debug", "default": "error" }
+      }
+    },
+    {
+      "id": "cmd-cheatsheet",
+      "ai_callable": true,
+      "ai_description": "查询 Git、Docker、Linux 等常用命令的用法",
+      "ai_params": {
+        "command": { "type": "string", "required": true, "description": "命令名称或关键字" },
+        "category": { "type": "string", "required": false, "description": "类别: git, docker, linux, nginx, python", "default": "all" }
+      }
+    },
+    {
+      "id": "env-diff",
+      "ai_callable": true,
+      "ai_description": "对比不同环境的配置文件差异",
+      "ai_params": {
+        "env1": { "type": "string", "required": true, "description": "环境1配置" },
+        "env2": { "type": "string", "required": true, "description": "环境2配置" }
+      }
+    },
+    {
+      "id": "pomodoro",
+      "ai_callable": true,
+      "ai_description": "使用番茄工作法计时，帮助保持专注",
+      "ai_params": {
+        "action": { "type": "string", "required": false, "description": "操作: start, stop, pause, reset", "default": "start" },
+        "minutes": { "type": "number", "required": false, "description": "时长(分钟)", "default": 25 }
+      }
+    },
+    {
+      "id": "code-snippet",
+      "ai_callable": true,
+      "ai_description": "保存和管理常用代码片段，方便快速复用",
+      "ai_params": {
+        "action": { "type": "string", "required": false, "description": "操作: list, get, add, delete", "default": "list" },
+        "language": { "type": "string", "required": false, "description": "编程语言" },
+        "query": { "type": "string", "required": false, "description": "搜索关键字" }
+      }
+    },
+    {
+      "id": "password-gen",
+      "ai_callable": true,
+      "ai_description": "生成安全的随机密码",
+      "ai_params": {
+        "length": { "type": "number", "required": false, "description": "密码长度", "default": 16 },
+        "uppercase": { "type": "boolean", "required": false, "description": "包含大写字母", "default": true },
+        "lowercase": { "type": "boolean", "required": false, "description": "包含小写字母", "default": true },
+        "numbers": { "type": "boolean", "required": false, "description": "包含数字", "default": true },
+        "symbols": { "type": "boolean", "required": false, "description": "包含符号", "default": true },
+        "count": { "type": "number", "required": false, "description": "生成数量", "default": 1 }
+      }
+    },
+    {
+      "id": "text-process",
+      "ai_callable": true,
+      "ai_description": "对文本进行去重、排序、替换等批量处理",
+      "ai_params": {
+        "text": { "type": "string", "required": true, "description": "要处理的文本" },
+        "action": { "type": "string", "required": false, "description": "操作: dedup, sort, count, replace, case, escape", "default": "dedup" },
+        "options": { "type": "object", "required": false, "description": "额外选项" }
+      }
+    },
+    {
+      "id": "api-mock",
+      "ai_callable": true,
+      "ai_description": "生成标准格式的 API 接口文档",
+      "ai_params": {
+        "method": { "type": "string", "required": false, "description": "HTTP 方法: GET, POST, PUT, DELETE", "default": "GET" },
+        "path": { "type": "string", "required": true, "description": "API 路径" },
+        "description": { "type": "string", "required": false, "description": "接口描述" },
+        "params": { "type": "string", "required": false, "description": "请求参数 JSON" },
+        "response": { "type": "string", "required": false, "description": "响应示例 JSON" }
+      }
+    },
+    {
+      "id": "image-tools",
+      "ai_callable": true,
+      "ai_description": "处理图片，包括压缩、格式转换和尺寸调整",
+      "ai_params": {
+        "action": { "type": "string", "required": false, "description": "操作: compress, convert, resize", "default": "compress" },
+        "format": { "type": "string", "required": false, "description": "目标格式: png, jpg, webp", "default": "png" }
+      }
+    },
+    {
+      "id": "bug-report",
+      "ai_callable": true,
+      "ai_description": "生成规范格式的 Bug 报告，方便提交问题追踪系统",
+      "ai_params": {
+        "title": { "type": "string", "required": true, "description": "Bug 标题" },
+        "description": { "type": "string", "required": true, "description": "Bug 描述" },
+        "steps": { "type": "string", "required": false, "description": "复现步骤" },
+        "expected": { "type": "string", "required": false, "description": "预期结果" },
+        "actual": { "type": "string", "required": false, "description": "实际结果" },
+        "severity": { "type": "string", "required": false, "description": "严重程度: critical, high, medium, low", "default": "medium" }
+      }
+    },
+    {
+      "id": "countdown-timer",
+      "ai_callable": true,
+      "ai_description": "创建项目节点倒计时，追踪 deadline",
+      "ai_params": {
+        "target": { "type": "string", "required": true, "description": "目标名称" },
+        "date": { "type": "string", "required": true, "description": "目标日期时间" }
+      }
+    }
+  ]
+}

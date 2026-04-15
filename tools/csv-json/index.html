@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV ↔ JSON 转换</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .main { padding: 20px; max-width: 1100px; margin: 0 auto; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: #1f2235; font-size: 12px; font-weight: 600; color: #8b90a7; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #2d3148; display: flex; justify-content: space-between; align-items: center; }
+    .copy-btn { padding: 3px 10px; background: #2d3148; border: none; border-radius: 4px; color: #8b90a7; cursor: pointer; font-size: 11px; }
+    .copy-btn:hover { background: #6366f1; color: #fff; }
+    textarea { width: 100%; background: #131520; color: #e2e8f0; border: none; padding: 16px; font-family: 'Cascadia Code', monospace; font-size: 13px; resize: vertical; outline: none; min-height: 200px; line-height: 1.6; }
+    .opts { padding: 12px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; background: #1a1d2e; }
+    .checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #c4c9e2; cursor: pointer; }
+    input[type=checkbox] { accent-color: #6366f1; }
+    .btn-row { padding: 12px 16px; display: flex; gap: 8px; flex-wrap: wrap; background: #1a1d2e; border-top: 1px solid #2d3148; }
+    .btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-primary:hover { background: #5457d4; }
+    .btn-secondary { background: #2d3148; color: #c4c9e2; }
+    .btn-secondary:hover { background: #363b5e; }
+    .preview { padding: 16px; background: #131520; font-size: 12px; color: #4a4f6a; max-height: 150px; overflow-y: auto; border-top: 1px solid #2d3148; }
+    .separator-input { width: 60px; background: #131520; border: 1px solid #363b5e; border-radius: 4px; padding: 4px 8px; color: #e2e8f0; font-size: 12px; }
+    @media (max-width: 768px) { .grid2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">📊</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">CSV ↔ JSON 转换</h1>
+    <p style="font-size:12px;color:#8b90a7;margin-top:2px">双向转换，自定义分隔符，数据预览</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">
+        输入 CSV
+        <button class="copy-btn" onclick="copyArea('csv-in')">复制</button>
+      </div>
+      <textarea id="csv-in" placeholder="输入 CSV 数据...&#10;&#10;例如：&#10;名称,邮箱,角色&#10;张三,zhangsan@example.com,PM&#10;李四,lisi@example.com,DEV"></textarea>
+      <div class="opts">
+        <label class="checkbox-label">
+          <input type="checkbox" checked id="csv-header"> 第一行是表头
+        </label>
+        <span style="font-size:12px;color:#8b90a7">分隔符：</span>
+        <input class="separator-input" id="csv-sep" value="," maxlength="2">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="csv2json()">→ 转为 JSON</button>
+        <button class="btn btn-secondary" onclick="loadCsvSample()">📋 示例</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        输入 JSON
+        <button class="copy-btn" onclick="copyArea('json-in')">复制</button>
+      </div>
+      <textarea id="json-in" placeholder="输入 JSON 数组...&#10;&#10;例如：&#10;[&#10;  {&quot;name&quot;:&quot;张三&quot;,&quot;email&quot;:&quot;zhangsan@example.com&quot;},&#10;  {&quot;name&quot;:&quot;李四&quot;,&quot;email&quot;:&quot;lisi@example.com&quot;}&#10;]"></textarea>
+      <div class="opts">
+        <span style="font-size:12px;color:#8b90a7">分隔符：</span>
+        <input class="separator-input" id="json-sep" value="," maxlength="2">
+        <label class="checkbox-label">
+          <input type="checkbox" checked id="json-header"> 包含表头行
+        </label>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="json2csv()">→ 转为 CSV</button>
+        <button class="btn btn-secondary" onclick="loadJsonSample()">📋 示例</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">
+      输出结果
+      <button class="copy-btn" onclick="copyArea('output')">复制</button>
+    </div>
+    <textarea id="output" readonly placeholder="转换结果将显示在此..."></textarea>
+    <div class="preview" id="preview"></div>
+  </div>
+</div>
+
+<script>
+function copyArea(id) {
+  const el = document.getElementById(id);
+  navigator.clipboard.writeText(el.value).then(() => { el.style.borderColor='#22c55e'; setTimeout(()=>el.style.borderColor='', 800); });
+}
+
+function csv2json() {
+  const csv = document.getElementById('csv-in').value.trim();
+  const sep = document.getElementById('csv-sep').value || ',';
+  const hasHeader = document.getElementById('csv-header').checked;
+  if (!csv) return;
+  const lines = csv.split('\n');
+  const headers = hasHeader ? lines[0].split(sep).map(h=>h.trim()) : lines[0].split(sep).map((,i)=>`col${i+1}`);
+  const start = hasHeader ? 1 : 0;
+  const data = lines.slice(start).map(line => {
+    const values = line.split(sep).map(v=>v.trim());
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = values[i] || ''; });
+    return obj;
+  }).filter(o => Object.values(o).some(v=>v));
+  const json = JSON.stringify(data, null, 2);
+  document.getElementById('output').value = json;
+  document.getElementById('preview').textContent = `✅ 成功转换 ${data.length} 条记录，包含 ${headers.length} 个字段`;
+}
+
+function json2csv() {
+  const json = document.getElementById('json-in').value.trim();
+  const sep = document.getElementById('json-sep').value || ',';
+  const hasHeader = document.getElementById('json-header').checked;
+  try {
+    const data = JSON.parse(json);
+    if (!Array.isArray(data) || data.length === 0) throw new Error('需要非空数组');
+    const headers = Object.keys(data[0]);
+    let csv = '';
+    if (hasHeader) csv = headers.map(h => `"${h.replace(/"/g, '""')}"`).join(sep) + '\n';
+    csv += data.map(row => headers.map(h => {
+      const v = row[h];
+      const s = String(v || '');
+      return s.includes(sep) || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+    }).join(sep)).join('\n');
+    document.getElementById('output').value = csv;
+    document.getElementById('preview').textContent = `✅ 成功转换 ${data.length} 条记录`;
+  } catch(e) {
+    document.getElementById('preview').textContent = `❌ 错误: ${e.message}`;
+  }
+}
+
+function loadCsvSample() {
+  document.getElementById('csv-in').value = `项目,经理,开始,截止,状态
+工具集产品,张三,2026-03-01,2026-05-31,进行中
+API网关重构,李四,2026-02-15,2026-04-15,计划中
+数据平台,王五,2026-01-01,2026-06-30,进行中`;
+  csv2json();
+}
+
+function loadJsonSample() {
+  document.getElementById('json-in').value = JSON.stringify([
+    { name: '张三', role: '项目经理', email: 'zhangsan@example.com', status: '在职' },
+    { name: '李四', role: '开发工程师', email: 'lisi@example.com', status: '在职' },
+    { name: '王五', role: '测试工程师', email: 'wangwu@example.com', status: '休假' }
+  ], null, 2);
+  json2csv();
+}
+
+loadCsvSample();
+</script>
+</body>
+</html>

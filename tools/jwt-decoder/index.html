@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JWT 解析器 - JWT Decoder</title>
+  <meta name="description" content="在线 JWT 解析器，解码 Header/Payload、检查有效期、HS256 签名验证、JWT 生成工具。">
+  <style>
+    :root {
+      --bg-base: #0d1117; --bg-surface: #161b27; --bg-elevated: #1c2133;
+      --border-default: #2a3050; --border-subtle: #1e2438;
+      --text-primary: #cdd6f4; --text-secondary: #8892b4; --text-muted: #4a5278;
+      --accent: #6366f1; --accent-light: #818cf8; --accent-green: #4ade80;
+      --accent-orange: #ff9e64; --accent-red: #f7768e; --accent-cyan: #22d3ee;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-base); color: var(--text-primary); min-height: 100vh; }
+    .header { background: var(--bg-surface); border-bottom: 1px solid var(--border-default); padding: 14px 20px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid var(--border-default); color: var(--text-muted); border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .main { padding: 20px; max-width: 1100px; margin: 0 auto; }
+    .card { background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: var(--bg-elevated); font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border-default); display: flex; align-items: center; justify-content: space-between; }
+    .card-body { padding: 16px; }
+    textarea { width: 100%; background: var(--bg-base); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 12px; font-family: 'SF Mono', monospace; font-size: 12px; resize: vertical; outline: none; min-height: 80px; transition: border-color .2s; line-height: 1.6; word-break: break-all; }
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: var(--text-muted); }
+    .btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-light); }
+    .btn-secondary { background: var(--border-default); color: var(--text-secondary); }
+    .btn-secondary:hover { background: var(--accent); color: #fff; }
+    .btn-sm { padding: 4px 10px; font-size: 11px; }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .mode-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+    .mode-tab { padding: 7px 18px; background: var(--border-default); border: none; border-radius: 6px; color: var(--text-muted); font-size: 12px; cursor: pointer; transition: all .2s; }
+    .mode-tab.active { background: var(--accent); color: #fff; }
+
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .part-header { padding: 8px 12px; border-radius: 6px 6px 0 0; font-size: 11px; font-weight: 600; letter-spacing: .5px; display: flex; align-items: center; justify-content: space-between; }
+    .part-header .copy-btn { padding: 2px 8px; background: rgba(255,255,255,.1); border: none; color: inherit; border-radius: 4px; cursor: pointer; font-size: 10px; opacity: .6; transition: opacity .2s; }
+    .part-header .copy-btn:hover { opacity: 1; }
+    .part-header.hdr { background: rgba(99,102,241,.12); color: var(--accent-light); border: 1px solid rgba(99,102,241,.2); border-bottom: none; }
+    .part-header.pay { background: rgba(245,158,11,.12); color: #fbbf24; border: 1px solid rgba(245,158,11,.2); border-bottom: none; }
+    .part-header.sig { background: rgba(34,197,94,.12); color: var(--accent-green); border: 1px solid rgba(34,197,94,.2); border-bottom: none; }
+    .part-body { background: var(--bg-base); border-radius: 0 0 6px 6px; padding: 12px; font-family: 'SF Mono', monospace; font-size: 12px; min-height: 80px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; border: 1px solid var(--border-subtle); border-top: none; }
+    .part-body pre { margin: 0; white-space: pre-wrap; }
+    .json-key { color: #79c0ff; }
+    .json-str { color: #a5d6ff; }
+    .json-num { color: #ffa657; }
+    .json-bool { color: #ff7b72; }
+
+    .claims-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; }
+    .claim-key { font-size: 12px; color: var(--text-muted); padding: 3px 0; }
+    .claim-val { font-size: 12px; color: var(--text-primary); padding: 3px 0; font-family: 'SF Mono', monospace; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .claim-date { color: var(--accent-green); font-size: 11px; background: rgba(34,197,94,.1); padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-valid { background: rgba(34,197,94,.12); color: var(--accent-green); border: 1px solid rgba(34,197,94,.25); }
+    .badge-expired { background: rgba(220,38,38,.12); color: var(--accent-red); border: 1px solid rgba(220,38,38,.25); }
+    .badge-info { background: rgba(59,130,246,.12); color: #60a5fa; border: 1px solid rgba(59,130,246,.25); }
+    .badge-warn { background: rgba(245,158,11,.12); color: #fbbf24; border: 1px solid rgba(245,158,11,.25); }
+    .progress-bar { height: 4px; background: var(--border-default); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+    .progress-fill { height: 100%; border-radius: 2px; transition: width .3s; }
+
+    /* Generator */
+    .gen-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .gen-input { width: 100%; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 7px 10px; color: var(--text-primary); font-size: 12px; outline: none; font-family: 'SF Mono', monospace; transition: border-color .2s; }
+    .gen-input:focus { border-color: var(--accent); }
+    .gen-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+    .gen-group { display: flex; flex-direction: column; gap: 4px; }
+
+    /* Verify */
+    .verify-result { padding: 12px; border-radius: 8px; margin-top: 8px; font-size: 13px; }
+    .verify-pass { background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.2); color: var(--accent-green); }
+    .verify-fail { background: rgba(220,38,38,.08); border: 1px solid rgba(220,38,38,.2); color: var(--accent-red); }
+
+    /* Timeline */
+    .timeline { position: relative; padding: 16px 0 16px 30px; margin-top: 12px; }
+    .timeline::before { content: ''; position: absolute; left: 14px; top: 0; bottom: 0; width: 2px; background: var(--border-default); }
+    .tl-item { position: relative; margin-bottom: 14px; }
+    .tl-item:last-child { margin-bottom: 0; }
+    .tl-dot { position: absolute; left: -22px; top: 4px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--accent); background: var(--bg-surface); }
+    .tl-dot.now { background: var(--accent); animation: pulse 2s infinite; }
+    .tl-dot.past { border-color: var(--accent-green); background: var(--accent-green); }
+    .tl-dot.future { border-color: var(--text-muted); background: var(--bg-surface); }
+    .tl-dot.danger { border-color: var(--accent-red); background: var(--accent-red); }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(99,102,241,.4); } 50% { box-shadow: 0 0 0 6px rgba(99,102,241,0); } }
+    .tl-label { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
+    .tl-value { font-size: 13px; color: var(--text-primary); font-family: 'SF Mono', monospace; }
+    .tl-hint { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--bg-elevated); color: var(--text-primary); padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border-default); font-size: 13px; z-index: 1000; opacity: 0; transition: all .3s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 768px) { .grid3 { grid-template-columns: 1fr; } .gen-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">&#x1F3AB;</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">JWT 解析器</h1>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:2px">解码 &#183; 有效期检查 &#183; HS/RS/ES 签名验证 &#183; JWT 生成</p>
+  </div>
+  <a class="back-btn" href="../../index.html">&larr; 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="mode-tabs">
+    <button class="mode-tab active" onclick="switchTab('decode')">&#x1F513; 解码</button>
+    <button class="mode-tab" onclick="switchTab('verify')">&#x2705; 签名验证</button>
+    <button class="mode-tab" onclick="switchTab('generate')">&#x1F528; 生成 JWT</button>
+  </div>
+
+  <!-- Decode Tab -->
+  <div id="tab-decode">
+    <div class="card">
+      <div class="card-title">JWT Token 输入</div>
+      <div class="card-body">
+        <textarea id="jwt-input" placeholder="粘贴 JWT Token:&#10;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IuW8oOS4iSIsImlhdCI6MTUxNjIzOTAyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c" oninput="parseJWT()"></textarea>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn btn-primary" onclick="loadSample()">&#x1F4CB; 加载示例</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('jwt-input').value='';clearResult()">&#x1F5D1;&#xFE0F; 清空</button>
+          <button class="btn btn-secondary" onclick="pasteJWT()">&#x1F4CB; 粘贴</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="result-area" style="display:none">
+      <div class="card">
+        <div class="card-title">Token 状态</div>
+        <div class="card-body" id="status-area"></div>
+      </div>
+      <div class="grid3">
+        <div><div class="part-header hdr">HEADER <button class="copy-btn" onclick="copyDecoded('header')">复制</button></div><div class="part-body" id="header-body"></div></div>
+        <div><div class="part-header pay">PAYLOAD <button class="copy-btn" onclick="copyDecoded('payload')">复制</button></div><div class="part-body" id="payload-body"></div></div>
+        <div><div class="part-header sig">SIGNATURE <button class="copy-btn" onclick="copyDecoded('sig')">复制</button></div><div class="part-body" id="sig-body" style="color:var(--text-muted)"></div></div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="card-title">
+          <span class="card-title-left">声明解释 (Claims)</span>
+          <input class="gen-input" id="claims-filter" placeholder="搜索 Claims..." style="max-width:180px;font-size:11px;padding:4px 8px" oninput="filterClaims()">
+        </div>
+        <div class="card-body" id="claims-area"></div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="card-title">时间线 (Timeline)</div>
+        <div class="card-body" id="timeline-area"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Verify Tab -->
+  <div id="tab-verify" style="display:none">
+    <div class="card">
+      <div class="card-title">签名验证 (HS / RS / ES 系列)</div>
+      <div class="card-body">
+        <textarea id="verify-jwt" placeholder="粘贴 JWT Token..." style="min-height:60px"></textarea>
+        <div style="margin-top:12px">
+          <div class="gen-label">密钥 / 公钥</div>
+          <textarea id="verify-secret" placeholder="HMAC 密钥 或 PEM 格式公钥 (-----BEGIN PUBLIC KEY----- 或 -----BEGIN CERTIFICATE-----)" style="min-height:80px;max-width:700px;font-size:11px"></textarea>
+        </div>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn btn-primary" onclick="verifyJWT()">&#x2705; 验证签名</button>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary);cursor:pointer">
+            <input type="checkbox" id="base64-secret"> 密钥为 Base64 编码
+          </label>
+        </div>
+        <div id="verify-result"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generate Tab -->
+  <div id="tab-generate" style="display:none">
+    <div class="card">
+      <div class="card-title">JWT 生成器</div>
+      <div class="card-body">
+        <div class="gen-grid">
+          <div>
+            <div class="gen-label">算法</div>
+            <select class="gen-input" id="gen-alg" style="max-width:200px">
+              <option value="HS256">HS256</option>
+              <option value="HS384">HS384</option>
+              <option value="HS512">HS512</option>
+              <option value="none">无签名 (none)</option>
+            </select>
+            <div class="gen-label" style="margin-top:10px">密钥</div>
+            <input class="gen-input" id="gen-secret" type="text" placeholder="your-256-bit-secret" value="your-256-bit-secret">
+          </div>
+          <div>
+            <div class="gen-label">过期时间</div>
+            <select class="gen-input" id="gen-expiry" style="max-width:200px">
+              <option value="3600">1 小时</option>
+              <option value="86400">1 天</option>
+              <option value="604800">7 天</option>
+              <option value="2592000">30 天</option>
+              <option value="0">永不过期</option>
+            </select>
+          </div>
+        </div>
+        <div class="gen-label" style="margin-top:12px">Payload (JSON)</div>
+        <textarea id="gen-payload" style="min-height:120px;margin-top:4px">{
+  "sub": "1234567890",
+  "name": "John Doe",
+  "iat": 1516239022
+}</textarea>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn btn-primary" onclick="generateJWT()">&#x1F528; 生成 JWT</button>
+          <button class="btn btn-secondary" onclick="copyGenerated()">&#x1F4CB; 复制</button>
+        </div>
+        <div class="gen-label" style="margin-top:12px">生成结果</div>
+        <textarea id="gen-result" readonly style="min-height:60px;margin-top:4px" placeholder="生成的 JWT 将显示在此..."></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============== Utilities ==============
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => showToast('✓ 已复制')).catch(() => {
+    const ta = document.createElement('textarea'); ta.value = text;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta); showToast('✓ 已复制');
+  });
+}
+
+// ============== Base64URL ==============
+function b64urlEncode(str) {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  bytes.forEach(b => binary += String.fromCharCode(b));
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+function b64urlDecode(str) {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  const decoded = atob(str);
+  const bytes = new Uint8Array(decoded.length);
+  for (let i = 0; i < decoded.length; i++) bytes[i] = decoded.charCodeAt(i);
+  return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+}
+
+function b64urlEncodeBytes(bytes) {
+  let binary = '';
+  bytes.forEach(b => binary += String.fromCharCode(b));
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+// ============== Tab Switching ==============
+function switchTab(tab) {
+  document.querySelectorAll('.mode-tab').forEach((t, i) => {
+    t.classList.toggle('active', ['decode', 'verify', 'generate'][i] === tab);
+  });
+  ['decode', 'verify', 'generate'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+  });
+}
+
+// ============== Syntax Highlight ==============
+function syntaxHL(obj) {
+  const json = JSON.stringify(obj, null, 2);
+  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, match => {
+    let cls = 'json-num';
+    if (/^"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-str';
+    else if (/true|false/.test(match)) cls = 'json-bool';
+    else if (/null/.test(match)) cls = 'json-bool';
+    return '<span class="' + cls + '">' + match + '</span>';
+  });
+}
+
+// ============== Timestamp Utils ==============
+function isTimestamp(v) { return typeof v === 'number' && v > 1000000000 && v < 20000000000; }
+
+function fmtTs(ts) {
+  try { return new Date(ts * 1000).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
+  catch(e) { return 'invalid'; }
+}
+
+function fmtDuration(s) {
+  if (s < 60) return s + ' 秒';
+  if (s < 3600) return Math.floor(s / 60) + ' 分钟 ' + (s % 60) + ' 秒';
+  if (s < 86400) return Math.floor(s / 3600) + ' 小时 ' + Math.floor((s % 3600) / 60) + ' 分钟';
+  return Math.floor(s / 86400) + ' 天 ' + Math.floor((s % 86400) / 3600) + ' 小时';
+}
+
+// ============== Parse JWT ==============
+let _parsedHeader = null, _parsedPayload = null, _rawSig = '';
+
+function parseJWT() {
+  const token = document.getElementById('jwt-input').value.trim();
+  if (!token) { clearResult(); return; }
+
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    document.getElementById('result-area').style.display = 'none';
+    return;
+  }
+
+  try {
+    const header = JSON.parse(b64urlDecode(parts[0]));
+    const payload = JSON.parse(b64urlDecode(parts[1]));
+    const sig = parts[2];
+    _parsedHeader = header;
+    _parsedPayload = payload;
+    _rawSig = sig;
+
+    document.getElementById('result-area').style.display = 'block';
+    document.getElementById('header-body').innerHTML = '<pre>' + syntaxHL(header) + '</pre>';
+    document.getElementById('payload-body').innerHTML = '<pre>' + syntaxHL(payload) + '</pre>';
+    document.getElementById('sig-body').innerHTML = '<div style="color:var(--text-muted);font-size:11px;margin-bottom:6px">Base64URL 签名</div><div style="color:var(--text-primary);word-break:break-all">' + sig + '</div><div style="color:var(--text-muted);font-size:10px;margin-top:6px">长度: ' + sig.length + ' 字符 (' + (sig.length * 3 / 4).toFixed(0) + ' bytes)</div>';
+
+    // Status
+    const now = Math.floor(Date.now() / 1000);
+    const exp = payload.exp, iat = payload.iat, nbf = payload.nbf;
+    let html = '';
+
+    if (exp) {
+      const expired = now > exp;
+      const remaining = exp - now;
+      const total = exp - (iat || now);
+      const pct = total > 0 ? Math.max(0, Math.min(100, (remaining / total) * 100)) : 0;
+
+      html += '<div style="margin-bottom:12px"><span class="badge ' + (expired ? 'badge-expired' : 'badge-valid') + '">' +
+        (expired ? '&#x274C; 已过期' : '&#x2705; 有效') + '</span>';
+      html += '<span style="margin-left:12px;font-size:13px;color:var(--text-secondary)">过期: ' + fmtTs(exp);
+      if (!expired) html += ' &middot; 剩余 ' + fmtDuration(remaining);
+      else html += ' &middot; 已过期 ' + fmtDuration(-remaining);
+      html += '</span>';
+      if (!expired && total > 0) {
+        const color = pct < 20 ? 'var(--accent-red)' : pct < 50 ? 'var(--accent-orange)' : 'var(--accent-green)';
+        html += '<div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%;background:' + color + '"></div></div>';
+      }
+      html += '</div>';
+    } else {
+      html += '<span class="badge badge-warn">&#x26A0;&#xFE0F; 无过期时间 (exp)</span>';
+    }
+
+    if (nbf && now < nbf) {
+      html += ' <span class="badge badge-warn">&#x23F0; 尚未生效 (nbf: ' + fmtTs(nbf) + ')</span>';
+    }
+
+    html += '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">';
+    html += '<span class="badge badge-info">算法: ' + (header.alg || '未知') + '</span>';
+    html += '<span class="badge badge-info">类型: ' + (header.typ || 'JWT') + '</span>';
+    if (iat) html += '<span class="badge badge-info">签发: ' + fmtTs(iat) + '</span>';
+    if (header.alg === 'none') html += '<span class="badge badge-expired">&#x1F6A8; 无签名算法 — 安全风险！</span>';
+    html += '</div>';
+
+    document.getElementById('status-area').innerHTML = html;
+
+    // Claims
+    const desc = {
+      iss: '签发者 (Issuer)', sub: '主题 (Subject)', aud: '受众 (Audience)',
+      exp: '过期时间 (Expires At)', nbf: '生效时间 (Not Before)',
+      iat: '签发时间 (Issued At)', jti: 'JWT ID',
+      name: '用户名', email: '邮箱', role: '角色', roles: '角色列表',
+      userId: '用户 ID', user_id: '用户 ID', scope: '权限范围',
+      permissions: '权限', tenant: '租户', org: '组织',
+    };
+
+    const rows = Object.entries(payload).map(([k, v]) => {
+      let displayVal = v, dateHint = '';
+      if (isTimestamp(v)) dateHint = '<span class="claim-date">' + fmtTs(v) + '</span>';
+      else if (typeof v === 'object' && v !== null) displayVal = JSON.stringify(v);
+      return '<div class="claim-key claim-row" data-key="' + escapeHtmlStr(k) + '" data-val="' + escapeHtmlStr(String(displayVal)) + '">' + k + ' <span style="color:var(--text-muted);font-size:11px">' + (desc[k] || '') + '</span></div><div class="claim-val claim-row" data-key="' + escapeHtmlStr(k) + '" data-val="' + escapeHtmlStr(String(displayVal)) + '">' + displayVal + ' ' + dateHint + '</div>';
+    }).join('');
+    document.getElementById('claims-area').innerHTML = '<div class="claims-grid">' + rows + '</div>';
+
+    // Timeline
+    let tlHtml = '<div class="timeline">';
+    const tlItems = [];
+    if (iat) tlItems.push({ label: '签发时间 (iat)', ts: iat, type: now >= iat ? 'past' : 'future', hint: now >= iat ? '已签发' : '尚未签发' });
+    if (nbf) tlItems.push({ label: '生效时间 (nbf)', ts: nbf, type: now >= nbf ? 'past' : 'future', hint: now >= nbf ? '已生效' : '尚未生效' });
+    tlItems.push({ label: '当前时间 (now)', ts: now, type: 'now', hint: '' });
+    if (exp) tlItems.push({ label: '过期时间 (exp)', ts: exp, type: now > exp ? 'danger' : 'future', hint: now > exp ? '已过期 ' + fmtDuration(now - exp) : '剩余 ' + fmtDuration(exp - now) });
+
+    // Sort by timestamp
+    tlItems.sort((a, b) => a.ts - b.ts);
+    for (const item of tlItems) {
+      tlHtml += '<div class="tl-item"><div class="tl-dot ' + item.type + '"></div>';
+      tlHtml += '<div class="tl-label">' + item.label + '</div>';
+      tlHtml += '<div class="tl-value">' + fmtTs(item.ts) + '</div>';
+      if (item.hint) tlHtml += '<div class="tl-hint">' + item.hint + '</div>';
+      tlHtml += '</div>';
+    }
+    if (!tlItems.length) tlHtml += '<span style="color:var(--text-muted);font-size:12px">无时间相关信息</span>';
+    tlHtml += '</div>';
+    document.getElementById('timeline-area').innerHTML = tlHtml;
+  } catch(e) {
+    document.getElementById('result-area').style.display = 'none';
+  }
+}
+
+function clearResult() { document.getElementById('result-area').style.display = 'none'; _parsedHeader = null; _parsedPayload = null; _rawSig = ''; document.getElementById('claims-filter').value = ''; }
+
+function copyDecoded(part) {
+  let text = '';
+  if (part === 'header' && _parsedHeader) text = JSON.stringify(_parsedHeader, null, 2);
+  else if (part === 'payload' && _parsedPayload) text = JSON.stringify(_parsedPayload, null, 2);
+  else if (part === 'sig' && _rawSig) text = _rawSig;
+  if (!text) { showToast('没有可复制的内容'); return; }
+  copyToClipboard(text);
+}
+
+function filterClaims() {
+  const keyword = document.getElementById('claims-filter').value.trim().toLowerCase();
+  const rows = document.querySelectorAll('.claim-row');
+  const hiddenKeys = new Set();
+  if (keyword) {
+    rows.forEach(row => {
+      const k = (row.dataset.key || '').toLowerCase();
+      const v = (row.dataset.val || '').toLowerCase();
+      const match = k.includes(keyword) || v.includes(keyword);
+      row.style.display = match ? '' : 'none';
+      if (!match) hiddenKeys.add(row.dataset.key);
+    });
+  } else {
+    rows.forEach(row => row.style.display = '');
+  }
+}
+
+function escapeHtmlStr(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function pasteJWT() {
+  navigator.clipboard.readText().then(text => {
+    document.getElementById('jwt-input').value = text.trim();
+    parseJWT();
+    showToast('✓ 已粘贴');
+  }).catch(() => showToast('无法读取剪贴板'));
+}
+
+async function loadSample() {
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    iss: 'auth.example.com', sub: 'user_12345', name: '张三',
+    email: 'zhangsan@example.com', role: 'admin', iat: now - 3600,
+    exp: now + 7200, nbf: now - 3600,
+    jti: 'abc123-def456-ghi789'
+  };
+  const headerB64 = b64urlEncode(JSON.stringify(header));
+  const payloadB64 = b64urlEncode(JSON.stringify(payload));
+  const secret = 'your-256-bit-secret';
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(headerB64 + '.' + payloadB64));
+  const sigB64 = b64urlEncodeBytes(new Uint8Array(sig));
+  document.getElementById('jwt-input').value = headerB64 + '.' + payloadB64 + '.' + sigB64;
+  parseJWT();
+  showToast('✓ 已加载示例 JWT（签名有效，密钥: your-256-bit-secret）');
+}
+
+// ============== Signature Verification (HMAC + RSA + ECDSA) ==============
+function pemToArrayBuffer(pem) {
+  const b64 = pem.replace(/-----BEGIN [^-]+-----/, '').replace(/-----END [^-]+-----/, '').replace(/\s/g, '');
+  const bin = atob(b64);
+  const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return buf.buffer;
+}
+
+function extractPublicKeyFromCert(pem) {
+  // Web Crypto doesn't directly parse X.509 certs, but we can try to extract the SPKI
+  // For simplicity, we attempt to import as SPKI first. If it fails, provide a helpful error.
+  return pemToArrayBuffer(pem);
+}
+
+async function verifyJWT() {
+  const token = document.getElementById('verify-jwt').value.trim();
+  const secret = document.getElementById('verify-secret').value.trim();
+  const resultEl = document.getElementById('verify-result');
+
+  if (!token) { showToast('请输入 JWT'); return; }
+  if (!secret) { showToast('请输入密钥或公钥'); return; }
+
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    resultEl.innerHTML = '<div class="verify-result verify-fail">&#x274C; 无效的 JWT 格式</div>';
+    return;
+  }
+
+  try {
+    const header = JSON.parse(b64urlDecode(parts[0]));
+    const alg = header.alg || 'HS256';
+    const resultEl = document.getElementById('verify-result');
+
+    // Determine key type from algorithm
+    const algType = alg.substring(0, 2); // HS, RS, ES, PS
+
+    if (algType === 'HS') {
+      // HMAC verification
+      const algMap = { HS256: 'SHA-256', HS384: 'SHA-384', HS512: 'SHA-512' };
+      const shaAlg = algMap[alg];
+      if (!shaAlg) {
+        resultEl.innerHTML = '<div class="verify-result verify-fail">&#x274C; 不支持的算法: ' + alg + '</div>';
+        return;
+      }
+      const encoder = new TextEncoder();
+      let keyData = encoder.encode(secret);
+      if (document.getElementById('base64-secret').checked) {
+        const bin = atob(secret.trim());
+        keyData = Uint8Array.from(bin, c => c.charCodeAt(0));
+      }
+      const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: shaAlg }, false, ['sign']);
+      const data = encoder.encode(parts[0] + '.' + parts[1]);
+      const signature = await crypto.subtle.sign('HMAC', key, data);
+      const expectedSig = b64urlEncodeBytes(new Uint8Array(signature));
+      if (expectedSig === parts[2]) {
+        resultEl.innerHTML = '<div class="verify-result verify-pass">&#x2705; 签名验证通过！算法: ' + alg + '</div>';
+      } else {
+        resultEl.innerHTML = '<div class="verify-result verify-fail">&#x274C; 签名不匹配<br><br><span style="font-size:11px;opacity:.7">期望: ' + expectedSig.slice(0, 32) + '...<br>实际: ' + parts[2].slice(0, 32) + '...</span></div>';
+      }
+    } else if (algType === 'RS' || algType === 'PS') {
+      // RSA verification
+      const algMap = {
+        RS256: { hash: 'SHA-256', name: 'RSASSA-PKCS1-v1_5' },
+        RS384: { hash: 'SHA-384', name: 'RSASSA-PKCS1-v1_5' },
+        RS512: { hash: 'SHA-512', name: 'RSASSA-PKCS1-v1_5' },
+        PS256: { hash: 'SHA-256', name: 'RSA-PSS' },
+        PS384: { hash: 'SHA-384', name: 'RSA-PSS' },
+        PS512: { hash: 'SHA-512', name: 'RSA-PSS' },
+      };
+      const cfg = algMap[alg];
+      if (!cfg) {
+        resultEl.innerHTML = '<div class="verify-result verify-fail">&#x274C; 不支持的算法: ' + alg + '</div>';
+        return;
+      }
+      const isPEM = secret.includes('-----BEGIN');
+      if (!isPEM) {
+        resultEl.innerHTML = '<div class="verify-result verify-fail">&#x274C; ' + alg + ' 需要 PEM 格式公钥 (-----BEGIN PUBLIC KEY-----)</div>';
+        return;
+      }
+      const keyData = pemToArrayBuffer(secret);
+      const key = await crypto.subtle.importKey('spki', keyData, { name: cfg.name, hash: cfg.hash }, false, ['verify']);
+      const data = new TextEncoder().encode(parts[0] + '.' + parts[1]);
+      const sigBytes = b64urlDecodeToBytes(parts[2]);
+      const valid = await crypto.subtle.verify(cfg.name, key, sigBytes, data);
+      resultEl.innerHTML = valid
+        ? '<div class="verify-result verify-pass">&#x2705; 签名验证通过！算法: ' + alg + '</div>'
+        : '<div class="verify-result verify-fail">&#x274C; 签名验证失败 — 签名与公钥不匹配</div>';
+    } else if (algType === 'ES') {
+      // ECDSA verification
+      const algMap = {
+        ES256: { hash: 'SHA-256', namedCurve: 'P-256' },
+        ES384: { hash: 'SHA-384', namedCurve: 'P-384' },
+        ES512: { hash: 'SHA-512', namedCurve: 'P-521' },
+      };
+      const cfg = algMap[alg];
+      if (!cfg) {
+        resultEl.innerHTML = '<div class="verify-result verify-fail">&#x274C; 不支持的算法: ' + alg + '</div>';
+        return;
+      }
+      const isPEM = secret.includes('-----BEGIN');
+      if (!isPEM) {
+        resultEl.innerHTML = '<div class="verify-result verify-fail">&#x274C; ' + alg + ' 需要 PEM 格式公钥 (-----BEGIN PUBLIC KEY-----)</div>';
+        return;
+      }
+      const keyData = pemToArrayBuffer(secret);
+      const key = await crypto.subtle.importKey('spki', keyData, { name: 'ECDSA', namedCurve: cfg.namedCurve }, false, ['verify']);
+      const data = new TextEncoder().encode(parts[0] + '.' + parts[1]);
+      const sigBytes = b64urlDecodeToBytes(parts[2]);
+      const valid = await crypto.subtle.verify({ name: 'ECDSA', hash: cfg.hash }, key, sigBytes, data);
+      resultEl.innerHTML = valid
+        ? '<div class="verify-result verify-pass">&#x2705; 签名验证通过！算法: ' + alg + '</div>'
+        : '<div class="verify-result verify-fail">&#x274C; 签名验证失败 — 签名与公钥不匹配</div>';
+    } else {
+      resultEl.innerHTML = '<div class="verify-result verify-fail">&#x274C; 不支持的算法: ' + alg + '</div>';
+    }
+  } catch(e) {
+    document.getElementById('verify-result').innerHTML = '<div class="verify-result verify-fail">&#x274C; 验证失败: ' + e.message + '</div>';
+  }
+}
+
+function b64urlDecodeToBytes(str) {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  const decoded = atob(str);
+  const bytes = new Uint8Array(decoded.length);
+  for (let i = 0; i < decoded.length; i++) bytes[i] = decoded.charCodeAt(i);
+  return bytes;
+}
+
+// ============== JWT Generator ==============
+async function generateJWT() {
+  const alg = document.getElementById('gen-alg').value;
+  const secret = document.getElementById('gen-secret').value;
+  const expiry = parseInt(document.getElementById('gen-expiry').value);
+  const payloadStr = document.getElementById('gen-payload').value;
+
+  let payload;
+  try { payload = JSON.parse(payloadStr); } catch(e) {
+    showToast('Payload 不是有效的 JSON'); return;
+  }
+
+  // Add standard claims
+  const now = Math.floor(Date.now() / 1000);
+  payload.iat = payload.iat || now;
+  if (expiry > 0 && !payload.exp) payload.exp = now + expiry;
+
+  const header = { alg: alg, typ: 'JWT' };
+  const headerB64 = b64urlEncode(JSON.stringify(header));
+  const payloadB64 = b64urlEncode(JSON.stringify(payload));
+
+  let signature = '';
+  if (alg !== 'none') {
+    try {
+      const algMap = { HS256: 'SHA-256', HS384: 'SHA-384', HS512: 'SHA-512' };
+      const encoder = new TextEncoder();
+      const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: algMap[alg] }, false, ['sign']);
+      const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(headerB64 + '.' + payloadB64));
+      signature = b64urlEncodeBytes(new Uint8Array(sig));
+    } catch(e) {
+      showToast('签名失败: ' + e.message); return;
+    }
+  }
+
+  const jwt = headerB64 + '.' + payloadB64 + '.' + signature;
+  document.getElementById('gen-result').value = jwt;
+  showToast('✓ JWT 生成成功');
+}
+
+function copyGenerated() {
+  const text = document.getElementById('gen-result').value;
+  if (!text) { showToast('请先生成 JWT'); return; }
+  copyToClipboard(text);
+}
+
+// ============== Keyboard Shortcuts ==============
+document.addEventListener('keydown', (e) => {
+  const isCtrl = e.ctrlKey || e.metaKey;
+  if (isCtrl && e.key === 'v' && document.activeElement.tagName !== 'TEXTAREA' && document.activeElement.tagName !== 'INPUT') {
+    e.preventDefault();
+    pasteJWT();
+  }
+});
+</script>
+</body>
+</html>

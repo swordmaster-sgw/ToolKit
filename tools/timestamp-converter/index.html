@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>时间戳转换 - Unix Timestamp Converter</title>
+  <meta name="description" content="在线时间戳转换工具，支持时间戳与日期时间互转、多时区对照、时间差计算、批量转换。">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    :root {
+      --bg-base: #0d1117;
+      --bg-surface: #161b27;
+      --bg-elevated: #1c2133;
+      --border-default: #2a3050;
+      --border-subtle: #1e2438;
+      --text-primary: #cdd6f4;
+      --text-secondary: #8892b4;
+      --text-muted: #4a5278;
+      --accent: #6366f1;
+      --accent-light: #818cf8;
+      --accent-green: #4ade80;
+      --accent-orange: #ff9e64;
+      --accent-red: #ef4444;
+      --accent-cyan: #22d3ee;
+    }
+    
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-base); color: var(--text-primary); min-height: 100vh; }
+    
+    /* Header */
+    .header { background: var(--bg-surface); border-bottom: 1px solid var(--border-default); padding: 14px 20px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid var(--border-default); color: var(--text-muted); border-radius: 6px; cursor: pointer; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+    
+    /* Main */
+    .main { padding: 20px; max-width: 960px; margin: 0 auto; }
+    
+    /* Now Bar */
+    .now-bar { background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 10px; padding: 16px 20px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .now-ts { font-size: 28px; font-weight: 700; color: var(--accent); font-family: 'SF Mono', 'Cascadia Code', monospace; letter-spacing: 1px; cursor: pointer; transition: color .2s; }
+    .now-ts:hover { color: var(--accent-light); }
+    .now-ts-ms { font-size: 14px; color: var(--text-muted); font-family: monospace; }
+    .now-date { font-size: 14px; color: var(--text-secondary); }
+    .now-weekday { font-size: 13px; color: var(--accent-green); font-weight: 500; }
+    .now-actions { display: flex; gap: 8px; margin-left: auto; align-items: center; }
+    
+    /* Buttons */
+    .btn { padding: 7px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; display: inline-flex; align-items: center; gap: 4px; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-light); }
+    .btn-secondary { background: var(--border-default); color: var(--text-secondary); }
+    .btn-secondary:hover { background: var(--text-muted); color: var(--text-primary); }
+    .btn-quick { background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border-subtle); font-size: 12px; padding: 5px 12px; }
+    .btn-quick:hover { background: var(--border-default); color: var(--text-primary); border-color: var(--accent); }
+    .btn-copy { background: transparent; border: 1px solid var(--border-subtle); color: var(--text-muted); padding: 3px 8px; font-size: 11px; border-radius: 4px; cursor: pointer; }
+    .btn-copy:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-copy.copied { border-color: var(--accent-green); color: var(--accent-green); }
+    
+    /* Quick buttons */
+    .quick-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    
+    /* Grid */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    
+    /* Card */
+    .card { background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 10px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: var(--bg-elevated); font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border-default); display: flex; align-items: center; gap: 6px; }
+    .card-body { padding: 16px; }
+    
+    /* Input */
+    .input-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+    .input { flex: 1; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 9px 12px; color: var(--text-primary); font-size: 14px; outline: none; font-family: 'SF Mono', 'Cascadia Code', monospace; transition: border-color .2s; }
+    .input:focus { border-color: var(--accent); }
+    .input::placeholder { color: var(--text-muted); }
+    .textarea { width: 100%; min-height: 100px; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 9px 12px; color: var(--text-primary); font-size: 13px; outline: none; font-family: 'SF Mono', 'Cascadia Code', monospace; resize: vertical; transition: border-color .2s; }
+    .textarea:focus { border-color: var(--accent); }
+    
+    /* Result items */
+    .result-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-subtle); }
+    .result-item:last-child { border-bottom: none; }
+    .result-label { font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+    .result-val-wrap { display: flex; align-items: center; gap: 6px; }
+    .result-val { font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 13px; color: var(--text-primary); cursor: pointer; transition: color .2s; word-break: break-all; text-align: right; }
+    .result-val:hover { color: var(--accent); }
+    .result-relative { font-size: 11px; color: var(--accent-orange); font-style: italic; }
+    
+    /* Timezone grid */
+    .tz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+    .tz-item { background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px 12px; }
+    .tz-name { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+    .tz-time { font-size: 13px; font-family: 'SF Mono', monospace; color: var(--text-primary); }
+    .tz-offset { font-size: 11px; color: var(--accent-cyan); }
+    
+    /* Hint */
+    .hint { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+    
+    /* Batch */
+    .batch-section { margin-top: 16px; }
+    .batch-results { margin-top: 12px; max-height: 240px; overflow-y: auto; }
+    .batch-item { background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+    .batch-item .ts { color: var(--text-muted); font-size: 11px; font-family: monospace; }
+    .batch-item .date { color: var(--text-primary); font-family: monospace; font-size: 12px; }
+    .batch-item .relative { color: var(--accent-orange); font-size: 11px; }
+    
+    /* Time Diff Card */
+    .diff-card { margin-top: 16px; }
+    .diff-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .diff-inputs .input-group { display: flex; flex-direction: column; gap: 4px; }
+    .diff-inputs .input-group label { font-size: 12px; color: var(--text-muted); }
+    .diff-result { background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 12px 16px; display: none; }
+    .diff-result.show { display: block; }
+    .diff-detail { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
+    .diff-unit { text-align: center; }
+    .diff-unit .num { font-size: 22px; font-weight: 700; font-family: monospace; color: var(--accent); }
+    .diff-unit .label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .diff-total { font-size: 13px; color: var(--text-secondary); margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-subtle); }
+    
+    /* Common dates reference */
+    .common-section { margin-top: 16px; }
+    .common-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; margin-top: 10px; }
+    .common-item { background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px 12px; cursor: pointer; transition: all .2s; }
+    .common-item:hover { border-color: var(--accent); }
+    .common-item .name { font-size: 11px; color: var(--text-muted); }
+    .common-item .ts-val { font-size: 14px; font-family: monospace; color: var(--accent); margin-top: 4px; }
+    .common-item .date-val { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    
+    /* Tabs */
+    .tabs { display: flex; border-bottom: 1px solid var(--border-default); background: var(--bg-elevated); }
+    .tab { padding: 8px 16px; font-size: 12px; font-weight: 500; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s; }
+    .tab:hover { color: var(--text-secondary); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    
+    /* Toast */
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--bg-elevated); color: var(--text-primary); padding: 10px 16px; border-radius: 6px; border: 1px solid var(--border-default); font-size: 13px; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr; }
+      .diff-inputs { grid-template-columns: 1fr; }
+      .now-bar { flex-direction: column; align-items: flex-start; }
+      .now-actions { margin-left: 0; width: 100%; justify-content: flex-end; }
+    }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">⏱️</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">时间戳转换</h1>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:2px">Unix Timestamp ↔ 日期时间 · 多时区 · 时间差计算</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <!-- 当前时间 -->
+  <div class="now-bar">
+    <div>
+      <div class="now-ts" id="now-ts" onclick="copyToClipboard(this.textContent)" title="点击复制秒级时间戳">-</div>
+      <div class="now-ts-ms" id="now-ts-ms" onclick="copyToClipboard(this.textContent)" title="点击复制毫秒级时间戳">-</div>
+      <div class="now-date" id="now-date">-</div>
+      <div class="now-weekday" id="now-weekday">-</div>
+    </div>
+    <div class="now-actions">
+      <button class="btn btn-secondary" onclick="fillNow()">📋 填入当前时间</button>
+      <button class="btn btn-primary" id="pause-btn" onclick="togglePause()">⏸ 暂停</button>
+    </div>
+  </div>
+
+  <!-- 快捷时间按钮 -->
+  <div class="quick-buttons">
+    <button class="btn btn-quick" onclick="quickTime('todayStart')">🕐 今天 0点</button>
+    <button class="btn btn-quick" onclick="quickTime('todayEnd')">🕐 今天 23:59</button>
+    <button class="btn btn-quick" onclick="quickTime('thisMonday')">📅 本周一</button>
+    <button class="btn btn-quick" onclick="quickTime('thisMonth1st')">📆 本月1号</button>
+    <button class="btn btn-quick" onclick="quickTime('thisYearStart')">🗓️ 本年1月1日</button>
+    <button class="btn btn-quick" onclick="quickTime('plus1hour')">⏩ 1小时后</button>
+    <button class="btn btn-quick" onclick="quickTime('minus1hour')">⏪ 1小时前</button>
+    <button class="btn btn-quick" onclick="quickTime('plus7days')">➡️ 7天后</button>
+    <button class="btn btn-quick" onclick="quickTime('plus30days')">➡️ 30天后</button>
+    <button class="btn btn-quick" onclick="quickTime('yesterday')">⏪ 昨天</button>
+    <button class="btn btn-quick" onclick="quickTime('lastMonth1st')">📆 上月1号</button>
+    <button class="btn btn-quick" onclick="quickTime('thisFriday')">📅 本周五</button>
+    <button class="btn btn-quick" onclick="quickTime('plus90days')">➡️ 90天后</button>
+  </div>
+
+  <!-- 主转换区 -->
+  <div class="grid">
+    <!-- 时间戳 → 日期 -->
+    <div class="card">
+      <div class="card-title">🔢 时间戳 → 日期时间</div>
+      <div class="card-body">
+        <div class="input-row">
+          <input class="input" id="ts-input" placeholder="输入时间戳（秒或毫秒）" oninput="ts2date()">
+          <button class="btn btn-primary" onclick="ts2date()">转换</button>
+        </div>
+        <div class="hint">支持 10 位（秒级）和 13 位（毫秒级）时间戳，自动识别</div>
+        <div id="ts-result" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <!-- 日期 → 时间戳 -->
+    <div class="card">
+      <div class="card-title">📅 日期时间 → 时间戳</div>
+      <div class="card-body">
+        <div class="input-row">
+          <input class="input" id="date-input" type="datetime-local" oninput="date2ts()">
+          <button class="btn btn-primary" onclick="date2ts()">转换</button>
+        </div>
+        <div class="hint" style="margin-bottom:8px">选择日期和时间</div>
+        <div id="date-result"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 时间差计算 -->
+  <div class="card diff-card">
+    <div class="card-title">⏳ 时间差计算</div>
+    <div class="card-body">
+      <div class="diff-inputs">
+        <div class="input-group">
+          <label>起始时间</label>
+          <input class="input" id="diff-start" type="datetime-local">
+        </div>
+        <div class="input-group">
+          <label>结束时间</label>
+          <input class="input" id="diff-end" type="datetime-local">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn btn-primary" onclick="calcDiff()">计算时间差</button>
+        <button class="btn btn-secondary" onclick="fillDiffNow()">填入当前时间（结束）</button>
+        <button class="btn btn-secondary" onclick="clearDiff()">清空</button>
+      </div>
+      <div class="diff-result" id="diff-result"></div>
+    </div>
+  </div>
+
+  <!-- 常用日期参考 -->
+  <div class="card common-section">
+    <div class="card-title">📌 常用日期快捷参考 <span style="font-weight:400;color:var(--text-muted)">(点击填入)</span></div>
+    <div class="card-body">
+      <div class="common-grid" id="common-grid"></div>
+    </div>
+  </div>
+
+  <!-- Unix 纪元里程碑 -->
+  <div class="card common-section">
+    <div class="card-title">🎯 Unix 纪元里程碑</div>
+    <div class="card-body">
+      <div class="common-grid" id="milestone-grid"></div>
+    </div>
+  </div>
+
+  <!-- 多时区 / 批量转换 (Tab 切换) -->
+  <div class="card" style="margin-top:16px">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('tz')">🌐 多时区对照</div>
+      <div class="tab" onclick="switchTab('batch')">📦 批量转换</div>
+    </div>
+    <div class="card-body">
+      <!-- 时区 -->
+      <div class="tab-content active" id="tab-tz">
+        <input class="input" id="tz-search" placeholder="搜索时区..." oninput="filterTZ()" style="margin-bottom:12px;width:100%">
+        <div class="tz-grid" id="tz-grid"></div>
+      </div>
+      <!-- 批量 -->
+      <div class="tab-content" id="tab-batch">
+        <div class="hint">每行一个时间戳，支持秒级（10位）和毫秒级（13位），自动识别</div>
+        <textarea class="textarea" id="batch-input" placeholder="1713081600&#10;1713168000&#10;1713254400&#10;1713340800" style="margin-top:8px"></textarea>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+          <button class="btn btn-primary" onclick="batchConvert()">批量转换</button>
+          <button class="btn btn-secondary" onclick="clearBatch()">清空</button>
+          <button class="btn btn-secondary" onclick="copyBatchResults()">复制全部结果</button>
+        </div>
+        <div class="batch-results" id="batch-results"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============== State ==============
+let paused = false;
+let clockTimer;
+let activeTab = 'tz';
+let lastBatchResults = [];
+
+// ============== Timezone Data ==============
+const TZ = [
+  { name: '北京', tz: 'Asia/Shanghai', flag: '🇨🇳' },
+  { name: '东京', tz: 'Asia/Tokyo', flag: '🇯🇵' },
+  { name: '首尔', tz: 'Asia/Seoul', flag: '🇰🇷' },
+  { name: '新加坡', tz: 'Asia/Singapore', flag: '🇸🇬' },
+  { name: '印度', tz: 'Asia/Kolkata', flag: '🇮🇳' },
+  { name: '迪拜', tz: 'Asia/Dubai', flag: '🇦🇪' },
+  { name: '莫斯科', tz: 'Europe/Moscow', flag: '🇷🇺' },
+  { name: '柏林', tz: 'Europe/Berlin', flag: '🇩🇪' },
+  { name: '伦敦', tz: 'Europe/London', flag: '🇬🇧' },
+  { name: '巴黎', tz: 'Europe/Paris', flag: '🇫🇷' },
+  { name: '纽约', tz: 'America/New_York', flag: '🇺🇸' },
+  { name: '芝加哥', tz: 'America/Chicago', flag: '🇺🇸' },
+  { name: '丹佛', tz: 'America/Denver', flag: '🇺🇸' },
+  { name: '洛杉矶', tz: 'America/Los_Angeles', flag: '🇺🇸' },
+  { name: '圣保罗', tz: 'America/Sao_Paulo', flag: '🇧🇷' },
+  { name: '悉尼', tz: 'Australia/Sydney', flag: '🇦🇺' },
+  { name: '奥克兰', tz: 'Pacific/Auckland', flag: '🇳🇿' },
+  { name: 'UTC', tz: 'UTC', flag: '🌐' },
+];
+
+const WEEKDAYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+
+// ============== Utilities ==============
+function getISOWeek(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+}
+
+function showToast(text) {
+  const toast = document.getElementById('toast');
+  toast.textContent = text;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(String(text)).then(() => {
+    showToast('✓ 已复制: ' + text);
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = String(text);
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('✓ 已复制');
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function formatRelativeTime(date) {
+  const now = new Date();
+  const diffMs = now - date;
+  const diffSec = Math.floor(diffMs / 1000);
+  const absSec = Math.abs(diffSec);
+  
+  if (absSec < 60) return diffSec >= 0 ? `${absSec} 秒前` : `${absSec} 秒后`;
+  const diffMin = Math.floor(absSec / 60);
+  if (diffMin < 60) return diffSec >= 0 ? `${diffMin} 分钟前` : `${diffMin} 分钟后`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return diffSec >= 0 ? `${diffHour} 小时前` : `${diffHour} 小时后`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 30) return diffSec >= 0 ? `${diffDay} 天前` : `${diffDay} 天后`;
+  const diffMonth = Math.floor(diffDay / 30);
+  if (diffMonth < 12) return diffSec >= 0 ? `${diffMonth} 个月前` : `${diffMonth} 个月后`;
+  const diffYear = Math.floor(diffDay / 365);
+  return diffSec >= 0 ? `${diffYear} 年前` : `${diffYear} 年后`;
+}
+
+function formatFullDate(d) {
+  const y = d.getFullYear();
+  const M = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  const s = String(d.getSeconds()).padStart(2, '0');
+  const weekday = WEEKDAYS[d.getDay()];
+  return `${y}-${M}-${day} ${h}:${m}:${s} ${weekday}`;
+}
+
+function getUTCOffset(tz) {
+  try {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      timeZoneName: 'shortOffset'
+    });
+    const parts = formatter.formatToParts(now);
+    const tzPart = parts.find(p => p.type === 'timeZoneName');
+    return tzPart ? tzPart.value : '';
+  } catch {
+    return '';
+  }
+}
+
+// ============== Clock ==============
+function updateClock() {
+  if (paused) return;
+  const now = new Date();
+  const secTs = Math.floor(now.getTime() / 1000);
+  
+  document.getElementById('now-ts').textContent = secTs;
+  document.getElementById('now-ts-ms').textContent = now.getTime();
+  document.getElementById('now-date').textContent = now.toLocaleString('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false
+  }) + ' CST';
+  document.getElementById('now-weekday').textContent = WEEKDAYS[now.getDay()] + ' | 第 ' + getISOWeek(now) + ' 周';
+  
+  updateTZ(now);
+}
+
+function updateTZ(date) {
+  const search = (document.getElementById('tz-search').value || '').toLowerCase();
+  const filtered = search ? TZ.filter(z => z.name.toLowerCase().includes(search) || z.tz.toLowerCase().includes(search)) : TZ;
+  document.getElementById('tz-grid').innerHTML = filtered.map(z => {
+    const offset = getUTCOffset(z.tz);
+    return `
+      <div class="tz-item">
+        <div class="tz-name">${z.flag} ${z.name} ${offset}</div>
+        <div class="tz-time">${date.toLocaleString('zh-CN', { timeZone: z.tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function filterTZ() { updateTZ(new Date()); }
+
+function togglePause() {
+  paused = !paused;
+  const btn = document.getElementById('pause-btn');
+  btn.textContent = paused ? '▶ 恢复' : '⏸ 暂停';
+  if (paused) {
+    btn.classList.remove('btn-primary');
+    btn.classList.add('btn-secondary');
+  } else {
+    btn.classList.remove('btn-secondary');
+    btn.classList.add('btn-primary');
+  }
+}
+
+function fillNow() {
+  document.getElementById('ts-input').value = Math.floor(Date.now() / 1000);
+  ts2date();
+}
+
+// ============== Quick Time ==============
+function quickTime(type) {
+  const now = new Date();
+  let targetDate;
+  
+  switch(type) {
+    case 'todayStart':
+      targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      break;
+    case 'todayEnd':
+      targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      break;
+    case 'thisMonday': {
+      const day = now.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      targetDate = new Date(now);
+      targetDate.setDate(now.getDate() + diff);
+      targetDate.setHours(0, 0, 0, 0);
+      break;
+    }
+    case 'thisMonth1st':
+      targetDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      break;
+    case 'thisYearStart':
+      targetDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+      break;
+    case 'plus1hour':
+      targetDate = new Date(now.getTime() + 3600000);
+      break;
+    case 'minus1hour':
+      targetDate = new Date(now.getTime() - 3600000);
+      break;
+    case 'plus7days':
+      targetDate = new Date(now.getTime() + 7 * 86400000);
+      break;
+    case 'plus30days':
+      targetDate = new Date(now.getTime() + 30 * 86400000);
+      break;
+    case 'yesterday':
+      targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+      break;
+    case 'lastMonth1st':
+      targetDate = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+      break;
+    case 'thisFriday': {
+      const day = now.getDay();
+      const diff = day <= 5 ? (5 - day) : (5 - day + 7);
+      targetDate = new Date(now);
+      targetDate.setDate(now.getDate() + diff);
+      targetDate.setHours(0, 0, 0, 0);
+      break;
+    }
+    case 'plus90days':
+      targetDate = new Date(now.getTime() + 90 * 86400000);
+      break;
+    default:
+      targetDate = now;
+  }
+  
+  document.getElementById('ts-input').value = Math.floor(targetDate.getTime() / 1000);
+  ts2date();
+  showToast(`已填入: ${formatFullDate(targetDate)}`);
+}
+
+// ============== Timestamp → Date ==============
+function ts2date() {
+  let val = document.getElementById('ts-input').value.trim();
+  const container = document.getElementById('ts-result');
+  if (!val) { container.innerHTML = ''; return; }
+  
+  let ts = parseInt(val);
+  if (isNaN(ts) || ts < 0) {
+    container.innerHTML = '<div style="color:var(--accent-red);padding:8px 0">❌ 无效时间戳，请输入正整数</div>';
+    return;
+  }
+  
+  // Auto detect: 10 digits = seconds, 13 digits = milliseconds
+  const isMs = val.length > 10;
+  if (!isMs) ts *= 1000;
+  
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) {
+    container.innerHTML = '<div style="color:var(--accent-red);padding:8px 0">❌ 无效时间戳</div>';
+    return;
+  }
+  
+  const secTs = Math.floor(ts / 1000);
+  const msTs = ts;
+  const weekday = WEEKDAYS[d.getDay()];
+  const relative = formatRelativeTime(d);
+  const sqlDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  const sqlDatetime = sqlDate + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0');
+  
+  const rows = [
+    { label: '本地时间 (CST)', value: formatFullDate(d), copy: formatFullDate(d) },
+    { label: 'ISO 8601', value: d.toISOString(), copy: d.toISOString() },
+    { label: 'UTC 时间', value: d.toUTCString(), copy: d.toUTCString() },
+    { label: 'RFC 2822', value: d.toString(), copy: d.toString() },
+    { label: 'SQL 日期', value: sqlDate, copy: sqlDate },
+    { label: 'SQL 日期时间', value: sqlDatetime, copy: sqlDatetime },
+    { label: '秒时间戳 (10位)', value: secTs, copy: String(secTs) },
+    { label: '毫秒时间戳 (13位)', value: msTs, copy: String(msTs) },
+    { label: '星期', value: weekday, copy: weekday },
+    { label: 'ISO 周数', value: '第 ' + getISOWeek(d) + ' 周', copy: '第 ' + getISOWeek(d) + ' 周' },
+    { label: '相对时间', value: relative, copy: relative, noCopy: true },
+  ];
+  
+  container.innerHTML = rows.map(r => `
+    <div class="result-item">
+      <span class="result-label">${r.label}</span>
+      <span class="result-val-wrap">
+        <span class="result-val ${r.noCopy ? 'result-relative' : ''}" ${!r.noCopy ? `onclick="copyToClipboard('${r.copy.replace(/'/g, "\\'")}')" title="点击复制"` : ''}>${escapeHtml(String(r.value))}</span>
+        ${!r.noCopy ? '<button class="btn-copy" onclick="copyToClipboard(\'' + r.copy.replace(/'/g, "\\'") + '\');this.classList.add(\'copied\');this.textContent=\'✓\';setTimeout(()=>{this.classList.remove(\'copied\');this.textContent=\'复制\'},1500)">复制</button>' : ''}
+      </span>
+    </div>
+  `).join('');
+}
+
+// ============== Date → Timestamp ==============
+function date2ts() {
+  const val = document.getElementById('date-input').value;
+  const container = document.getElementById('date-result');
+  if (!val) { container.innerHTML = ''; return; }
+  
+  const d = new Date(val);
+  if (isNaN(d.getTime())) {
+    container.innerHTML = '<div style="color:var(--accent-red);padding:8px 0">❌ 无效日期</div>';
+    return;
+  }
+  
+  const secTs = Math.floor(d.getTime() / 1000);
+  const msTs = d.getTime();
+  const weekday = WEEKDAYS[d.getDay()];
+  const relative = formatRelativeTime(d);
+  
+  const rows = [
+    { label: '秒时间戳 (10位)', value: secTs, copy: String(secTs) },
+    { label: '毫秒时间戳 (13位)', value: msTs, copy: String(msTs) },
+    { label: 'ISO 8601', value: d.toISOString(), copy: d.toISOString() },
+    { label: 'UTC 时间', value: d.toUTCString(), copy: d.toUTCString() },
+    { label: '星期', value: weekday, copy: weekday },
+    { label: '相对时间', value: relative, copy: relative, noCopy: true },
+  ];
+  
+  container.innerHTML = rows.map(r => `
+    <div class="result-item">
+      <span class="result-label">${r.label}</span>
+      <span class="result-val-wrap">
+        <span class="result-val ${r.noCopy ? 'result-relative' : ''}" ${!r.noCopy ? `onclick="copyToClipboard('${r.copy.replace(/'/g, "\\'")}')" title="点击复制"` : ''}>${escapeHtml(String(r.value))}</span>
+        ${!r.noCopy ? '<button class="btn-copy" onclick="copyToClipboard(\'' + r.copy.replace(/'/g, "\\'") + '\');this.classList.add(\'copied\');this.textContent=\'✓\';setTimeout(()=>{this.classList.remove(\'copied\');this.textContent=\'复制\'},1500)">复制</button>' : ''}
+      </span>
+    </div>
+  `).join('');
+}
+
+// ============== Time Diff ==============
+function calcDiff() {
+  const startVal = document.getElementById('diff-start').value;
+  const endVal = document.getElementById('diff-end').value;
+  const container = document.getElementById('diff-result');
+  
+  if (!startVal || !endVal) {
+    showToast('请选择起始时间和结束时间');
+    return;
+  }
+  
+  const start = new Date(startVal);
+  const end = new Date(endVal);
+  const diffMs = Math.abs(end - start);
+  
+  if (isNaN(diffMs)) {
+    showToast('无效的日期');
+    return;
+  }
+  
+  const totalSeconds = Math.floor(diffMs / 1000);
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const totalHours = Math.floor(totalMinutes / 60);
+  const totalDays = Math.floor(totalHours / 24);
+  
+  const days = totalDays;
+  const hours = totalHours % 24;
+  const minutes = totalMinutes % 60;
+  const seconds = totalSeconds % 60;
+  
+  const isPast = end > start;
+  const direction = isPast ? '结束后' : '开始前';
+  
+  container.classList.add('show');
+  container.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="color:var(--text-primary);font-weight:600">时间差结果</span>
+      <span style="color:var(--accent);font-size:13px">${isPast ? '→' : '←'}</span>
+    </div>
+    <div class="diff-detail">
+      <div class="diff-unit"><div class="num">${days}</div><div class="label">天</div></div>
+      <div class="diff-unit"><div class="num">${hours}</div><div class="label">小时</div></div>
+      <div class="diff-unit"><div class="num">${minutes}</div><div class="label">分钟</div></div>
+      <div class="diff-unit"><div class="num">${seconds}</div><div class="label">秒</div></div>
+    </div>
+    <div class="diff-total">
+      共 ${totalDays} 天 ${totalHours % 24} 小时 ${totalMinutes % 60} 分 ${totalSeconds % 60} 秒<br>
+      <span style="color:var(--text-muted)">= ${totalSeconds.toLocaleString()} 秒 = ${totalMinutes.toLocaleString()} 分钟 = ${totalHours.toLocaleString()} 小时</span>
+    </div>
+    <div style="margin-top:8px">
+      <button class="btn-copy" onclick="copyToClipboard('${days}天 ${hours}小时 ${minutes}分 ${seconds}秒 (${totalSeconds.toLocaleString()}秒)')">复制结果</button>
+    </div>
+  `;
+}
+
+function fillDiffNow() {
+  const now = new Date();
+  document.getElementById('diff-end').value = now.toISOString().slice(0, 16);
+}
+
+function clearDiff() {
+  document.getElementById('diff-start').value = '';
+  document.getElementById('diff-end').value = '';
+  document.getElementById('diff-result').classList.remove('show');
+}
+
+// ============== Common Dates ==============
+function renderCommonDates() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const d = now.getDate();
+  
+  const items = [
+    { name: '今天 0:00', date: new Date(y, m, d, 0, 0, 0) },
+    { name: '今天 23:59', date: new Date(y, m, d, 23, 59, 59) },
+    { name: '本周一 0:00', date: (() => { const day = now.getDay(); const diff = day === 0 ? -6 : 1 - day; const dt = new Date(now); dt.setDate(d + diff); dt.setHours(0,0,0,0); return dt; })() },
+    { name: '本月1日 0:00', date: new Date(y, m, 1, 0, 0, 0) },
+    { name: '下月1日 0:00', date: new Date(y, m + 1, 1, 0, 0, 0) },
+    { name: '本年1月1日', date: new Date(y, 0, 1, 0, 0, 0) },
+    { name: '去年1月1日', date: new Date(y - 1, 0, 1, 0, 0, 0) },
+    { name: '明年1月1日', date: new Date(y + 1, 0, 1, 0, 0, 0) },
+  ];
+  
+  document.getElementById('common-grid').innerHTML = items.map(item => {
+    const ts = Math.floor(item.date.getTime() / 1000);
+    return `
+      <div class="common-item" onclick="document.getElementById('ts-input').value=${ts};ts2date();showToast('已填入 ${escapeHtml(item.name)}')">
+        <div class="name">${item.name}</div>
+        <div class="ts-val">${ts}</div>
+        <div class="date-val">${formatFullDate(item.date)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============== Milestones ==============
+function renderMilestones() {
+  const now = Math.floor(Date.now() / 1000);
+  const items = [
+    { name: 'Unix 纪元 (1970-01-01)', ts: 0 },
+    { name: '第 10 亿秒', ts: 1000000000 },
+    { name: '第 20 亿秒', ts: 2000000000 },
+    { name: '2038 问题 (32位溢出)', ts: 2147483647 },
+    { name: '第 30 亿秒', ts: 3000000000 },
+    { name: '第 40 亿秒', ts: 4000000000 },
+    { name: '2050-01-01', ts: 2524608000 },
+    { name: '第 50 亿秒', ts: 5000000000 },
+  ];
+  document.getElementById('milestone-grid').innerHTML = items.map(item => {
+    const d = new Date(item.ts * 1000);
+    const status = now > item.ts ? '已过' : (now > item.ts - 86400 * 30 ? '即将' : '未来');
+    const statusColor = status === '已过' ? 'var(--accent-green)' : status === '即将' ? 'var(--accent-orange)' : 'var(--text-muted)';
+    return `
+      <div class="common-item" onclick="document.getElementById('ts-input').value=${item.ts};ts2date();showToast('已填入 ${escapeHtml(item.name)}')">
+        <div class="name">${item.name} <span style="color:${statusColor};font-size:10px">${status}</span></div>
+        <div class="ts-val">${item.ts.toLocaleString()}</div>
+        <div class="date-val">${formatFullDate(d)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============== Batch Convert ==============
+function batchConvert() {
+  const batchInput = document.getElementById('batch-input').value.trim();
+  if (!batchInput) {
+    document.getElementById('batch-results').innerHTML = '<div style="color:var(--text-muted);padding:8px;text-align:center">请输入时间戳</div>';
+    return;
+  }
+  
+  const lines = batchInput.split('\n').filter(l => l.trim());
+  const results = [];
+  lastBatchResults = [];
+  
+  for (const line of lines) {
+    const val = line.trim();
+    if (!val) continue;
+    
+    let ts = parseInt(val);
+    if (isNaN(ts) || ts < 0) {
+      results.push(`<div class="batch-item"><span class="ts">${escapeHtml(val)}</span> <span class="date" style="color:var(--accent-red)">❌ 无效</span></div>`);
+      continue;
+    }
+    
+    const isMs = val.length > 10;
+    if (!isMs) ts *= 1000;
+    const d = new Date(ts);
+    const dateStr = formatFullDate(d);
+    const secTs = Math.floor(ts / 1000);
+    const relative = formatRelativeTime(d);
+    
+    lastBatchResults.push(`${secTs}\t${dateStr}\t${relative}`);
+    
+    results.push(`
+      <div class="batch-item">
+        <div>
+          <span class="ts">${escapeHtml(val)}</span>
+          <span style="color:var(--text-muted);margin:0 6px">→</span>
+          <span class="date">${escapeHtml(dateStr)}</span>
+        </div>
+        <span class="relative">${escapeHtml(relative)}</span>
+      </div>
+    `);
+  }
+  
+  document.getElementById('batch-results').innerHTML = results.join('');
+  showToast(`已转换 ${lines.length} 个时间戳`);
+}
+
+function clearBatch() {
+  document.getElementById('batch-input').value = '';
+  document.getElementById('batch-results').innerHTML = '';
+  lastBatchResults = [];
+}
+
+function copyBatchResults() {
+  if (lastBatchResults.length === 0) {
+    showToast('没有可复制的结果');
+    return;
+  }
+  copyToClipboard(lastBatchResults.join('\n'));
+}
+
+// ============== Tabs ==============
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab[onclick="switchTab('${tab}')"]`).classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+// ============== Keyboard Shortcuts ==============
+document.addEventListener('keydown', (e) => {
+  // Ctrl/Cmd + Enter: convert
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    const tsInput = document.getElementById('ts-input');
+    if (document.activeElement === tsInput || tsInput.value) {
+      ts2date();
+    } else {
+      date2ts();
+    }
+  }
+});
+
+// ============== Init ==============
+(function init() {
+  // Set default date input
+  const now = new Date();
+  document.getElementById('date-input').value = now.toISOString().slice(0, 16);
+  
+  // Set default diff inputs
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+  document.getElementById('diff-start').value = todayStart.toISOString().slice(0, 16);
+  document.getElementById('diff-end').value = now.toISOString().slice(0, 16);
+  
+  // Start clock
+  updateClock();
+  clockTimer = setInterval(updateClock, 1000);
+  
+  // Render common dates
+  renderCommonDates();
+  renderMilestones();
+  
+  // Run initial conversion
+  date2ts();
+})();
+</script>
+</body>
+</html>

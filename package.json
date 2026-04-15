@@ -1,0 +1,150 @@
+{
+  "name": "workbuddy",
+  "productName": "WorkBuddy",
+  "version": "1.0.0",
+  "description": "开发者工具集 - 40+ 常用开发工具，支持浏览器与桌面客户端",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "node api/server.js",
+    "dev": "node api/server.js",
+    "test": "node test-all.js",
+    "electron": "electron .",
+    "electron:dev": "electron . --dev",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux"
+  },
+  "keywords": [
+    "toolkit",
+    "developer-tools",
+    "ai-callable",
+    "productivity"
+  ],
+  "author": "WorkBuddy",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "devDependencies": {
+    "electron": "^29.4.6",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.workbuddy.toolkit",
+    "productName": "WorkBuddy",
+    "copyright": "Copyright © 2026 WorkBuddy",
+    "asar": true,
+    "compression": "maximum",
+    "files": [
+      {
+        "from": ".",
+        "to": ".",
+        "filter": [
+          "electron/main.js",
+          "electron/preload.js",
+          "api/**/*",
+          "assets/**/*",
+          "tools/**/*",
+          "index.html",
+          "tools.json",
+          "tools-ai-config.json",
+          "!node_modules",
+          "!dist-electron",
+          "!**/*.map",
+          "!**/.git",
+          "!electron/gen_*.py",
+          "!electron/icon.ico",
+          "!electron/icon.icns",
+          "!electron/dmg-background.png"
+        ]
+      }
+    ],
+    "extraResources": [],
+    "icon": "electron/icon",
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "zip", "arch": ["x64"] }
+      ],
+      "icon": "electron/icon.ico",
+      "requestedExecutionLevel": "asInvoker",
+      "signAndEditExecutable": false,
+      "sign": null,
+      "signingHashAlgorithms": null,
+      "certificateFile": null,
+      "certificatePassword": null
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "WorkBuddy",
+      "installerIcon": "electron/icon.ico",
+      "uninstallerIcon": "electron/icon.ico",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true,
+      "menuCategory": "开发工具",
+      "license": "LICENSE.txt"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "electron/icon.icns",
+      "category": "public.app-category.developer-tools",
+      "darkModeSupport": true,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "title": "WorkBuddy ${version}",
+      "background": "electron/dmg-background.png",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "window": {
+        "width": 540,
+        "height": 380
+      }
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "electron/icon.png",
+      "category": "Development"
+    },
+    "directories": {
+      "buildResources": "electron",
+      "output": "dist-electron"
+    },
+    "publish": null
+  }
+}

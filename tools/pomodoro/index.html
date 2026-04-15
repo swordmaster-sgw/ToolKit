@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>番茄钟 & 专注计时</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .back-btn { position: fixed; top: 20px; right: 20px; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .container { text-align: center; background: #1a1d2e; border-radius: 16px; padding: 40px; }
+    .timer-display { font-size: 120px; font-weight: 700; font-family: 'Courier New', monospace; color: #6366f1; margin: 20px 0; letter-spacing: 4px; }
+    .task-display { font-size: 18px; color: #c4c9e2; margin-bottom: 30px; }
+    .controls { display: flex; gap: 12px; justify-content: center; margin: 30px 0; flex-wrap: wrap; }
+    .btn { padding: 12px 24px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; transition: all .2s; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-primary:hover { background: #5457d4; }
+    .btn-secondary { background: #2d3148; color: #c4c9e2; }
+    .btn-secondary:hover { background: #363b5e; }
+    .btn-danger { background: #ef4444; color: #fff; }
+    .btn-danger:hover { background: #dc2626; }
+    .stats { display: flex; gap: 20px; justify-content: center; margin: 30px 0; flex-wrap: wrap; }
+    .stat-box { background: #131520; border-radius: 8px; padding: 16px; min-width: 120px; }
+    .stat-val { font-size: 32px; font-weight: 700; color: #6366f1; }
+    .stat-label { font-size: 12px; color: #8b90a7; margin-top: 6px; text-transform: uppercase; }
+    .progress-ring { width: 200px; height: 200px; transform: rotate(-90deg); }
+    .progress-ring-circle { transition: stroke-dashoffset .1s linear; }
+  </style>
+</head>
+<body>
+<a class="back-btn" href="../../index.html">← 返回工具集</a>
+
+<div class="container">
+  <div style="font-size:36px;margin-bottom:10px">🍅</div>
+  <h1 style="font-size:24px;margin-bottom:6px">番茄钟</h1>
+  <p style="font-size:12px;color:#8b90a7;margin-bottom:30px">25分钟专注工作，5分钟休息</p>
+
+  <div class="task-display" id="task-display">暂无任务</div>
+
+  <svg class="progress-ring" width="220" height="220" style="display:none">
+    <circle cx="110" cy="110" r="100" fill="none" stroke="#2d3148" stroke-width="8"/>
+    <circle id="progress-circle" cx="110" cy="110" r="100" fill="none" stroke="#6366f1" stroke-width="8" stroke-dasharray="628.3" stroke-dashoffset="628.3" class="progress-ring-circle"/>
+  </svg>
+
+  <div class="timer-display" id="timer">25:00</div>
+
+  <div class="controls">
+    <button class="btn btn-primary" id="start-btn" onclick="toggleTimer()">▶ 开始</button>
+    <button class="btn btn-secondary" onclick="resetTimer()">🔄 重置</button>
+    <button class="btn btn-danger" onclick="stopTimer()">⏹ 停止</button>
+  </div>
+
+  <input type="text" id="task-input" placeholder="输入今天要完成的任务..." style="width:300px;max-width:90%;padding:10px;background:#131520;border:1px solid #363b5e;border-radius:6px;color:#e2e8f0;margin-bottom:12px;font-size:13px;outline:none">
+  <button class="btn btn-primary" onclick="setTask()" style="width:300px;max-width:90%">📝 设置任务</button>
+
+  <div class="stats">
+    <div class="stat-box">
+      <div class="stat-val" id="today-count">0</div>
+      <div class="stat-label">今日番茄数</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="today-time">0h</div>
+      <div class="stat-label">累计专注</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="session-count">1</div>
+      <div class="stat-label">本轮进度</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let timeLeft = 25 * 60;
+let isRunning = false;
+let isWorkMode = true;
+let todayCount = 0;
+let totalSeconds = 0;
+let sessionCount = 1;
+let taskName = '';
+let timerInterval;
+
+function updateDisplay() {
+  const mins = Math.floor(timeLeft / 60);
+  const secs = timeLeft % 60;
+  document.getElementById('timer').textContent = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+  document.getElementById('today-count').textContent = todayCount;
+  document.getElementById('today-time').textContent = Math.floor(totalSeconds / 3600) + 'h ' + Math.floor((totalSeconds % 3600) / 60) + 'm';
+  document.getElementById('session-count').textContent = sessionCount;
+  document.getElementById('task-display').textContent = taskName || (isWorkMode ? '工作中...' : '休息中...');
+}
+
+function toggleTimer() {
+  if (isRunning) {
+    clearInterval(timerInterval);
+    isRunning = false;
+    document.getElementById('start-btn').textContent = '▶ 继续';
+  } else {
+    isRunning = true;
+    document.getElementById('start-btn').textContent = '⏸ 暂停';
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      totalSeconds++;
+      updateDisplay();
+      if (timeLeft <= 0) {
+        completeSession();
+      }
+    }, 1000);
+  }
+}
+
+function completeSession() {
+  clearInterval(timerInterval);
+  isRunning = false;
+  if (isWorkMode) {
+    todayCount++;
+    timeLeft = 5 * 60;
+    isWorkMode = false;
+    playSound();
+    alert('番茄钟完成！休息 5 分钟');
+  } else {
+    timeLeft = 25 * 60;
+    isWorkMode = true;
+    sessionCount++;
+    playSound();
+    alert('休息完成！准备下一个番茄钟');
+  }
+  document.getElementById('start-btn').textContent = '▶ 开始';
+  updateDisplay();
+}
+
+function resetTimer() {
+  clearInterval(timerInterval);
+  isRunning = false;
+  timeLeft = isWorkMode ? 25 * 60 : 5 * 60;
+  document.getElementById('start-btn').textContent = '▶ 开始';
+  updateDisplay();
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  isRunning = false;
+  timeLeft = 25 * 60;
+  isWorkMode = true;
+  sessionCount = 1;
+  document.getElementById('start-btn').textContent = '▶ 开始';
+  updateDisplay();
+}
+
+function setTask() {
+  taskName = document.getElementById('task-input').value.trim();
+  updateDisplay();
+  document.getElementById('task-input').value = '';
+}
+
+function playSound() {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const osc = ctx.createOscillator();
+  osc.frequency.value = 800;
+  osc.connect(ctx.destination);
+  osc.start();
+  osc.stop(ctx.currentTime + 0.2);
+}
+
+updateDisplay();
+</script>
+</body>
+</html>

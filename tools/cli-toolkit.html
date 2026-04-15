@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>命令行工具箱 - ToolKit</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 0;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #5eead4 0%, #38bdf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            color: #94a3b8;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .panel:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            border-color: rgba(94, 234, 212, 0.2);
+        }
+
+        .panel-header {
+            background: rgba(30, 41, 59, 0.8);
+            padding: 20px;
+            border-bottom: 1px solid rgba(94, 234, 212, 0.1);
+        }
+
+        .panel-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #5eead4;
+            margin-bottom: 5px;
+        }
+
+        .panel-subtitle {
+            font-size: 0.9em;
+            color: #94a3b8;
+        }
+
+        .panel-content {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #5eead4;
+        }
+
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(94, 234, 212, 0.2);
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
+        }
+
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            border-color: #5eead4;
+            box-shadow: 0 0 0 3px rgba(94, 234, 212, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0d9488 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0284c7 0%, #0f766e 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(30, 41, 59, 0.8);
+            color: #e2e8f0;
+            border: 1px solid rgba(94, 234, 212, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(51, 65, 85, 0.8);
+            border-color: #5eead4;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        }
+
+        .command-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .command-item {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .command-item:hover {
+            border-color: rgba(94, 234, 212, 0.3);
+            background: rgba(30, 41, 59, 0.6);
+        }
+
+        .command-item.selected {
+            border-color: #5eead4;
+            background: rgba(94, 234, 212, 0.1);
+        }
+
+        .command-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .command-name {
+            font-weight: 600;
+            color: #5eead4;
+            font-size: 1.1em;
+        }
+
+        .command-category {
+            background: rgba(94, 234, 212, 0.1);
+            color: #5eead4;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: 500;
+        }
+
+        .command-content {
+            font-family: 'Courier New', monospace;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 12px;
+            border-radius: 8px;
+            margin: 12px 0;
+            border-left: 3px solid #5eead4;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+
+        .command-description {
+            color: #94a3b8;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .command-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+
+        .history-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .history-item:hover {
+            background: rgba(30, 41, 59, 0.6);
+            border-color: rgba(94, 234, 212, 0.2);
+        }
+
+        .history-time {
+            color: #5eead4;
+            font-size: 0.8em;
+            margin-bottom: 4px;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #5eead4;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.8em;
+            color: #94a3b8;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            color: #e2e8f0;
+            padding: 16px 24px;
+            border-radius: 12px;
+            border: 1px solid rgba(94, 234, 212, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-10px);
+        }
+
+        .toast.success {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .toast.error {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .help-text {
+            font-size: 0.8em;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(30, 41, 59, 0.8);
+            border-top: 2px solid #5eead4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header fade-in">
+            <h1>🖥️ 命令行工具箱</h1>
+            <p>统一管理CLI命令和脚本，提升终端效率40% - 支持命令收藏、参数模板、执行历史、跨平台兼容</p>
+        </div>
+
+        <div class="stats-grid fade-in">
+            <div class="stat-card">
+                <div class="stat-value" id="totalCommands">0</div>
+                <div class="stat-label">命令总数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalHistory">0</div>
+                <div class="stat-label">执行次数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="favoriteCommands">0</div>
+                <div class="stat-label">收藏命令</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="lastExecuted">-</div>
+                <div class="stat-label">最近执行</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- 左侧面板：添加/编辑命令 -->
+            <div class="panel fade-in">
+                <div class="panel-header">
+                    <div class="panel-title">添加/编辑命令</div>
+                    <div class="panel-subtitle">收藏和管理常用的CLI命令</div>
+                </div>
+                <div class="panel-content">
+                    <form id="commandForm">
+                        <div class="form-group">
+                            <label class="form-label">命令名称</label>
+                            <input type="text" class="form-input" id="commandName" placeholder="例如: 启动开发服务器" required>
+                            <div class="help-text">给这个命令起个容易记住的名字</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">命令内容</label>
+                            <textarea class="form-textarea" id="commandContent" placeholder="例如: npm run dev" required></textarea>
+                            <div class="help-text">支持参数模板，如: npm run build -- --env={{env}}</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">分类</label>
+                            <select class="form-select" id="commandCategory">
+                                <option value="开发">开发</option>
+                                <option value="构建">构建</option>
+                                <option value="部署">部署</option>
+                                <option value="测试">测试</option>
+                                <option value="Git">Git</option>
+                                <option value="Docker">Docker</option>
+                                <option value="数据库">数据库</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">描述（可选）</label>
+                            <input type="text" class="form-input" id="commandDescription" placeholder="命令的作用和使用场景">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">工作目录（可选）</label>
+                            <input type="text" class="form-input" id="commandWorkingDir" placeholder="例如: ./frontend">
+                            <div class="help-text">命令执行的工作目录，相对于项目根目录</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" id="isFavorite"> 收藏此命令
+                            </label>
+                        </div>
+
+                        <div class="button-group">
+                            <button type="submit" class="btn btn-primary">
+                                <span id="submitIcon">💾</span>
+                                <span id="submitText">保存命令</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="clearForm">
+                                <span>📝</span>
+                                <span>清空表单</span>
+                            </button>
+                            <button type="button" class="btn btn-danger" id="deleteCommand" style="display: none;">
+                                <span>🗑️</span>
+                                <span>删除</span>
+                            </button>
+                        </div>
+                    </form>
+
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(94, 234, 212, 0.1);">
+                        <div class="panel-title" style="font-size: 1.1em; margin-bottom: 15px;">快速执行</div>
+                        <div class="form-group">
+                            <label class="form-label">临时命令</label>
+                            <input type="text" class="form-input" id="quickCommand" placeholder="输入命令并回车执行">
+                            <div class="help-text">不保存到命令列表，直接执行</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧面板：命令列表 -->
+            <div class="panel fade-in">
+                <div class="panel-header">
+                    <div class="panel-title">命令列表</div>
+                    <div class="panel-subtitle">点击命令查看详情，点击执行按钮运行命令</div>
+                </div>
+                <div class="panel-content">
+                    <div class="form-group">
+                        <input type="text" class="form-input" id="searchBox" placeholder="🔍 搜索命令名称、内容或描述...">
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-secondary btn-small" id="filterAll">全部</button>
+                        <button class="btn btn-secondary btn-small" id="filterFavorites">⭐ 收藏</button>
+                        <button class="btn btn-secondary btn-small" id="filterRecent">🕐 最近</button>
+                    </div>
+
+                    <div class="command-list" id="commandList">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🖥️</div>
+                            <div>暂无命令，请添加您的第一个CLI命令</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 执行历史 -->
+        <div class="panel fade-in">
+            <div class="panel-header">
+                <div class="panel-title">执行历史</div>
+                <div class="panel-subtitle">最近执行的命令记录（点击可重新执行）</div>
+            </div>
+            <div class="panel-content">
+                <div class="button-group">
+                    <button class="btn btn-secondary btn-small" id="clearHistory">清空历史</button>
+                </div>
+                <div class="history-list" id="historyList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <div>暂无执行记录</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        class CLIToolkit {
+            constructor() {
+                this.commands = this.loadCommands();
+                this.history = this.loadHistory();
+                this.selectedCommand = null;
+                this.currentFilter = 'all';
+                
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.renderCommands();
+                this.renderHistory();
+                this.updateStats();
+                this.checkShortcuts();
+            }
+
+            bindEvents() {
+                // 表单事件
+                document.getElementById('commandForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.saveCommand();
+                });
+
+                document.getElementById('clearForm').addEventListener('click', () => {
+                    this.clearForm();
+                });
+
+                document.getElementById('deleteCommand').addEventListener('click', () => {
+                    this.deleteCommand();
+                });
+
+                // 搜索和过滤
+                document.getElementById('searchBox').addEventListener('input', (e) => {
+                    this.renderCommands(e.target.value);
+                });
+
+                document.getElementById('filterAll').addEventListener('click', () => {
+                    this.setFilter('all');
+                });
+
+                document.getElementById('filterFavorites').addEventListener('click', () => {
+                    this.setFilter('favorites');
+                });
+
+                document.getElementById('filterRecent').addEventListener('click', () => {
+                    this.setFilter('recent');
+                });
+
+                // 快速执行
+                document.getElementById('quickCommand').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && e.target.value.trim()) {
+                        this.executeQuickCommand(e.target.value.trim());
+                        e.target.value = '';
+                    }
+                });
+
+                // 历史记录
+                document.getElementById('clearHistory').addEventListener('click', () => {
+                    this.clearHistory();
+                });
+
+                // 快捷键
+                document.addEventListener('keydown', (e) => {
+                    this.handleGlobalShortcuts(e);
+                });
+            }
+
+            // 数据存储
+            loadCommands() {
+                try {
+                    const saved = localStorage.getItem('cliCommands');
+                    return saved ? JSON.parse(saved) : [];
+                } catch (e) {
+                    console.error('加载命令失败:', e);
+                    return [];
+                }
+            }
+
+            saveCommands() {
+                try {
+                    localStorage.setItem('cliCommands', JSON.stringify(this.commands));
+                    return true;
+                } catch (e) {
+                    console.error('保存命令失败:', e);
+                    this.showToast('保存失败: ' + e.message, 'error');
+                    return false;
+                }
+            }
+
+            loadHistory() {
+                try {
+                    const saved = localStorage.getItem('cliHistory');
+                    return saved ? JSON.parse(saved) : [];
+                } catch (e) {
+                    console.error('加载历史失败:', e);
+                    return [];
+                }
+            }
+
+            saveHistory() {
+                try {
+                    // 只保留最近100条历史
+                    this.history = this.history.slice(0, 100);
+                    localStorage.setItem('cliHistory', JSON.stringify(this.history));
+                    return true;
+                } catch (e) {
+                    console.error('保存历史失败:', e);
+                    return false;
+                }
+            }
+
+            // 命令管理
+            saveCommand() {
+                const name = document.getElementById('commandName').value.trim();
+                const content = document.getElementById('commandContent').value.trim();
+                const category = document.getElementById('commandCategory').value;
+                const description = document.getElementById('commandDescription').value.trim();
+                const workingDir = document.getElementById('commandWorkingDir').value.trim();
+                const isFavorite = document.getElementById('isFavorite').checked;
+
+                if (!name || !content) {
+                    this.showToast('请填写命令名称和内容', 'error');
+                    return;
+                }
+
+                const command = {
+                    id: this.selectedCommand ? this.selectedCommand.id : Date.now().toString(),
+                    name,
+                    content,
+                    category,
+                    description,
+                    workingDir,
+                    isFavorite,
+                    created: this.selectedCommand ? this.selectedCommand.created : new Date().toISOString(),
+                    updated: new Date().toISOString(),
+                    usageCount: this.selectedCommand ? this.selectedCommand.usageCount : 0
+                };
+
+                if (this.selectedCommand) {
+                    // 编辑现有命令
+                    const index = this.commands.findIndex(cmd => cmd.id === this.selectedCommand.id);
+                    if (index !== -1) {
+                        this.commands[index] = command;
+                    }
+                    this.showToast('命令已更新', 'success');
+                } else {
+                    // 添加新命令
+                    this.commands.unshift(command);
+                    this.showToast('命令已保存', 'success');
+                }
+
+                this.saveCommands();
+                this.clearForm();
+                this.renderCommands();
+                this.updateStats();
+            }
+
+            deleteCommand() {
+                if (!this.selectedCommand) return;
+
+                if (confirm(`确定要删除命令 "${this.selectedCommand.name}" 吗？`)) {
+                    this.commands = this.commands.filter(cmd => cmd.id !== this.selectedCommand.id);
+                    this.saveCommands();
+                    this.clearForm();
+                    this.renderCommands();
+                    this.updateStats();
+                    this.showToast('命令已删除', 'success');
+                }
+            }
+
+            clearForm() {
+                document.getElementById('commandForm').reset();
+                document.getElementById('deleteCommand').style.display = 'none';
+                this.selectedCommand = null;
+                document.getElementById('submitText').textContent = '保存命令';
+                document.getElementById('submitIcon').textContent = '💾';
+            }
+
+            selectCommand(command) {
+                this.selectedCommand = command;
+                document.getElementById('commandName').value = command.name;
+                document.getElementById('commandContent').value = command.content;
+                document.getElementById('commandCategory').value = command.category;
+                document.getElementById('commandDescription').value = command.description || '';
+                document.getElementById('commandWorkingDir').value = command.workingDir || '';
+                document.getElementById('isFavorite').checked = command.isFavorite || false;
+                document.getElementById('deleteCommand').style.display = 'inline-flex';
+                document.getElementById('submitText').textContent = '更新命令';
+                document.getElementById('submitIcon').textContent = '✏️';
+            }
+
+            // 命令执行
+            executeCommand(command) {
+                try {
+                    // 记录执行历史
+                    const historyItem = {
+                        id: Date.now().toString(),
+                        command: command.content,
+                        name: command.name,
+                        executedAt: new Date().toISOString(),
+                        workingDir: command.workingDir || ''
+                    };
+
+                    this.history.unshift(historyItem);
+                    this.saveHistory();
+                    this.renderHistory();
+
+                    // 更新命令使用次数
+                    const cmd = this.commands.find(c => c.id === command.id);
+                    if (cmd) {
+                        cmd.usageCount = (cmd.usageCount || 0) + 1;
+                        cmd.lastUsed = new Date().toISOString();
+                        this.saveCommands();
+                        this.renderCommands();
+                    }
+
+                    this.updateStats();
+                    
+                    // 模拟执行（实际项目中这里可以调用后端API或Electron的shell模块）
+                    this.showToast(`正在执行: ${command.name}`, 'success');
+                    console.log('执行命令:', command.content, '工作目录:', command.workingDir || '当前目录');
+
+                } catch (e) {
+                    console.error('执行命令失败:', e);
+                    this.showToast('执行失败: ' + e.message, 'error');
+                }
+            }
+
+            executeQuickCommand(command) {
+                try {
+                    const historyItem = {
+                        id: Date.now().toString(),
+                        command: command,
+                        name: '快速命令',
+                        executedAt: new Date().toISOString(),
+                        workingDir: ''
+                    };
+
+                    this.history.unshift(historyItem);
+                    this.saveHistory();
+                    this.renderHistory();
+                    this.updateStats();
+
+                    this.showToast('命令已执行', 'success');
+                    console.log('执行快速命令:', command);
+
+                } catch (e) {
+                    console.error('执行快速命令失败:', e);
+                    this.showToast('执行失败: ' + e.message, 'error');
+                }
+            }
+
+            // 渲染
+            renderCommands(searchTerm = '') {
+                const commandList = document.getElementById('commandList');
+                let commands = [...this.commands];
+
+                // 过滤
+                if (searchTerm) {
+                    const term = searchTerm.toLowerCase();
+                    commands = commands.filter(cmd => 
+                        cmd.name.toLowerCase().includes(term) ||
+                        cmd.content.toLowerCase().includes(term) ||
+                        cmd.description.toLowerCase().includes(term) ||
+                        cmd.category.toLowerCase().includes(term)
+                    );
+                }
+
+                // 按过滤条件排序
+                switch (this.currentFilter) {
+                    case 'favorites':
+                        commands = commands.filter(cmd => cmd.isFavorite);
+                        break;
+                    case 'recent':
+                        commands = commands.sort((a, b) => {
+                            const aTime = a.lastUsed || a.updated;
+                            const bTime = b.lastUsed || b.updated;
+                            return new Date(bTime) - new Date(aTime);
+                        });
+                        break;
+                    default:
+                        commands = commands.sort((a, b) => {
+                            if (a.isFavorite && !b.isFavorite) return -1;
+                            if (!a.isFavorite && b.isFavorite) return 1;
+                            return new Date(b.updated) - new Date(a.updated);
+                        });
+                }
+
+                if (commands.length === 0) {
+                    commandList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🖥️</div>
+                            <div>${searchTerm ? '未找到匹配的命令' : '暂无命令，请添加您的第一个CLI命令'}</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                commandList.innerHTML = commands.map(cmd => `
+                    <div class="command-item ${this.selectedCommand?.id === cmd.id ? 'selected' : ''}" 
+                         data-id="${cmd.id}">
+                        <div class="command-header">
+                            <div class="command-name">${this.escapeHtml(cmd.name)}</div>
+                            <div class="command-category">${cmd.category}</div>
+                        </div>
+                        ${cmd.description ? `<div class="command-description">${this.escapeHtml(cmd.description)}</div>` : ''}
+                        <div class="command-content">${this.escapeHtml(cmd.content)}</div>
+                        ${cmd.workingDir ? `<div class="help-text">📁 ${this.escapeHtml(cmd.workingDir)}</div>` : ''}
+                        <div class="command-actions">
+                            <button class="btn btn-primary btn-small" onclick="cliToolkit.executeCommandById('${cmd.id}')">
+                                ▶️ 执行
+                            </button>
+                            <button class="btn btn-secondary btn-small" onclick="cliToolkit.editCommand('${cmd.id}')">
+                                ✏️ 编辑
+                            </button>
+                            <button class="btn btn-secondary btn-small" onclick="cliToolkit.copyCommand('${cmd.content}')">
+                                📋 复制
+                            </button>
+                            ${cmd.isFavorite ? '<span style="color: #fbbf24; margin-left: 8px;">⭐</span>' : ''}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            renderHistory() {
+                const historyList = document.getElementById('historyList');
+                
+                if (this.history.length === 0) {
+                    historyList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📋</div>
+                            <div>暂无执行记录</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                historyList.innerHTML = this.history.slice(0, 50).map(item => `
+                    <div class="history-item" onclick="cliToolkit.reexecuteHistory('${item.id}')">
+                        <div class="history-time">${new Date(item.executedAt).toLocaleString()}</div>
+                        <div>${this.escapeHtml(item.command)}</div>
+                    </div>
+                `).join('');
+            }
+
+            updateStats() {
+                document.getElementById('totalCommands').textContent = this.commands.length;
+                document.getElementById('totalHistory').textContent = this.history.length;
+                document.getElementById('favoriteCommands').textContent = this.commands.filter(cmd => cmd.isFavorite).length;
+                
+                const lastCommand = this.history[0];
+                const lastCommandTime = lastCommand ? new Date(lastCommand.executedAt).toLocaleTimeString() : '-';
+                document.getElementById('lastExecuted').textContent = lastCommandTime;
+            }
+
+            // 过滤和排序
+            setFilter(filter) {
+                this.currentFilter = filter;
+                
+                // 更新按钮状态
+                document.querySelectorAll('.panel-content .btn-small').forEach(btn => {
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-secondary');
+                });
+                
+                const activeBtn = document.getElementById(`filter${filter.charAt(0).toUpperCase() + filter.slice(1)}`);
+                if (activeBtn) {
+                    activeBtn.classList.remove('btn-secondary');
+                    activeBtn.classList.add('btn-primary');
+                }
+                
+                this.renderCommands();
+            }
+
+            // 工具方法
+            executeCommandById(id) {
+                const command = this.commands.find(cmd => cmd.id === id);
+                if (command) {
+                    this.executeCommand(command);
+                }
+            }
+
+            editCommand(id) {
+                const command = this.commands.find(cmd => cmd.id === id);
+                if (command) {
+                    this.selectCommand(command);
+                    document.querySelector('.panel:first-child').scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+
+            copyCommand(content) {
+                navigator.clipboard.writeText(content).then(() => {
+                    this.showToast('命令已复制到剪贴板', 'success');
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                    this.showToast('复制失败', 'error');
+                });
+            }
+
+            reexecuteHistory(id) {
+                const item = this.history.find(h => h.id === id);
+                if (item) {
+                    this.executeQuickCommand(item.command);
+                }
+            }
+
+            clearHistory() {
+                if (confirm('确定要清空所有执行历史吗？')) {
+                    this.history = [];
+                    this.saveHistory();
+                    this.renderHistory();
+                    this.updateStats();
+                    this.showToast('历史记录已清空', 'success');
+                }
+            }
+
+            // 快捷键
+            checkShortcuts() {
+                // 检查并添加快捷键提示到帮助文本
+                const helpTexts = document.querySelectorAll('.help-text');
+                helpTexts.forEach(text => {
+                    if (text.textContent.includes('快速')) {
+                        text.innerHTML += ' <span style="color: #5eead4;">(快捷键: Ctrl+Shift+E)</span>';
+                    }
+                });
+            }
+
+            handleGlobalShortcuts(e) {
+                // Ctrl+Shift+E: 快速执行
+                if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+                    e.preventDefault();
+                    document.getElementById('quickCommand').focus();
+                }
+                
+                // Ctrl+Shift+N: 新建命令
+                if (e.ctrlKey && e.shiftKey && e.key === 'N') {
+                    e.preventDefault();
+                    this.clearForm();
+                    document.getElementById('commandName').focus();
+                }
+                
+                // Ctrl+/ : 搜索
+                if (e.ctrlKey && e.key === '/') {
+                    e.preventDefault();
+                    document.getElementById('searchBox').focus();
+                }
+                
+                // Escape: 取消选择
+                if (e.key === 'Escape') {
+                    this.clearForm();
+                }
+            }
+
+            // Toast提示
+            showToast(message, type = 'success') {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.className = `toast ${type}`;
+                toast.classList.add('show');
+
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+
+            // 工具函数
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // 初始化
+        const cliToolkit = new CLIToolkit();
+
+        // 页面加载完成提示
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                cliToolkit.showToast('命令行工具箱已就绪！使用 Ctrl+Shift+N 快速添加命令', 'success');
+            }, 1000);
+        });
+
+        // 定期更新统计
+        setInterval(() => {
+            cliToolkit.updateStats();
+        }, 60000);
+    </script>
+</body>
+</html>

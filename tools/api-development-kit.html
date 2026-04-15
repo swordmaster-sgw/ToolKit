@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本地API开发套件 - ToolKit</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #232526 0%, #414345 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .main-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            height: calc(100vh - 150px);
+        }
+        
+        .sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .content {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+        }
+        
+        .sidebar h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #232526 0%, #414345 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(35, 37, 38, 0.4);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: #232526;
+            border: 1px solid #232526;
+        }
+        
+        .btn-secondary:hover {
+            background: #f8f9ff;
+        }
+        
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        
+        .collection-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .collection-item {
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+        
+        .collection-item:hover {
+            border-color: #232526;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .collection-item.active {
+            border-color: #232526;
+            background: linear-gradient(135deg, #232526 0%, #414345 100%);
+            color: white;
+        }
+        
+        .collection-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .collection-count {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        
+        .request-builder {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .request-header {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        
+        .method-select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            background: white;
+        }
+        
+        .method-select.GET { color: #4caf50; }
+        .method-select.POST { color: #2196f3; }
+        .method-select.PUT { color: #ff9800; }
+        .method-select.PATCH { color: #9c27b0; }
+        .method-select.DELETE { color: #f44336; }
+        
+        .url-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .request-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .tab.active {
+            border-bottom-color: #232526;
+            color: #232526;
+            font-weight: 500;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .headers-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        
+        .header-input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .btn-small {
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+        
+        .body-editor {
+            width: 100%;
+            min-height: 200px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+        }
+        
+        .response-panel {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .response-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .response-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .status-2xx { background: #4caf50; }
+        .status-3xx { background: #2196f3; }
+        .status-4xx { background: #ff9800; }
+        .status-5xx { background: #f44336; }
+        
+        .response-body {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .mock-server-panel {
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .mock-server-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .server-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+        
+        .status-dot.running {
+            background: #4caf50;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .endpoints-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .endpoint-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        
+        .endpoint-method {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .endpoint-method.GET { background: #4caf50; }
+        .endpoint-method.POST { background: #2196f3; }
+        .endpoint-method.PUT { background: #ff9800; }
+        .endpoint-method.DELETE { background: #f44336; }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            background: #4caf50;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateX(400px);
+            transition: transform 0.3s;
+            z-index: 1000;
+        }
+        
+        .toast.show {
+            transform: translateX(0);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h3 {
+            font-size: 20px;
+            color: #2c3e50;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        @media (max-width: 768px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+                height: auto;
+            }
+            
+            .sidebar {
+                max-height: 250px;
+            }
+            
+            .request-header {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 本地API开发套件</h1>
+            <p>离线API测试、Mock服务器、文档生成 - Postman完美替代</p>
+        </div>
+        
+        <div class="main-layout">
+            <!-- 侧边栏 -->
+            <div class="sidebar">
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="apk.createCollection()">
+                        ➕ 新建集合
+                    </button>
+                </div>
+                
+                <h2>📁 请求集合</h2>
+                <div class="collection-list" id="collectionList">
+                    <!-- 集合列表将在这里显示 -->
+                </div>
+                
+                <div class="actions" style="margin-top: auto;">
+                    <button class="btn btn-secondary" onclick="apk.importCollection()">
+                        📥 导入
+                    </button>
+                    <button class="btn btn-secondary" onclick="apk.exportAll()">
+                        📤 导出
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 内容区 -->
+            <div class="content">
+                <!-- Mock服务器状态 -->
+                <div class="mock-server-panel" id="mockServerPanel">
+                    <div class="mock-server-header">
+                        <div class="server-status">
+                            <div class="status-dot" id="serverStatus"></div>
+                            <span id="serverStatusText">Mock服务器未运行</span>
+                        </div>
+                        <div>
+                            <button class="btn btn-success btn-small" onclick="apk.startMockServer()">
+                                ▶️ 启动
+                            </button>
+                            <button class="btn btn-danger btn-small" onclick="apk.stopMockServer()">
+                                ⏹️ 停止
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="endpoints-list" id="endpointsList">
+                        <div style="text-align: center; color: #666; padding: 20px;">
+                            Mock服务器启动后将显示端点列表
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 空状态 -->
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-icon">🚀</div>
+                    <div style="font-size: 18px; color: #666; margin-bottom: 10px;">欢迎使用API开发套件</div>
+                    <div style="font-size: 14px; color: #999;">点击左侧"新建集合"开始创建API请求</div>
+                </div>
+                
+                <!-- 请求构建器 -->
+                <div class="request-builder" id="requestBuilder" style="display: none;">
+                    <div class="request-header">
+                        <select class="method-select GET" id="methodSelect" onchange="apk.updateMethodColor(this)">
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="PATCH">PATCH</option>
+                            <option value="DELETE">DELETE</option>
+                        </select>
+                        <input type="text" class="url-input" id="urlInput" placeholder="https://api.example.com/users">
+                        <button class="btn btn-primary" onclick="apk.sendRequest()">
+                            📤 发送
+                        </button>
+                    </div>
+                    
+                    <div class="request-tabs">
+                        <div class="tab active" onclick="apk.switchTab('headers')">Headers</div>
+                        <div class="tab" onclick="apk.switchTab('body')">Body</div>
+                        <div class="tab" onclick="apk.switchTab('params')">Params</div>
+                        <div class="tab" onclick="apk.switchTab('auth')">Auth</div>
+                    </div>
+                    
+                    <div class="tab-content active" id="headersTab">
+                        <div id="headersList">
+                            <div class="headers-grid">
+                                <input type="text" class="header-input" placeholder="Content-Type">
+                                <input type="text" class="header-input" placeholder="application/json">
+                                <button class="btn btn-danger btn-small" onclick="apk.removeHeader(this)">删除</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary btn-small" onclick="apk.addHeader()" style="margin-top: 10px;">
+                            ➕ 添加Header
+                        </button>
+                    </div>
+                    
+                    <div class="tab-content" id="bodyTab">
+                        <textarea class="body-editor" id="bodyEditor" placeholder='{
+  "name": "John Doe",
+  "email": "john@example.com"
+}'></textarea>
+                    </div>
+                    
+                    <div class="tab-content" id="paramsTab">
+                        <div id="paramsList">
+                            <div class="headers-grid">
+                                <input type="text" class="header-input" placeholder="key">
+                                <input type="text" class="header-input" placeholder="value">
+                                <button class="btn btn-danger btn-small" onclick="apk.removeParam(this)">删除</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary btn-small" onclick="apk.addParam()" style="margin-top: 10px;">
+                            ➕ 添加参数
+                        </button>
+                    </div>
+                    
+                    <div class="tab-content" id="authTab">
+                        <div class="form-group">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 500;">认证类型</label>
+                            <select id="authType" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                                <option value="none">无认证</option>
+                                <option value="bearer">Bearer Token</option>
+                                <option value="basic">Basic Auth</option>
+                            </select>
+                        </div>
+                        
+                        <div id="authFields">
+                            <!-- 认证字段将动态生成 -->
+                        </div>
+                    </div>
+                    
+                    <!-- 响应面板 -->
+                    <div class="response-panel" id="responsePanel" style="display: none;">
+                        <div class="response-header">
+                            <div class="response-status">
+                                <span>响应</span>
+                                <div class="status-badge" id="statusBadge">--</div>
+                                <span id="responseTime">--</span>
+                            </div>
+                            <button class="btn btn-secondary btn-small" onclick="apk.saveResponse()">
+                                💾 保存响应
+                            </button>
+                        </div>
+                        
+                        <div class="response-body" id="responseBody">
+                            <!-- 响应内容将在这里显示 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 新建集合模态框 -->
+    <div class="modal" id="collectionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="collectionModalTitle">新建集合</h3>
+                <button class="close-btn" onclick="apk.closeCollectionModal()">&times;</button>
+            </div>
+            
+            <form id="collectionForm">
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">集合名称</label>
+                    <input type="text" id="collectionName" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;" placeholder="例如：用户管理API" required>
+                </div>
+                
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">描述</label>
+                    <textarea id="collectionDescription" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; min-height: 80px;" placeholder="可选描述信息"></textarea>
+                </div>
+                
+                <div class="actions">
+                    <button type="submit" class="btn btn-primary">💾 创建</button>
+                    <button type="button" class="btn btn-secondary" onclick="apk.closeCollectionModal()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        class APIDevelopmentKit {
+            constructor() {
+                this.collections = JSON.parse(localStorage.getItem('apiCollections') || '[]');
+                this.currentCollection = null;
+                this.currentRequest = null;
+                this.mockServerRunning = false;
+                this.mockEndpoints = [];
+                
+                this.init();
+            }
+            
+            init() {
+                this.loadSampleData();
+                this.renderCollections();
+                this.bindEvents();
+            }
+            
+            loadSampleData() {
+                if (this.collections.length > 0) return;
+                
+                const sampleCollections = [
+                    {
+                        id: 'col-001',
+                        name: '用户管理API',
+                        description: '用户注册、登录、资料管理',
+                        created: '2026-04-01',
+                        requests: [
+                            {
+                                id: 'req-001',
+                                name: '用户登录',
+                                method: 'POST',
+                                url: 'https://api.example.com/auth/login',
+                                headers: [
+                                    { key: 'Content-Type', value: 'application/json' }
+                                ],
+                                body: '{\n  "email": "user@example.com",\n  "password": "password123"\n}'
+                            },
+                            {
+                                id: 'req-002',
+                                name: '获取用户信息',
+                                method: 'GET',
+                                url: 'https://api.example.com/users/123',
+                                headers: [
+                                    { key: 'Authorization', value: 'Bearer token123' }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        id: 'col-002',
+                        name: '商品管理API',
+                        description: '商品列表、详情、库存管理',
+                        created: '2026-04-01',
+                        requests: [
+                            {
+                                id: 'req-003',
+                                name: '获取商品列表',
+                                method: 'GET',
+                                url: 'https://api.example.com/products',
+                                headers: [],
+                                params: [
+                                    { key: 'page', value: '1' },
+                                    { key: 'limit', value: '10' }
+                                ]
+                            }
+                        ]
+                    }
+                ];
+                
+                this.collections = sampleCollections;
+                this.saveToStorage();
+            }
+            
+            renderCollections() {
+                const listContainer = document.getElementById('collectionList');
+                
+                if (this.collections.length === 0) {
+                    listContainer.innerHTML = `
+                        <div class="empty-state" style="padding: 20px;">
+                            <div class="empty-icon" style="font-size: 32px;">📁</div>
+                            <div style="font-size: 14px;">暂无集合</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const collectionsHtml = this.collections.map(collection => {
+                    const requestCount = collection.requests ? collection.requests.length : 0;
+                    
+                    return `
+                        <div class="collection-item ${this.currentCollection && this.currentCollection.id === collection.id ? 'active' : ''}" 
+                             onclick="apk.selectCollection('${collection.id}')">
+                            <div class="collection-name">${collection.name}</div>
+                            <div class="collection-count">${requestCount} 个请求</div>
+                        </div>
+                    `;
+                }).join('');
+                
+                listContainer.innerHTML = collectionsHtml;
+            }
+            
+            createCollection() {
+                document.getElementById('collectionModalTitle').textContent = '新建集合';
+                document.getElementById('collectionName').value = '';
+                document.getElementById('collectionDescription').value = '';
+                document.getElementById('collectionModal').classList.add('show');
+                this.editingCollection = null;
+            }
+            
+            selectCollection(id) {
+                this.currentCollection = this.collections.find(c => c.id === id);
+                this.renderCollections();
+                this.showRequestBuilder();
+            }
+            
+            showRequestBuilder() {
+                document.getElementById('emptyState').style.display = 'none';
+                document.getElementById('requestBuilder').style.display = 'block';
+                
+                // 加载第一个请求
+                if (this.currentCollection && this.currentCollection.requests.length > 0) {
+                    this.loadRequest(this.currentCollection.requests[0]);
+                }
+            }
+            
+            loadRequest(request) {
+                this.currentRequest = request;
+                
+                document.getElementById('methodSelect').value = request.method;
+                document.getElementById('urlInput').value = request.url;
+                
+                // 加载Headers
+                this.loadHeaders(request.headers || []);
+                
+                // 加载Body
+                document.getElementById('bodyEditor').value = request.body || '';
+                
+                // 加载Params
+                this.loadParams(request.params || []);
+                
+                this.updateMethodColor(document.getElementById('methodSelect'));
+            }
+            
+            loadHeaders(headers) {
+                const headersList = document.getElementById('headersList');
+                headersList.innerHTML = '';
+                
+                if (headers.length === 0) {
+                    this.addHeader();
+                    return;
+                }
+                
+                headers.forEach(header => {
+                    const headerHtml = `
+                        <div class="headers-grid">
+                            <input type="text" class="header-input" placeholder="Header名称" value="${header.key}">
+                            <input type="text" class="header-input" placeholder="Header值" value="${header.value}">
+                            <button class="btn btn-danger btn-small" onclick="apk.removeHeader(this)">删除</button>
+                        </div>
+                    `;
+                    headersList.insertAdjacentHTML('beforeend', headerHtml);
+                });
+            }
+            
+            loadParams(params) {
+                const paramsList = document.getElementById('paramsList');
+                paramsList.innerHTML = '';
+                
+                if (params.length === 0) {
+                    this.addParam();
+                    return;
+                }
+                
+                params.forEach(param => {
+                    const paramHtml = `
+                        <div class="headers-grid">
+                            <input type="text" class="header-input" placeholder="参数名" value="${param.key}">
+                            <input type="text" class="header-input" placeholder="参数值" value="${param.value}">
+                            <button class="btn btn-danger btn-small" onclick="apk.removeParam(this)">删除</button>
+                        </div>
+                    `;
+                    paramsList.insertAdjacentHTML('beforeend', paramHtml);
+                });
+            }
+            
+            addHeader() {
+                const headersList = document.getElementById('headersList');
+                const headerHtml = `
+                    <div class="headers-grid">
+                        <input type="text" class="header-input" placeholder="Header名称">
+                        <input type="text" class="header-input" placeholder="Header值">
+                        <button class="btn btn-danger btn-small" onclick="apk.removeHeader(this)">删除</button>
+                    </div>
+                `;
+                headersList.insertAdjacentHTML('beforeend', headerHtml);
+            }
+            
+            removeHeader(button) {
+                button.closest('.headers-grid').remove();
+            }
+            
+            addParam() {
+                const paramsList = document.getElementById('paramsList');
+                const paramHtml = `
+                    <div class="headers-grid">
+                        <input type="text" class="header-input" placeholder="参数名">
+                        <input type="text" class="header-input" placeholder="参数值">
+                        <button class="btn btn-danger btn-small" onclick="apk.removeParam(this)">删除</button>
+                    </div>
+                `;
+                paramsList.insertAdjacentHTML('beforeend', paramHtml);
+            }
+            
+            removeParam(button) {
+                button.closest('.headers-grid').remove();
+            }
+            
+            updateMethodColor(select) {
+                select.className = `method-select ${select.value}`;
+            }
+            
+            switchTab(tabName) {
+                // 更新标签状态
+                document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+                event.target.classList.add('active');
+                
+                // 更新内容显示
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                document.getElementById(tabName + 'Tab').classList.add('active');
+            }
+            
+            async sendRequest() {
+                const method = document.getElementById('methodSelect').value;
+                const url = document.getElementById('urlInput').value;
+                
+                if (!url) {
+                    this.showToast('请输入请求URL', 'error');
+                    return;
+                }
+                
+                this.showToast('发送请求中...', 'info');
+                
+                try {
+                    const startTime = Date.now();
+                    
+                    // 构建headers
+                    const headers = {};
+                    document.querySelectorAll('#headersTab .headers-grid').forEach(row => {
+                        const key = row.querySelector('input:nth-child(1)').value;
+                        const value = row.querySelector('input:nth-child(2)').value;
+                        if (key && value) {
+                            headers[key] = value;
+                        }
+                    });
+                    
+                    // 构建body
+                    let body = null;
+                    if (['POST', 'PUT', 'PATCH'].includes(method)) {
+                        const bodyText = document.getElementById('bodyEditor').value;
+                        if (bodyText) {
+                            body = bodyText;
+                            headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+                        }
+                    }
+                    
+                    // 发送请求
+                    const response = await fetch(url, {
+                        method,
+                        headers,
+                        body
+                    });
+                    
+                    const endTime = Date.now();
+                    const responseTime = endTime - startTime;
+                    
+                    // 显示响应
+                    this.displayResponse(response, responseTime);
+                    
+                } catch (error) {
+                    this.showToast('请求失败: ' + error.message, 'error');
+                    this.displayError(error);
+                }
+            }
+            
+            async displayResponse(response, responseTime) {
+                const responseBody = await response.text();
+                
+                // 显示响应面板
+                document.getElementById('responsePanel').style.display = 'block';
+                
+                // 更新状态徽章
+                const statusBadge = document.getElementById('statusBadge');
+                const statusClass = response.status >= 500 ? 'status-5xx' :
+                                  response.status >= 400 ? 'status-4xx' :
+                                  response.status >= 300 ? 'status-3xx' :
+                                  response.status >= 200 ? 'status-2xx' : 'status-5xx';
+                
+                statusBadge.className = `status-badge ${statusClass}`;
+                statusBadge.textContent = `${response.status} ${response.statusText}`;
+                
+                // 更新响应时间
+                document.getElementById('responseTime').textContent = `${responseTime}ms`;
+                
+                // 格式化并显示响应体
+                let formattedBody = responseBody;
+                try {
+                    // 尝试格式化为JSON
+                    const jsonData = JSON.parse(responseBody);
+                    formattedBody = JSON.stringify(jsonData, null, 2);
+                } catch (e) {
+                    // 如果不是JSON，保持原样
+                }
+                
+                document.getElementById('responseBody').textContent = formattedBody;
+                
+                this.showToast('请求成功', 'success');
+            }
+            
+            displayError(error) {
+                document.getElementById('responsePanel').style.display = 'block';
+                
+                const statusBadge = document.getElementById('statusBadge');
+                statusBadge.className = 'status-badge status-5xx';
+                statusBadge.textContent = 'Error';
+                
+                document.getElementById('responseTime').textContent = '--';
+                document.getElementById('responseBody').textContent = `错误: ${error.message}`;
+            }
+            
+            startMockServer() {
+                this.mockServerRunning = true;
+                document.getElementById('serverStatus').classList.add('running');
+                document.getElementById('serverStatusText').textContent = 'Mock服务器运行中 (http://localhost:3000)';
+                
+                // 生成示例端点
+                this.mockEndpoints = [
+                    { method: 'GET', path: '/api/users', description: '获取用户列表' },
+                    { method: 'POST', path: '/api/users', description: '创建用户' },
+                    { method: 'GET', path: '/api/users/:id', description: '获取用户信息' },
+                    { method: 'PUT', path: '/api/users/:id', description: '更新用户' },
+                    { method: 'DELETE', path: '/api/users/:id', description: '删除用户' }
+                ];
+                
+                this.renderMockEndpoints();
+                this.showToast('Mock服务器已启动', 'success');
+            }
+            
+            stopMockServer() {
+                this.mockServerRunning = false;
+                document.getElementById('serverStatus').classList.remove('running');
+                document.getElementById('serverStatusText').textContent = 'Mock服务器未运行';
+                document.getElementById('endpointsList').innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Mock服务器启动后将显示端点列表</div>';
+                
+                this.showToast('Mock服务器已停止', 'info');
+            }
+            
+            renderMockEndpoints() {
+                const endpointsList = document.getElementById('endpointsList');
+                
+                const endpointsHtml = this.mockEndpoints.map(endpoint => `
+                    <div class="endpoint-item">
+                        <div class="endpoint-method ${endpoint.method}">${endpoint.method}</div>
+                        <div style="flex: 1; font-family: monospace;">${endpoint.path}</div>
+                        <div style="font-size: 12px; color: #666;">${endpoint.description}</div>
+                    </div>
+                `).join('');
+                
+                endpointsList.innerHTML = endpointsHtml;
+            }
+            
+            bindEvents() {
+                // 绑定表单提交
+                document.getElementById('collectionForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.saveCollection();
+                });
+                
+                // 绑定认证类型切换
+                document.getElementById('authType').addEventListener('change', (e) => {
+                    this.updateAuthFields(e.target.value);
+                });
+            }
+            
+            updateAuthFields(authType) {
+                const authFields = document.getElementById('authFields');
+                
+                switch (authType) {
+                    case 'bearer':
+                        authFields.innerHTML = `
+                            <div class="form-group" style="margin-top: 10px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 500;">Token</label>
+                                <input type="text" id="bearerToken" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;" placeholder="输入Bearer Token">
+                            </div>
+                        `;
+                        break;
+                    case 'basic':
+                        authFields.innerHTML = `
+                            <div class="form-group" style="margin-top: 10px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 500;">用户名</label>
+                                <input type="text" id="basicUsername" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;" placeholder="用户名">
+                            </div>
+                            <div class="form-group" style="margin-top: 10px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 500;">密码</label>
+                                <input type="password" id="basicPassword" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;" placeholder="密码">
+                            </div>
+                        `;
+                        break;
+                    default:
+                        authFields.innerHTML = '';
+                }
+            }
+            
+            saveCollection() {
+                const name = document.getElementById('collectionName').value;
+                const description = document.getElementById('collectionDescription').value;
+                
+                if (this.editingCollection) {
+                    // 编辑模式
+                    this.editingCollection.name = name;
+                    this.editingCollection.description = description;
+                    this.showToast('集合已更新', 'success');
+                } else {
+                    // 新建模式
+                    const newCollection = {
+                        id: 'col-' + Date.now(),
+                        name,
+                        description,
+                        created: new Date().toISOString().split('T')[0],
+                        requests: []
+                    };
+                    
+                    this.collections.push(newCollection);
+                    this.showToast('集合已创建', 'success');
+                }
+                
+                this.saveToStorage();
+                this.renderCollections();
+                this.closeCollectionModal();
+            }
+            
+            closeCollectionModal() {
+                document.getElementById('collectionModal').classList.remove('show');
+                this.editingCollection = null;
+            }
+            
+            importCollection() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            this.importPostmanCollection(data);
+                        } catch (error) {
+                            this.showToast('导入失败：无效的文件格式', 'error');
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+                
+                input.click();
+            }
+            
+            importPostmanCollection(data) {
+                try {
+                    const collection = {
+                        id: 'col-' + Date.now(),
+                        name: data.info?.name || '导入的集合',
+                        description: data.info?.description || '',
+                        created: new Date().toISOString().split('T')[0],
+                        requests: []
+                    };
+                    
+                    // 递归处理Postman的请求
+                    if (data.item) {
+                        this.processPostmanItems(data.item, collection.requests);
+                    }
+                    
+                    this.collections.push(collection);
+                    this.saveToStorage();
+                    this.renderCollections();
+                    this.showToast('Postman集合导入成功', 'success');
+                } catch (error) {
+                    this.showToast('导入失败: ' + error.message, 'error');
+                }
+            }
+            
+            processPostmanItems(items, requests, folder = '') {
+                items.forEach(item => {
+                    if (item.request) {
+                        // 这是一个请求
+                        const request = {
+                            id: 'req-' + Date.now() + '-' + Math.random(),
+                            name: folder ? `${folder}/${item.name}` : item.name,
+                            method: item.request.method || 'GET',
+                            url: this.extractPostmanUrl(item.request.url),
+                            headers: this.extractPostmanHeaders(item.request.header),
+                            body: item.request.body?.raw || ''
+                        };
+                        requests.push(request);
+                    } else if (item.item) {
+                        // 这是一个文件夹
+                        this.processPostmanItems(item.item, requests, item.name);
+                    }
+                });
+            }
+            
+            extractPostmanUrl(url) {
+                if (typeof url === 'string') return url;
+                if (url.raw) return url.raw;
+                return '';
+            }
+            
+            extractPostmanHeaders(headers) {
+                if (!Array.isArray(headers)) return [];
+                
+                return headers.map(header => ({
+                    key: header.key || '',
+                    value: header.value || ''
+                })).filter(h => h.key && h.value);
+            }
+            
+            exportAll() {
+                const exportData = {
+                    exportDate: new Date().toISOString(),
+                    tool: 'ToolKit API Development Kit',
+                    version: '1.0.0',
+                    collections: this.collections
+                };
+                
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `api-collections-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                this.showToast('集合已导出', 'success');
+            }
+            
+            saveToStorage() {
+                localStorage.setItem('apiCollections', JSON.stringify(this.collections));
+            }
+            
+            showToast(message, type = 'success') {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.className = 'toast show';
+                
+                const colors = {
+                    success: '#4caf50',
+                    error: '#f44336',
+                    warning: '#ff9800',
+                    info: '#2196f3'
+                };
+                toast.style.background = colors[type] || colors.success;
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+        }
+        
+        // 初始化
+        const apk = new APIDevelopmentKit();
+    </script>
+</body>
+</html>

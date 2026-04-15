@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>示例工具 | My Toolkit</title>
+  <style>
+    :root {
+      --bg: #0d0f14; --card: #1a1e2a; --border: #2a2f3e;
+      --text: #e2e4ed; --muted: #8b90a7; --accent: #6366f1;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { text-align: center; padding: 40px; }
+    .icon { font-size: 64px; margin-bottom: 20px; }
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 12px; }
+    p { color: var(--muted); font-size: 15px; margin-bottom: 28px; line-height: 1.6; }
+    .back-btn { display: inline-block; padding: 10px 24px; background: var(--accent); color: white; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500; transition: opacity 0.2s; }
+    .back-btn:hover { opacity: 0.85; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">🔧</div>
+    <h1>示例工具</h1>
+    <p>这是一个占位示例工具页面。<br>当你制作真实工具时，将此文件替换为实际的工具界面。</p>
+    <a class="back-btn" href="../../index.html">← 返回工具集</a>
+  </div>
+</body>
+</html>

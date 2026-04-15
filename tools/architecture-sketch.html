@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>架构设计草稿本</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            height: calc(100vh - 40px);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-left h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .header-left p {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        
+        .header-right {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .toolbar {
+            width: 280px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .toolbar-section {
+            margin-bottom: 24px;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #333;
+        }
+        
+        .tool-btn {
+            width: 100%;
+            padding: 10px 16px;
+            margin-bottom: 8px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        
+        .tool-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateX(4px);
+        }
+        
+        .tool-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: white;
+            overflow: hidden;
+        }
+        
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+        }
+        
+        .properties-panel {
+            width: 280px;
+            background: #f8f9fa;
+            border-left: 1px solid #e9ecef;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .property-group {
+            margin-bottom: 20px;
+        }
+        
+        .property-label {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .property-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        
+        .color-picker {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .color-option {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+        
+        .color-option.selected {
+            border-color: #333;
+            transform: scale(1.1);
+        }
+        
+        .slider {
+            width: 100%;
+            margin: 8px 0;
+        }
+        
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 600px;
+            max-width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .modal-close {
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            background: none;
+            border: none;
+        }
+        
+        .modal-body {
+            padding: 24px;
+        }
+        
+        .version-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .version-item {
+            padding: 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .version-item:hover {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+        
+        .version-info {
+            flex: 1;
+        }
+        
+        .version-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .version-time {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .version-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .version-btn {
+            padding: 6px 12px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .version-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #333;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            z-index: 1001;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1>🎨 架构设计草稿本</h1>
+                <p>快速绘制架构草图，支持手绘风格、拖拽组件、版本对比</p>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-secondary" onclick="as.showVersionsModal()">
+                    📚 版本管理
+                </button>
+                <button class="btn btn-secondary" onclick="as.exportAsImage()">
+                    🖼️ 导出图片
+                </button>
+                <button class="btn btn-secondary" onclick="as.clearCanvas()">
+                    🗑️ 清空画布
+                </button>
+                <button class="btn btn-primary" onclick="as.saveVersion()">
+                    💾 保存版本
+                </button>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="toolbar">
+                <div class="toolbar-section">
+                    <div class="section-title">✏️ 绘图工具</div>
+                    <button class="tool-btn active" onclick="as.setTool('pen')" id="penTool">
+                        ✏️ 手绘笔
+                    </button>
+                    <button class="tool-btn" onclick="as.setTool('rect')" id="rectTool">
+                        ⬜ 矩形
+                    </button>
+                    <button class="tool-btn" onclick="as.setTool('circle')" id="circleTool">
+                        ⭕ 圆形
+                    </button>
+                    <button class="tool-btn" onclick="as.setTool('line')" id="lineTool">
+                        📏 直线
+                    </button>
+                    <button class="tool-btn" onclick="as.setTool('arrow')" id="arrowTool">
+                        ➡️ 箭头
+                    </button>
+                    <button class="tool-btn" onclick="as.setTool('text')" id="textTool">
+                        📝 文字
+                    </button>
+                    <button class="tool-btn" onclick="as.setTool('eraser')" id="eraserTool">
+                        🧹 橡皮擦
+                    </button>
+                </div>
+                
+                <div class="toolbar-section">
+                    <div class="section-title">🏗️ 架构组件</div>
+                    <button class="tool-btn" onclick="as.insertComponent('server')">
+                        🖥️ 服务器
+                    </button>
+                    <button class="tool-btn" onclick="as.insertComponent('database')">
+                        🗄️ 数据库
+                    </button>
+                    <button class="tool-btn" onclick="as.insertComponent('api')">
+                        🔌 API网关
+                    </button>
+                    <button class="tool-btn" onclick="as.insertComponent('cache')">
+                        💾 缓存
+                    </button>
+                    <button class="tool-btn" onclick="as.insertComponent('loadbalancer')">
+                        ⚖️ 负载均衡
+                    </button>
+                    <button class="tool-btn" onclick="as.insertComponent('client')">
+                        💻 客户端
+                    </button>
+                    <button class="tool-btn" onclick="as.insertComponent('cloud')">
+                        ☁️ 云服务
+                    </button>
+                </div>
+                
+                <div class="toolbar-section">
+                    <div class="section-title">📋 架构模板</div>
+                    <button class="tool-btn" onclick="as.loadTemplate('monolith')">
+                        🏛️ 单体架构
+                    </button>
+                    <button class="tool-btn" onclick="as.loadTemplate('microservices')">
+                        🔬 微服务架构
+                    </button>
+                    <button class="tool-btn" onclick="as.loadTemplate('cqrs')">
+                        📊 CQRS架构
+                    </button>
+                    <button class="tool-btn" onclick="as.loadTemplate('event-driven')">
+                        📡 事件驱动
+                    </button>
+                </div>
+            </div>
+            
+            <div class="canvas-container">
+                <canvas id="canvas" width="1200" height="800"></canvas>
+            </div>
+            
+            <div class="properties-panel">
+                <div class="property-group">
+                    <div class="property-label">画笔颜色</div>
+                    <div class="color-picker">
+                        <div class="color-option selected" style="background: #333;" data-color="#333" onclick="as.setColor('#333')"></div>
+                        <div class="color-option" style="background: #667eea;" data-color="#667eea" onclick="as.setColor('#667eea')"></div>
+                        <div class="color-option" style="background: #f44336;" data-color="#f44336" onclick="as.setColor('#f44336')"></div>
+                        <div class="color-option" style="background: #4caf50;" data-color="#4caf50" onclick="as.setColor('#4caf50')"></div>
+                        <div class="color-option" style="background: #ff9800;" data-color="#ff9800" onclick="as.setColor('#ff9800')"></div>
+                        <div class="color-option" style="background: #2196f3;" data-color="#2196f3" onclick="as.setColor('#2196f3')"></div>
+                        <div class="color-option" style="background: #9c27b0;" data-color="#9c27b0" onclick="as.setColor('#9c27b0')"></div>
+                        <div class="color-option" style="background: #e91e63;" data-color="#e91e63" onclick="as.setColor('#e91e63')"></div>
+                    </div>
+                </div>
+                
+                <div class="property-group">
+                    <div class="property-label">画笔粗细: <span id="strokeWidthValue">2</span></div>
+                    <input type="range" class="slider" id="strokeWidth" min="1" max="20" value="2" oninput="as.setStrokeWidth(this.value)">
+                </div>
+                
+                <div class="property-group">
+                    <div class="property-label">透明度: <span id="opacityValue">1.0</span></div>
+                    <input type="range" class="slider" id="opacitySlider" min="0.1" max="1" step="0.1" value="1" oninput="as.setOpacity(this.value)">
+                </div>
+                
+                <div class="property-group">
+                    <div class="property-label">画布操作</div>
+                    <button class="tool-btn" onclick="as.undo()">
+                        ↩️ 撤销
+                    </button>
+                    <button class="tool-btn" onclick="as.redo()">
+                        ↪️ 重做
+                    </button>
+                    <button class="tool-btn" onclick="as.zoomIn()">
+                        🔍 放大
+                    </button>
+                    <button class="tool-btn" onclick="as.zoomOut()">
+                        🔍 缩小
+                    </button>
+                    <button class="tool-btn" onclick="as.resetView()">
+                        🎯 重置视图
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 版本管理模态框 -->
+    <div class="modal" id="versionsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">版本管理</div>
+                <button class="modal-close" onclick="as.hideVersionsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="version-list" id="versionList">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 架构设计草稿本
+        class ArchitectureSketch {
+            constructor() {
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.currentTool = 'pen';
+                this.currentColor = '#333';
+                this.currentStrokeWidth = 2;
+                this.currentOpacity = 1.0;
+                this.isDrawing = false;
+                this.startX = 0;
+                this.startY = 0;
+                this.history = [];
+                this.historyStep = -1;
+                this.versions = this.loadVersions();
+                this.init();
+            }
+            
+            init() {
+                this.bindEvents();
+                this.saveState();
+            }
+            
+            bindEvents() {
+                this.canvas.addEventListener('mousedown', (e) => this.startDrawing(e));
+                this.canvas.addEventListener('mousemove', (e) => this.draw(e));
+                this.canvas.addEventListener('mouseup', () => this.stopDrawing());
+                this.canvas.addEventListener('mouseout', () => this.stopDrawing());
+                
+                // 触摸事件支持
+                this.canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousedown', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    this.canvas.dispatchEvent(mouseEvent);
+                });
+                
+                this.canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousemove', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    this.canvas.dispatchEvent(mouseEvent);
+                });
+                
+                this.canvas.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    const mouseEvent = new MouseEvent('mouseup', {});
+                    this.canvas.dispatchEvent(mouseEvent);
+                });
+            }
+            
+            getMousePos(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                return {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+            }
+            
+            startDrawing(e) {
+                this.isDrawing = true;
+                const pos = this.getMousePos(e);
+                this.startX = pos.x;
+                this.startY = pos.y;
+                
+                if (this.currentTool === 'pen' || this.currentTool === 'eraser') {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(pos.x, pos.y);
+                }
+            }
+            
+            draw(e) {
+                if (!this.isDrawing) return;
+                
+                const pos = this.getMousePos(e);
+                
+                this.ctx.globalAlpha = this.currentOpacity;
+                
+                switch(this.currentTool) {
+                    case 'pen':
+                        this.ctx.globalCompositeOperation = 'source-over';
+                        this.ctx.strokeStyle = this.currentColor;
+                        this.ctx.lineWidth = this.currentStrokeWidth;
+                        this.ctx.lineCap = 'round';
+                        this.ctx.lineJoin = 'round';
+                        this.ctx.lineTo(pos.x, pos.y);
+                        this.ctx.stroke();
+                        break;
+                        
+                    case 'eraser':
+                        this.ctx.globalCompositeOperation = 'destination-out';
+                        this.ctx.lineWidth = this.currentStrokeWidth * 5;
+                        this.ctx.lineCap = 'round';
+                        this.ctx.lineJoin = 'round';
+                        this.ctx.lineTo(pos.x, pos.y);
+                        this.ctx.stroke();
+                        break;
+                        
+                    case 'rect':
+                        this.redrawCanvas();
+                        this.ctx.globalCompositeOperation = 'source-over';
+                        this.ctx.strokeStyle = this.currentColor;
+                        this.ctx.lineWidth = this.currentStrokeWidth;
+                        this.ctx.strokeRect(this.startX, this.startY, pos.x - this.startX, pos.y - this.startY);
+                        break;
+                        
+                    case 'circle':
+                        this.redrawCanvas();
+                        this.ctx.globalCompositeOperation = 'source-over';
+                        this.ctx.strokeStyle = this.currentColor;
+                        this.ctx.lineWidth = this.currentStrokeWidth;
+                        const radius = Math.sqrt(Math.pow(pos.x - this.startX, 2) + Math.pow(pos.y - this.startY, 2));
+                        this.ctx.beginPath();
+                        this.ctx.arc(this.startX, this.startY, radius, 0, 2 * Math.PI);
+                        this.ctx.stroke();
+                        break;
+                        
+                    case 'line':
+                        this.redrawCanvas();
+                        this.ctx.globalCompositeOperation = 'source-over';
+                        this.ctx.strokeStyle = this.currentColor;
+                        this.ctx.lineWidth = this.currentStrokeWidth;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(this.startX, this.startY);
+                        this.ctx.lineTo(pos.x, pos.y);
+                        this.ctx.stroke();
+                        break;
+                        
+                    case 'arrow':
+                        this.redrawCanvas();
+                        this.ctx.globalCompositeOperation = 'source-over';
+                        this.ctx.strokeStyle = this.currentColor;
+                        this.ctx.lineWidth = this.currentStrokeWidth;
+                        this.drawArrow(this.startX, this.startY, pos.x, pos.y);
+                        break;
+                }
+            }
+            
+            stopDrawing() {
+                if (this.isDrawing) {
+                    this.isDrawing = false;
+                    this.saveState();
+                }
+            }
+            
+            drawArrow(fromX, fromY, toX, toY) {
+                const headLength = 15;
+                const angle = Math.atan2(toY - fromY, toX - fromX);
+                
+                this.ctx.beginPath();
+                this.ctx.moveTo(fromX, fromY);
+                this.ctx.lineTo(toX, toY);
+                this.ctx.stroke();
+                
+                this.ctx.beginPath();
+                this.ctx.moveTo(toX, toY);
+                this.ctx.lineTo(toX - headLength * Math.cos(angle - Math.PI / 6), toY - headLength * Math.sin(angle - Math.PI / 6));
+                this.ctx.moveTo(toX, toY);
+                this.ctx.lineTo(toX - headLength * Math.cos(angle + Math.PI / 6), toY - headLength * Math.sin(angle + Math.PI / 6));
+                this.ctx.stroke();
+            }
+            
+            setTool(tool) {
+                this.currentTool = tool;
+                document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+                document.getElementById(tool + 'Tool').classList.add('active');
+                
+                if (tool === 'text') {
+                    this.canvas.style.cursor = 'text';
+                } else if (tool === 'eraser') {
+                    this.canvas.style.cursor = 'grab';
+                } else {
+                    this.canvas.style.cursor = 'crosshair';
+                }
+            }
+            
+            setColor(color) {
+                this.currentColor = color;
+                document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+                document.querySelector(`[data-color="${color}"]`).classList.add('selected');
+            }
+            
+            setStrokeWidth(width) {
+                this.currentStrokeWidth = parseInt(width);
+                document.getElementById('strokeWidthValue').textContent = width;
+            }
+            
+            setOpacity(opacity) {
+                this.currentOpacity = parseFloat(opacity);
+                document.getElementById('opacityValue').textContent = opacity;
+            }
+            
+            insertComponent(type) {
+                const components = {
+                    server: { icon: '🖥️', label: '服务器' },
+                    database: { icon: '🗄️', label: '数据库' },
+                    api: { icon: '🔌', label: 'API' },
+                    cache: { icon: '💾', label: '缓存' },
+                    loadbalancer: { icon: '⚖️', label: '负载均衡' },
+                    client: { icon: '💻', label: '客户端' },
+                    cloud: { icon: '☁️', label: '云服务' }
+                };
+                
+                const component = components[type];
+                const x = 100 + Math.random() * 200;
+                const y = 100 + Math.random() * 200;
+                
+                this.ctx.font = '48px Arial';
+                this.ctx.fillText(component.icon, x, y);
+                
+                this.ctx.font = '14px -apple-system, BlinkMacSystemFont, Segoe UI, Microsoft YaHei';
+                this.ctx.fillStyle = this.currentColor;
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(component.label, x + 24, y + 30);
+                this.ctx.textAlign = 'left';
+                
+                this.saveState();
+                this.showToast(`已添加${component.label}`);
+            }
+            
+            loadTemplate(templateName) {
+                this.clearCanvas();
+                
+                switch(templateName) {
+                    case 'monolith':
+                        this.drawMonolithTemplate();
+                        break;
+                    case 'microservices':
+                        this.drawMicroservicesTemplate();
+                        break;
+                    case 'cqrs':
+                        this.drawCQRSTemplate();
+                        break;
+                    case 'event-driven':
+                        this.drawEventDrivenTemplate();
+                        break;
+                }
+                
+                this.saveState();
+                this.showToast('模板已加载');
+            }
+            
+            drawMonolithTemplate() {
+                // 绘制单体架构模板
+                this.ctx.font = '48px Arial';
+                this.ctx.fillText('💻', 150, 200);
+                this.ctx.fillText('🖥️', 450, 200);
+                this.ctx.fillText('🗄️', 750, 200);
+                
+                this.ctx.strokeStyle = '#333';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(200, 200);
+                this.ctx.lineTo(450, 200);
+                this.ctx.moveTo(550, 200);
+                this.ctx.lineTo(750, 200);
+                this.ctx.stroke();
+                
+                this.ctx.font = '16px -apple-system, BlinkMacSystemFont, Segoe UI, Microsoft YaHei';
+                this.ctx.fillText('客户端', 130, 280);
+                this.ctx.fillText('单体应用', 420, 280);
+                this.ctx.fillText('数据库', 720, 280);
+            }
+            
+            drawMicroservicesTemplate() {
+                // 绘制微服务架构模板
+                this.ctx.font = '48px Arial';
+                this.ctx.fillText('💻', 150, 150);
+                this.ctx.fillText('🔌', 400, 150);
+                this.ctx.fillText('🖥️', 600, 100);
+                this.ctx.fillText('🖥️', 600, 200);
+                this.ctx.fillText('🖥️', 600, 300);
+                this.ctx.fillText('🗄️', 850, 150);
+                
+                this.ctx.strokeStyle = '#333';
+                this.ctx.lineWidth = 2;
+                this.drawArrow(200, 150, 400, 150);
+                this.drawArrow(480, 150, 600, 100);
+                this.drawArrow(480, 150, 600, 200);
+                this.drawArrow(480, 150, 600, 300);
+                this.drawArrow(700, 150, 850, 150);
+                
+                this.ctx.font = '14px -apple-system, BlinkMacSystemFont, Segoe UI, Microsoft YaHei';
+                this.ctx.fillText('客户端', 130, 220);
+                this.ctx.fillText('API网关', 380, 220);
+                this.ctx.fillText('服务1', 580, 80);
+                this.ctx.fillText('服务2', 580, 280);
+                this.ctx.fillText('服务3', 580, 380);
+                this.ctx.fillText('数据库', 820, 220);
+            }
+            
+            drawCQRSTemplate() {
+                // 绘制CQRS架构模板
+                this.ctx.font = '48px Arial';
+                this.ctx.fillText('💻', 150, 150);
+                this.ctx.fillText('📝', 400, 100);
+                this.ctx.fillText('📖', 400, 200);
+                this.ctx.fillText('🗄️', 650, 100);
+                this.ctx.fillText('🗄️', 650, 200);
+                
+                this.drawArrow(200, 150, 400, 100);
+                this.drawArrow(200, 150, 400, 200);
+                
+                this.ctx.font = '14px -apple-system, BlinkMacSystemFont, Segoe UI, Microsoft YaHei';
+                this.ctx.fillText('客户端', 130, 220);
+                this.ctx.fillText('Command', 370, 80);
+                this.ctx.fillText('Query', 380, 280);
+                this.ctx.fillText('写数据库', 620, 80);
+                this.ctx.fillText('读数据库', 620, 280);
+            }
+            
+            drawEventDrivenTemplate() {
+                // 绘制事件驱动架构模板
+                this.ctx.font = '48px Arial';
+                this.ctx.fillText('💻', 100, 150);
+                this.ctx.fillText('🖥️', 300, 100);
+                this.ctx.fillText('🖥️', 300, 200);
+                this.ctx.fillText('📨', 500, 150);
+                this.ctx.fillText('🖥️', 700, 100);
+                this.ctx.fillText('🖥️', 700, 200);
+                this.ctx.fillText('🗄️', 900, 150);
+                
+                this.drawArrow(150, 150, 300, 100);
+                this.drawArrow(150, 150, 300, 200);
+                this.drawArrow(380, 100, 500, 150);
+                this.drawArrow(380, 200, 500, 150);
+                this.drawArrow(580, 150, 700, 100);
+                this.drawArrow(580, 150, 700, 200);
+                this.drawArrow(780, 150, 900, 150);
+                
+                this.ctx.font = '14px -apple-system, BlinkMacSystemFont, Segoe UI, Microsoft YaHei';
+                this.ctx.fillText('客户端', 80, 220);
+                this.ctx.fillText('服务A', 280, 80);
+                this.ctx.fillText('服务B', 280, 280);
+                this.ctx.fillText('消息队列', 480, 220);
+                this.ctx.fillText('服务C', 680, 80);
+                this.ctx.fillText('服务D', 680, 280);
+                this.ctx.fillText('数据库', 880, 220);
+            }
+            
+            saveState() {
+                this.historyStep++;
+                if (this.historyStep < this.history.length) {
+                    this.history.length = this.historyStep;
+                }
+                
+                try {
+                    const dataUrl = this.canvas.toDataURL();
+                    this.history.push(dataUrl);
+                    
+                    // 限制历史记录数量，避免内存溢出
+                    if (this.history.length > 50) {
+                        this.history.shift();
+                        this.historyStep--;
+                    }
+                } catch (e) {
+                    console.error('保存画布状态失败:', e);
+                }
+            }
+            
+            undo() {
+                if (this.historyStep > 0) {
+                    this.historyStep--;
+                    this.redrawCanvas();
+                    this.showToast('已撤销');
+                } else {
+                    this.showToast('没有可撤销的操作');
+                }
+            }
+            
+            redo() {
+                if (this.historyStep < this.history.length - 1) {
+                    this.historyStep++;
+                    this.redrawCanvas();
+                    this.showToast('已重做');
+                } else {
+                    this.showToast('没有可重做的操作');
+                }
+            }
+            
+            redrawCanvas() {
+                // 确保history中有数据
+                if (this.history.length === 0 || this.historyStep < 0 || this.historyStep >= this.history.length) {
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    return;
+                }
+                
+                const img = new Image();
+                img.src = this.history[this.historyStep];
+                img.onload = () => {
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    this.ctx.drawImage(img, 0, 0);
+                };
+                
+                // 处理图片加载失败的情况
+                img.onerror = () => {
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                };
+            }
+            
+            clearCanvas() {
+                if (confirm('确定要清空画布吗？')) {
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    this.saveState();
+                    this.showToast('画布已清空');
+                }
+            }
+            
+            saveVersion() {
+                const name = prompt('请输入版本名称:');
+                if (!name) return;
+                
+                const version = {
+                    id: Date.now(),
+                    name: name,
+                    data: this.canvas.toDataURL(),
+                    createdAt: new Date().toISOString()
+                };
+                
+                this.versions.unshift(version);
+                localStorage.setItem('architectureVersions', JSON.stringify(this.versions));
+                this.showToast('版本已保存');
+            }
+            
+            loadVersions() {
+                const saved = localStorage.getItem('architectureVersions');
+                return saved ? JSON.parse(saved) : [];
+            }
+            
+            showVersionsModal() {
+                this.renderVersionsList();
+                document.getElementById('versionsModal').classList.add('show');
+            }
+            
+            hideVersionsModal() {
+                document.getElementById('versionsModal').classList.remove('show');
+            }
+            
+            renderVersionsList() {
+                const list = document.getElementById('versionList');
+                
+                if (this.versions.length === 0) {
+                    list.innerHTML = '<div class="empty-state"><div class="empty-text">暂无保存的版本</div></div>';
+                    return;
+                }
+                
+                list.innerHTML = this.versions.map(v => `
+                    <div class="version-item">
+                        <div class="version-info">
+                            <div class="version-name">${v.name}</div>
+                            <div class="version-time">${new Date(v.createdAt).toLocaleString('zh-CN')}</div>
+                        </div>
+                        <div class="version-actions">
+                            <button class="version-btn" onclick="as.loadVersion(${v.id})">加载</button>
+                            <button class="version-btn" onclick="as.deleteVersion(${v.id})">删除</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            loadVersion(id) {
+                const version = this.versions.find(v => v.id === id);
+                if (!version) return;
+                
+                const img = new Image();
+                img.src = version.data;
+                img.onload = () => {
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    this.ctx.drawImage(img, 0, 0);
+                    this.saveState();
+                    this.hideVersionsModal();
+                    this.showToast('版本已加载');
+                };
+            }
+            
+            deleteVersion(id) {
+                if (!confirm('确定要删除这个版本吗？')) return;
+                
+                this.versions = this.versions.filter(v => v.id !== id);
+                localStorage.setItem('architectureVersions', JSON.stringify(this.versions));
+                this.renderVersionsList();
+                this.showToast('版本已删除');
+            }
+            
+            exportAsImage() {
+                const link = document.createElement('a');
+                link.download = 'architecture-' + Date.now() + '.png';
+                link.href = this.canvas.toDataURL();
+                link.click();
+                this.showToast('图片已导出');
+            }
+            
+            zoomIn() {
+                this.ctx.scale(1.2, 1.2);
+                this.redrawCanvas();
+            }
+            
+            zoomOut() {
+                this.ctx.scale(0.8, 0.8);
+                this.redrawCanvas();
+            }
+            
+            resetView() {
+                this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                this.redrawCanvas();
+                this.showToast('视图已重置');
+            }
+            
+            showToast(message) {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.classList.add('show');
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 2000);
+            }
+        }
+        
+        // 初始化
+        const as = new ArchitectureSketch();
+    </script>
+</body>
+</html>

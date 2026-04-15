@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>每日站会助手</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .main { padding: 20px; max-width: 1000px; margin: 0 auto; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: #1f2235; font-size: 12px; font-weight: 600; color: #8b90a7; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #2d3148; }
+    .card-body { padding: 16px; }
+    textarea { width: 100%; background: #131520; color: #e2e8f0; border: 1px solid #363b5e; border-radius: 6px; padding: 12px; font-family: 'Cascadia Code', monospace; font-size: 13px; resize: vertical; outline: none; min-height: 100px; transition: border-color .2s; }
+    textarea:focus { border-color: #6366f1; }
+    .btn-row { padding: 12px 16px; display: flex; gap: 8px; background: #1a1d2e; border-top: 1px solid #2d3148; }
+    .btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-primary:hover { background: #5457d4; }
+    .btn-secondary { background: #2d3148; color: #c4c9e2; }
+    .btn-secondary:hover { background: #363b5e; }
+    .copy-btn { padding: 3px 10px; background: #2d3148; border: none; border-radius: 4px; color: #8b90a7; cursor: pointer; font-size: 11px; }
+    .copy-btn:hover { background: #6366f1; color: #fff; }
+    .section-title { font-size: 12px; font-weight: 600; color: #6366f1; margin-bottom: 8px; }
+    .history-item { padding: 8px; background: #131520; border-radius: 4px; border-left: 3px solid #6366f1; margin-bottom: 6px; font-size: 12px; }
+    .history-time { color: #8b90a7; font-size: 11px; }
+    @media (max-width: 768px) { .grid2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">🗣️</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">每日站会助手</h1>
+    <p style="font-size:12px;color:#8b90a7;margin-top:2px">记录昨日、今日、阻塞，一键生成站会汇报</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">输入站会信息</div>
+      <div class="card-body">
+        <div style="margin-bottom:12px">
+          <div class="section-title">👤 参与者</div>
+          <input type="text" id="person" placeholder="你的名字" style="width:100%;background:#131520;border:1px solid #363b5e;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:13px;outline:none;margin-bottom:8px">
+        </div>
+        <div style="margin-bottom:12px">
+          <div class="section-title">✅ 昨日完成</div>
+          <textarea id="yesterday" placeholder="1. 完成需求评审&#10;2. 开发基础模块&#10;..."></textarea>
+        </div>
+        <div style="margin-bottom:12px">
+          <div class="section-title">📋 今日计划</div>
+          <textarea id="today" placeholder="1. 实现核心功能&#10;2. 代码审查&#10;..."></textarea>
+        </div>
+        <div style="margin-bottom:12px">
+          <div class="section-title">🚧 阻塞问题</div>
+          <textarea id="blocked" placeholder="无 / 描述具体阻塞内容"></textarea>
+        </div>
+        <div class="btn-row" style="border-top:none;padding:0">
+          <button class="btn btn-primary" onclick="generate()">🎤 生成汇报</button>
+          <button class="btn btn-secondary" onclick="clearAll()">🗑️ 清空</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        汇报稿
+        <button class="copy-btn" onclick="copyReport()">复制</button>
+      </div>
+      <textarea id="report" readonly placeholder="生成的汇报稿将显示在此..."></textarea>
+      <div class="btn-row" style="border-top:none;padding:12px 16px">
+        <button class="btn btn-secondary" onclick="saveHistory()">💾 保存到历史</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">站会历史（最近5条）</div>
+    <div class="card-body" id="history-list" style="max-height:200px;overflow-y:auto">
+      <p style="color:#4a4f6a;font-size:12px">暂无记录</p>
+    </div>
+  </div>
+</div>
+
+<script>
+function generate() {
+  const person = document.getElementById('person').value.trim() || '开发人员';
+  const yesterday = document.getElementById('yesterday').value.trim();
+  const today = document.getElementById('today').value.trim();
+  const blocked = document.getElementById('blocked').value.trim() || '无';
+
+  const report = `【${person} 站会汇报】 ${new Date().toLocaleString('zh-CN', {timeZone:'Asia/Shanghai'})}
+
+✅ 昨日完成：
+${yesterday || '无'}
+
+📋 今日计划：
+${today || '无'}
+
+🚧 阻塞问题：
+${blocked}
+
+---
+
+快速链接：[JIRA] [GitLab] [Confluence]`;
+
+  document.getElementById('report').value = report;
+}
+
+function clearAll() {
+  document.getElementById('person').value = '';
+  document.getElementById('yesterday').value = '';
+  document.getElementById('today').value = '';
+  document.getElementById('blocked').value = '';
+  document.getElementById('report').value = '';
+}
+
+function copyReport() {
+  const v = document.getElementById('report').value;
+  navigator.clipboard.writeText(v).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ 已复制';
+    setTimeout(() => btn.textContent = '复制', 1200);
+  });
+}
+
+function saveHistory() {
+  const person = document.getElementById('person').value.trim() || '开发人员';
+  const report = document.getElementById('report').value;
+  if (!report) return;
+  
+  let history = JSON.parse(localStorage.getItem('standup-history') || '[]');
+  history.unshift({ person, report, time: new Date().toLocaleString('zh-CN', {timeZone:'Asia/Shanghai'}) });
+  history = history.slice(0, 10);
+  localStorage.setItem('standup-history', JSON.stringify(history));
+  
+  renderHistory();
+}
+
+function renderHistory() {
+  const history = JSON.parse(localStorage.getItem('standup-history') || '[]');
+  const list = document.getElementById('history-list');
+  
+  if (history.length === 0) {
+    list.innerHTML = '<p style="color:#4a4f6a;font-size:12px">暂无记录</p>';
+    return;
+  }
+
+  list.innerHTML = history.map((h, i) => `
+    <div class="history-item">
+      <div style="font-weight:600">${h.person}</div>
+      <div class="history-time">${h.time}</div>
+      <div style="margin-top:4px;font-size:11px;max-height:60px;overflow:hidden">${h.report.substring(0,100)}...</div>
+      <button onclick="loadHistory(${i})" style="margin-top:4px;padding:3px 10px;background:#2d3148;border:none;border-radius:4px;color:#8b90a7;cursor:pointer;font-size:11px">恢复</button>
+    </div>
+  `).join('');
+}
+
+function loadHistory(idx) {
+  const history = JSON.parse(localStorage.getItem('standup-history') || '[]');
+  if (history[idx]) {
+    document.getElementById('report').value = history[idx].report;
+  }
+}
+
+renderHistory();
+</script>
+</body>
+</html>

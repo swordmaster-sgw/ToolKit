@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hash 计算器</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .main { padding: 20px; max-width: 900px; margin: 0 auto; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: #1f2235; font-size: 12px; font-weight: 600; color: #8b90a7; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #2d3148; }
+    .card-body { padding: 16px; }
+    textarea { width: 100%; background: #131520; color: #e2e8f0; border: 1px solid #363b5e; border-radius: 6px; padding: 12px; font-family: monospace; font-size: 13px; resize: vertical; outline: none; min-height: 100px; line-height: 1.6; transition: border-color .2s; }
+    textarea:focus { border-color: #6366f1; }
+    .btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .btn { padding: 8px 20px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-primary:hover { background: #5457d4; }
+    .btn-secondary { background: #2d3148; color: #c4c9e2; }
+    .btn-secondary:hover { background: #363b5e; }
+    .result-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #2d314866; }
+    .result-row:last-child { border-bottom: none; }
+    .algo-label { min-width: 80px; font-size: 12px; font-weight: 600; color: #6366f1; }
+    .hash-val { flex: 1; font-family: 'Cascadia Code', Consolas, monospace; font-size: 12px; color: #e2e8f0; word-break: break-all; }
+    .copy-hash { padding: 3px 10px; background: #2d3148; border: none; border-radius: 4px; color: #8b90a7; cursor: pointer; font-size: 11px; white-space: nowrap; }
+    .copy-hash:hover { background: #6366f1; color: #fff; }
+    .verify-row { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+    .verify-input { flex: 1; background: #131520; border: 1px solid #363b5e; border-radius: 6px; padding: 8px 12px; color: #e2e8f0; font-family: monospace; font-size: 12px; outline: none; }
+    .verify-input:focus { border-color: #6366f1; }
+    .verify-badge { padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .badge-ok { background: #16a34a22; color: #22c55e; border: 1px solid #22c55e44; }
+    .badge-fail { background: #dc262622; color: #ef4444; border: 1px solid #ef444444; }
+    .drop-zone { border: 2px dashed #363b5e; border-radius: 8px; padding: 30px; text-align: center; cursor: pointer; transition: all .2s; }
+    .drop-zone:hover { border-color: #6366f1; background: #6366f111; }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">#️⃣</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">Hash 计算器</h1>
+    <p style="font-size:12px;color:#8b90a7;margin-top:2px">MD5、SHA-1、SHA-256、SHA-512，本地计算</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="card">
+    <div class="card-title">输入文本</div>
+    <div class="card-body">
+      <textarea id="text-input" placeholder="输入要计算 Hash 的文本..." oninput="autoCalc()"></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="calcAll()">🔑 计算所有 Hash</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('text-input').value='';clearResults()">🗑️ 清空</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Hash 结果</div>
+    <div class="card-body" id="results">
+      <p style="color:#4a4f6a;font-size:13px">输入文本后点击计算...</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">文件 Hash</div>
+    <div class="card-body">
+      <div class="drop-zone" onclick="document.getElementById('file-in').click()" id="dz">
+        <p style="color:#8b90a7">📁 点击或拖拽文件到此处计算 Hash</p>
+        <p style="font-size:12px;color:#4a4f6a;margin-top:6px">支持任意格式文件，本地计算不上传</p>
+      </div>
+      <input type="file" id="file-in" style="display:none" onchange="calcFileHash(event)">
+      <div id="file-results" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">校验对比</div>
+    <div class="card-body">
+      <p style="font-size:13px;color:#8b90a7;margin-bottom:10px">粘贴已知 Hash 值进行对比验证</p>
+      <div class="verify-row">
+        <input class="verify-input" id="verify-input" placeholder="粘贴已知的 Hash 值..." oninput="verify()">
+        <div id="verify-badge"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentHashes = {};
+
+async function sha(algo, data) {
+  const enc = new TextEncoder().encode(data);
+  const buf = await crypto.subtle.digest(algo, enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function calcAll() {
+  const text = document.getElementById('text-input').value;
+  if (!text) return;
+  
+  const algos = [
+    { name: 'SHA-1', key: 'SHA-1' },
+    { name: 'SHA-256', key: 'SHA-256' },
+    { name: 'SHA-384', key: 'SHA-384' },
+    { name: 'SHA-512', key: 'SHA-512' },
+  ];
+
+  document.getElementById('results').innerHTML = '<p style="color:#8b90a7;font-size:13px">计算中...</p>';
+  
+  const results = {};
+  for (const a of algos) {
+    results[a.name] = await sha(a.key, text);
+  }
+  currentHashes = results;
+  
+  document.getElementById('results').innerHTML = Object.entries(results).map(([algo, hash]) => `
+    <div class="result-row">
+      <span class="algo-label">${algo}</span>
+      <span class="hash-val">${hash}</span>
+      <button class="copy-hash" onclick="navigator.clipboard.writeText('${hash}').then(()=>this.textContent='✓').then(()=>setTimeout(()=>this.textContent='复制',1200))">复制</button>
+    </div>
+  `).join('');
+}
+
+let autoTimer;
+function autoCalc() {
+  clearTimeout(autoTimer);
+  autoTimer = setTimeout(calcAll, 600);
+}
+
+function clearResults() {
+  document.getElementById('results').innerHTML = '<p style="color:#4a4f6a;font-size:13px">输入文本后点击计算...</p>';
+  currentHashes = {};
+}
+
+async function calcFileHash(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const fr = document.getElementById('file-results');
+  fr.innerHTML = '<p style="color:#8b90a7;font-size:13px">计算中，请稍等...</p>';
+  
+  const buffer = await file.arrayBuffer();
+  const algos = ['SHA-1', 'SHA-256', 'SHA-512'];
+  const results = {};
+  for (const a of algos) {
+    const buf = await crypto.subtle.digest(a, buffer);
+    results[a] = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+  
+  fr.innerHTML = `<p style="font-size:12px;color:#8b90a7;margin-bottom:8px">文件：${file.name} (${(file.size/1024).toFixed(1)} KB)</p>` +
+    Object.entries(results).map(([algo, hash]) => `
+      <div class="result-row">
+        <span class="algo-label">${algo}</span>
+        <span class="hash-val">${hash}</span>
+        <button class="copy-hash" onclick="navigator.clipboard.writeText('${hash}').then(()=>this.textContent='✓').then(()=>setTimeout(()=>this.textContent='复制',1200))">复制</button>
+      </div>
+    `).join('');
+}
+
+function verify() {
+  const input = document.getElementById('verify-input').value.trim().toLowerCase();
+  const badge = document.getElementById('verify-badge');
+  if (!input) { badge.innerHTML = ''; return; }
+  const matched = Object.entries(currentHashes).find(([,v]) => v.toLowerCase() === input);
+  if (matched) {
+    badge.innerHTML = `<span class="verify-badge badge-ok">✅ 匹配 ${matched[0]}</span>`;
+  } else {
+    badge.innerHTML = `<span class="verify-badge badge-fail">❌ 不匹配</span>`;
+  }
+}
+
+// 文件拖拽
+const dz = document.getElementById('dz');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor='#6366f1'; });
+dz.addEventListener('dragleave', () => dz.style.borderColor='#363b5e');
+dz.addEventListener('drop', e => { e.preventDefault(); dz.style.borderColor='#363b5e'; const f=e.dataTransfer.files[0]; if(f) calcFileHash({target:{files:[f]}}); });
+</script>
+</body>
+</html>

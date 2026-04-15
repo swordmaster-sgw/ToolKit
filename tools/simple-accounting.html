@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人记账极简版</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: rgba(255, 255, 255, 0.95); border-radius: 16px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); overflow: hidden; min-height: calc(100vh - 40px); display: flex; flex-direction: column; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 32px; display: flex; justify-content: space-between; align-items: center; }
+        .header-left h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+        .header-left p { font-size: 13px; opacity: 0.9; }
+        .header-right { display: flex; gap: 12px; align-items: center; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.3s; }
+        .btn-primary { background: rgba(255, 255, 255, 0.2); color: white; }
+        .btn-primary:hover { background: rgba(255, 255, 255, 0.3); transform: translateY(-2px); }
+        .btn-secondary { background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255, 255, 255, 0.3); }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.2); }
+        .main-content { flex: 1; padding: 32px; overflow-y: auto; }
+        .balance-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 16px; padding: 32px; margin-bottom: 32px; text-align: center; }
+        .balance-label { font-size: 14px; opacity: 0.9; margin-bottom: 8px; }
+        .balance-amount { font-size: 48px; font-weight: 700; margin-bottom: 8px; }
+        .balance-period { font-size: 13px; opacity: 0.8; }
+        .quick-add { background: #f8f9fa; border-radius: 12px; padding: 24px; margin-bottom: 32px; }
+        .quick-input { width: 100%; padding: 16px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; margin-bottom: 16px; transition: all 0.3s; }
+        .quick-input:focus { outline: none; border-color: #667eea; }
+        .quick-hint { font-size: 13px; color: #999; margin-bottom: 16px; }
+        .quick-btn { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: all 0.3s; }
+        .quick-btn:hover { background: #5568d3; transform: translateY(-2px); }
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 32px; }
+        .stat-card { background: white; border: 2px solid #e9ecef; border-radius: 12px; padding: 20px; text-align: center; }
+        .stat-value { font-size: 24px; font-weight: 700; color: #667eea; margin-bottom: 4px; }
+        .stat-label { font-size: 13px; color: #666; }
+        .recent-records { background: white; border: 2px solid #e9ecef; border-radius: 12px; overflow: hidden; }
+        .records-header { padding: 20px; border-bottom: 1px solid #e9ecef; display: flex; justify-content: space-between; align-items: center; }
+        .records-title { font-size: 16px; font-weight: 600; }
+        .records-list { max-height: 400px; overflow-y: auto; }
+        .record-item { padding: 16px 20px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+        .record-item:last-child { border-bottom: none; }
+        .record-info { flex: 1; }
+        .record-category { font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-bottom: 4px; display: inline-block; }
+        .cat-food { background: #fff3e0; color: #ef6c00; }
+        .cat-transport { background: #e3f2fd; color: #1976d2; }
+        .cat-shopping { background: #fce4ec; color: #c2185b; }
+        .cat-entertainment { background: #e8f5e9; color: #388e3c; }
+        .cat-other { background: #f5f5f5; color: #666; }
+        .record-note { font-size: 14px; color: #333; }
+        .record-amount { font-size: 16px; font-weight: 600; }
+        .record-amount.expense { color: #f44336; }
+        .record-amount.income { color: #4caf50; }
+        .empty-state { text-align: center; padding: 40px 20px; color: #999; }
+        .toast { position: fixed; bottom: 24px; right: 24px; background: #333; color: white; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); opacity: 0; transform: translateY(20px); transition: all 0.3s; z-index: 1001; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1>💰 个人记账极简版</h1>
+                <p>3秒完成记账，智能分类，快速统计</p>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-secondary" onclick="sa.exportData()">📊 导出</button>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="balance-card">
+                <div class="balance-label">本月余额</div>
+                <div class="balance-amount" id="balanceAmount">¥0.00</div>
+                <div class="balance-period" id="balancePeriod">2026年3月</div>
+            </div>
+            
+            <div class="quick-add">
+                <input type="text" class="quick-input" id="quickInput" placeholder="输入记账内容（例如：午饭35 或 工资8000）" onkeypress="sa.handleQuickInput(event)">
+                <div class="quick-hint">💡 支持自然语言："午饭35"、"打车28.5"、"工资8000"</div>
+                <button class="quick-btn" onclick="sa.addRecord()">💾 快速记账</button>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="todayExpense">¥0</div>
+                    <div class="stat-label">今日支出</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="monthExpense">¥0</div>
+                    <div class="stat-label">本月支出</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="monthIncome">¥0</div>
+                    <div class="stat-label">本月收入</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="recordCount">0</div>
+                    <div class="stat-label">记账笔数</div>
+                </div>
+            </div>
+            
+            <div class="recent-records">
+                <div class="records-header">
+                    <div class="records-title">📋 最近记账</div>
+                </div>
+                <div class="records-list" id="recordsList">
+                    <div class="empty-state">
+                        <div class="empty-icon">📝</div>
+                        <div class="empty-text">暂无记账记录</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 个人记账极简版
+        class SimpleAccounting {
+            constructor() {
+                this.records = this.loadRecords();
+                this.categories = {
+                    expense: {
+                        '食品': ['饭', '面', '餐', '吃', '喝', '咖啡', '奶茶'],
+                        '交通': ['打车', '地铁', '公交', '车', '出行'],
+                        '购物': ['买', '购', '商品', '衣服', '鞋'],
+                        '娱乐': ['电影', '游戏', '玩', '休闲'],
+                        '其他': []
+                    },
+                    income: {
+                        '工资': ['工资', '薪水', '收入', '报酬'],
+                        '奖金': ['奖金', '奖励', '红包'],
+                        '其他': []
+                    }
+                };
+                this.init();
+            }
+            
+            init() {
+                this.updateStats();
+                this.renderRecords();
+            }
+            
+            handleQuickInput(event) {
+                if (event.key === 'Enter') {
+                    this.addRecord();
+                }
+            }
+            
+            addRecord() {
+                const input = document.getElementById('quickInput').value.trim();
+                if (!input) {
+                    this.showToast('请输入记账内容');
+                    return;
+                }
+                
+                // 解析输入
+                const parsed = this.parseInput(input);
+                if (!parsed) {
+                    this.showToast('无法识别记账内容，请使用格式：事项+金额（例如：午饭35）');
+                    return;
+                }
+                
+                const record = {
+                    id: Date.now(),
+                    ...parsed,
+                    date: new Date().toISOString()
+                };
+                
+                this.records.unshift(record);
+                this.saveRecords();
+                this.updateStats();
+                this.renderRecords();
+                
+                document.getElementById('quickInput').value = '';
+                this.showToast(`记账成功：${record.category} ${record.type === 'expense' ? '-' : '+'}¥${record.amount}`);
+            }
+            
+            parseInput(input) {
+                // 提取金额
+                const amountMatch = input.match(/\d+\.?\d*/);
+                if (!amountMatch) return null;
+                
+                const amount = parseFloat(amountMatch[0]);
+                let note = input.replace(amountMatch[0], '').trim();
+                
+                // 判断类型和分类
+                let type = 'expense';
+                let category = '其他';
+                
+                // 检查是否为收入
+                for (const [cat, keywords] of Object.entries(this.categories.income)) {
+                    if (keywords.some(kw => note.includes(kw))) {
+                        type = 'income';
+                        category = cat;
+                        break;
+                    }
+                }
+                
+                // 如果是支出，检查分类
+                if (type === 'expense') {
+                    for (const [cat, keywords] of Object.entries(this.categories.expense)) {
+                        if (keywords.some(kw => kw && note.includes(kw))) {
+                            category = cat;
+                            break;
+                        }
+                    }
+                }
+                
+                // 如果没有匹配到分类，使用智能判断
+                if (category === '其他' && note) {
+                    // 根据金额大小判断
+                    if (amount > 1000) {
+                        type = 'income';
+                        category = '工资';
+                    }
+                }
+                
+                return { type, category, amount, note: note || category };
+            }
+            
+            updateStats() {
+                const today = new Date().toDateString();
+                const thisMonth = new Date().getMonth();
+                const thisYear = new Date().getFullYear();
+                
+                let todayExpense = 0;
+                let monthExpense = 0;
+                let monthIncome = 0;
+                
+                this.records.forEach(record => {
+                    const recordDate = new Date(record.date);
+                    const recordMonth = recordDate.getMonth();
+                    const recordYear = recordDate.getFullYear();
+                    
+                    if (record.type === 'expense') {
+                        if (recordDate.toDateString() === today) {
+                            todayExpense += record.amount;
+                        }
+                        if (recordMonth === thisMonth && recordYear === thisYear) {
+                            monthExpense += record.amount;
+                        }
+                    } else {
+                        if (recordMonth === thisMonth && recordYear === thisYear) {
+                            monthIncome += record.amount;
+                        }
+                    }
+                });
+                
+                document.getElementById('todayExpense').textContent = `¥${todayExpense.toFixed(2)}`;
+                document.getElementById('monthExpense').textContent = `¥${monthExpense.toFixed(2)}`;
+                document.getElementById('monthIncome').textContent = `¥${monthIncome.toFixed(2)}`;
+                document.getElementById('balanceAmount').textContent = `¥${(monthIncome - monthExpense).toFixed(2)}`;
+                document.getElementById('recordCount').textContent = this.records.length;
+                
+                const now = new Date();
+                document.getElementById('balancePeriod').textContent = `${now.getFullYear()}年${now.getMonth() + 1}月`;
+            }
+            
+            renderRecords() {
+                const list = document.getElementById('recordsList');
+                
+                if (this.records.length === 0) {
+                    list.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📝</div>
+                            <div class="empty-text">暂无记账记录</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                list.innerHTML = this.records.slice(0, 20).map(record => `
+                    <div class="record-item">
+                        <div class="record-info">
+                            <div class="record-category ${record.type === 'expense' ? 'cat-' + record.category.toLowerCase() : 'cat-other'}">${record.category}</div>
+                            <div class="record-note">${record.note}</div>
+                        </div>
+                        <div class="record-amount ${record.type}">
+                            ${record.type === 'expense' ? '-' : '+'}¥${record.amount.toFixed(2)}
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            exportData() {
+                if (this.records.length === 0) {
+                    this.showToast('暂无数据可导出');
+                    return;
+                }
+                
+                const csv = this.convertToCSV(this.records);
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `记账记录_${new Date().toISOString().split('T')[0]}.csv`;
+                link.click();
+                
+                this.showToast('数据已导出为CSV格式');
+            }
+            
+            convertToCSV(records) {
+                const headers = ['日期', '类型', '分类', '金额', '备注'];
+                const rows = records.map(r => [
+                    new Date(r.date).toLocaleString('zh-CN'),
+                    r.type === 'expense' ? '支出' : '收入',
+                    r.category,
+                    r.amount,
+                    r.note
+                ]);
+                
+                return [headers, ...rows].map(row => row.join(',')).join('\n');
+            }
+            
+            loadRecords() {
+                const saved = localStorage.getItem('accountingRecords');
+                return saved ? JSON.parse(saved) : [];
+            }
+            
+            saveRecords() {
+                localStorage.setItem('accountingRecords', JSON.stringify(this.records));
+            }
+            
+            showToast(message) {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 2000);
+            }
+        }
+        
+        // 初始化
+        const sa = new SimpleAccounting();
+        
+        // 添加示例数据
+        if (sa.records.length === 0) {
+            const demoRecords = [
+                { type: 'expense', category: '食品', amount: 35, note: '午饭', date: new Date().toISOString() },
+                { type: 'expense', category: '交通', amount: 28.5, note: '打车', date: new Date(Date.now() - 86400000).toISOString() },
+                { type: 'income', category: '工资', amount: 8000, note: '工资', date: new Date(Date.now() - 86400000 * 5).toISOString() }
+            ];
+            
+            demoRecords.forEach(record => {
+                sa.records.push(record);
+            });
+            sa.saveRecords();
+            sa.updateStats();
+            sa.renderRecords();
+        }
+    </script>
+</body>
+</html>

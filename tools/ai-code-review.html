@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI代码审查助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            height: calc(100vh - 40px);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-left h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .header-left p {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .left-panel {
+            width: 400px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .code-input-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .textarea {
+            width: 100%;
+            height: 100%;
+            padding: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            resize: none;
+        }
+        
+        .center-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .toolbar {
+            padding: 16px 20px;
+            background: white;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .review-btn {
+            padding: 10px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .review-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+        
+        .review-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #333;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            z-index: 1001;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1>🤖 AI代码审查助手</h1>
+                <p>智能分析代码，自动识别bug、安全漏洞、性能问题</p>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="code-input-area">
+                    <textarea class="textarea" id="codeInput" placeholder="在这里粘贴需要审查的代码..."></textarea>
+                </div>
+            </div>
+            
+            <div class="center-panel">
+                <div class="toolbar">
+                    <button class="review-btn" onclick="startReview()">🔍 开始AI审查</button>
+                </div>
+                
+                <div class="review-content" id="reviewContent">
+                    <div class="empty-state">
+                        <div class="empty-icon">🤖</div>
+                        <div>AI审查助手已就绪</div>
+                        <div style="font-size: 13px; color: #999;">在左侧输入代码，点击"开始AI审查"</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+
+    <script>
+        class AICodeReviewer {
+            constructor() {
+                this.codeInput = document.getElementById('codeInput');
+                this.reviewContent = document.getElementById('reviewContent');
+                this.currentReview = null;
+            }
+            
+            async startReview() {
+                const code = this.codeInput.value.trim();
+                if (!code) {
+                    this.showToast('请输入需要审查的代码', 'warning');
+                    return;
+                }
+                
+                this.reviewContent.innerHTML = '<div class="empty-state"><div>🔍 审查中...</div></div>';
+                
+                try {
+                    // 模拟AI审查
+                    const reviewResult = await this.simulateReview(code);
+                    this.renderReview(reviewResult);
+                    this.currentReview = reviewResult;
+                    this.showToast('代码审查完成', 'success');
+                } catch (error) {
+                    this.showToast('审查失败', 'error');
+                }
+            }
+            
+            async simulateReview(code) {
+                const issues = [];
+                
+                // 安全漏洞检测
+                if (code.includes('password') || code.includes('secret')) {
+                    issues.push({
+                        type: 'security',
+                        severity: 'high',
+                        title: '敏感信息硬编码',
+                        description: '发现硬编码的密码或密钥'
+                    });
+                }
+                
+                // SQL注入风险
+                if (code.includes('db.query') && code.includes('SELECT')) {
+                    issues.push({
+                        type: 'security',
+                        severity: 'critical',
+                        title: '潜在的SQL注入风险',
+                        description: '直接拼接SQL查询字符串'
+                    });
+                }
+                
+                // 模拟延迟
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                return { issues, summary: `发现${issues.length}个问题` };
+            }
+            
+            renderReview(reviewResult) {
+                const { issues, summary } = reviewResult;
+                
+                let html = `<div class="review-section"><h3>${summary}</h3></div>`;
+                
+                issues.forEach(issue => {
+                    html += `
+                        <div class="review-section">
+                            <h4>${issue.title}</h4>
+                            <p>${issue.description}</p>
+                        </div>
+                    `;
+                });
+                
+                this.reviewContent.innerHTML = html;
+            }
+            
+            showToast(message, type = 'success') {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.className = 'toast show';
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+        }
+        
+        const reviewer = new AICodeReviewer();
+        
+        function startReview() {
+            reviewer.startReview();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>环境配置对比</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .main { padding: 20px; max-width: 1100px; margin: 0 auto; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: #1f2235; font-size: 12px; font-weight: 600; color: #8b90a7; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #2d3148; }
+    .card-body { padding: 16px; }
+    textarea { width: 100%; background: #131520; color: #e2e8f0; border: 1px solid #363b5e; border-radius: 6px; padding: 12px; font-family: 'Cascadia Code', monospace; font-size: 12px; resize: vertical; outline: none; min-height: 150px; transition: border-color .2s; }
+    textarea:focus { border-color: #6366f1; }
+    .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-primary:hover { background: #5457d4; }
+    .diff-item { padding: 8px; margin: 4px 0; border-radius: 4px; font-size: 12px; font-family: monospace; }
+    .diff-only-left { background: #ef444422; color: #ef4444; border-left: 3px solid #ef4444; }
+    .diff-only-right { background: #22c55e22; color: #22c55e; border-left: 3px solid #22c55e; }
+    .diff-same { background: #3b82f622; color: #60a5fa; border-left: 3px solid #3b82f6; }
+    @media (max-width: 768px) { .grid2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">⚙️</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">环境配置对比</h1>
+    <p style="font-size:12px;color:#8b90a7;margin-top:2px">对比开发/测试/生产环境配置差异</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">环境 A 配置</div>
+      <div class="card-body">
+        <textarea id="env-a" placeholder="粘贴第一个环境的配置 (KEY=VALUE 格式)"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">环境 B 配置</div>
+      <div class="card-body">
+        <textarea id="env-b" placeholder="粘贴第二个环境的配置"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">对比结果</div>
+    <div class="card-body">
+      <button class="btn btn-primary" onclick="compare()">🔍 对比</button>
+      <div id="result" style="margin-top:12px;max-height:400px;overflow-y:auto"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function parseEnv(text) {
+  const config = {};
+  text.split('\n').forEach(line => {
+    const match = line.match(/^([^=]+)=(.*)$/);
+    if (match) {
+      config[match[1].trim()] = match[2].trim();
+    }
+  });
+  return config;
+}
+
+function compare() {
+  const cfgA = parseEnv(document.getElementById('env-a').value);
+  const cfgB = parseEnv(document.getElementById('env-b').value);
+  
+  const allKeys = new Set([...Object.keys(cfgA), ...Object.keys(cfgB)]);
+  let html = '';
+  
+  allKeys.forEach(key => {
+    const valA = cfgA[key];
+    const valB = cfgB[key];
+    
+    if (valA === undefined) {
+      html += `<div class="diff-item diff-only-right">仅环境B有: ${key}=${valB}</div>`;
+    } else if (valB === undefined) {
+      html += `<div class="diff-item diff-only-left">仅环境A有: ${key}=${valA}</div>`;
+    } else if (valA !== valB) {
+      html += `<div class="diff-item diff-only-left">A: ${key}=${valA}</div>`;
+      html += `<div class="diff-item diff-only-right">B: ${key}=${valB}</div>`;
+    } else {
+      html += `<div class="diff-item diff-same">相同: ${key}=${valA}</div>`;
+    }
+  });
+  
+  document.getElementById('result').innerHTML = html || '<p style="color:#4a4f6a">没有差异</p>';
+}
+</script>
+</body>
+</html>

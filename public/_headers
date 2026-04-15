@@ -1,0 +1,32 @@
+# Cloudflare Pages - 安全和缓存头
+# 全局默认缓存策略（静态资源长期缓存）
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+# HTML 文件不缓存（保证更新即时生效）
+/*.html
+  Cache-Control: no-cache, no-store, must-revalidate
+  Content-Type: text/html; charset=utf-8
+
+# CSS/JS 静态资源长缓存（通过文件名 hash 控制）
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# 图片资源缓存
+/*.png
+  Cache-Control: public, max-age=86400
+/*.svg
+  Cache-Control: public, max-age=86400
+/*.ico
+  Cache-Control: public, max-age=86400
+
+# robots.txt 和 sitemap
+/robots.txt
+  Cache-Control: public, max-age=3600
+/sitemap.xml
+  Cache-Control: public, max-age=3600
+  Content-Type: application/xml; charset=utf-8

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Toolkit | 个人工具集</title>
+  <meta name="description" content="个人效率工具集导航站，收录工作与生活效率工具">
+  <link rel="stylesheet" href="./assets/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366f1'/><text x='6' y='23' font-size='18'>⚡</text></svg>">
+</head>
+<body>
+
+<!-- ===== 顶部导航 ===== -->
+<nav class="navbar">
+  <a class="navbar-brand" href="#" onclick="showHome();return false">
+    <div class="logo">⚡</div>
+    <span class="brand-name">My Toolkit</span>
+    <span class="brand-sub">个人工具集</span>
+  </a>
+  <div class="navbar-actions">
+    <button class="btn-nav btn-nav-ghost" id="nav-home-btn" onclick="showHome()" title="我的工具">
+      🏠 我的工具
+    </button>
+    <button class="btn-nav btn-nav-primary" onclick="showStore()" title="工具商城">
+      🏪 工具商城
+    </button>
+    <button class="btn-nav btn-nav-ghost" onclick="copyManifestUrl()" title="复制 AI 调用清单地址">
+      🤖 AI 清单
+    </button>
+  </div>
+</nav>
+
+<!-- ===== 主页：我的工具 ===== -->
+<div id="main-content">
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-badge">
+      <span></span>
+      持续构建中
+    </div>
+    <h1>我的<span class="gradient-text">工具集</span></h1>
+    <p>订阅常用工具，打造专属工作台</p>
+    <button class="btn-hero-store" onclick="showStore()">
+      🏪 前往工具商城
+    </button>
+  </div>
+
+  <!-- 统计栏 -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-value" id="stat-total">0</div>
+      <div class="stat-label">工具总数</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="stat-stable">0</div>
+      <div class="stat-label">稳定可用</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="stat-cats">0</div>
+      <div class="stat-label">工具分类</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="stat-subscribed">0</div>
+      <div class="stat-label">已订阅</div>
+    </div>
+  </div>
+
+  <!-- 工具栏 -->
+  <div class="toolbar">
+    <div class="search-wrapper">
+      <span class="search-icon">🔍</span>
+      <input
+        id="search-input"
+        class="search-input"
+        type="text"
+        placeholder="搜索我的工具… (Ctrl+K)"
+        autocomplete="off"
+      />
+    </div>
+    <div class="view-toggle">
+      <button class="view-btn active" data-mode="grid" onclick="setViewMode('grid')" title="网格视图">⊞</button>
+      <button class="view-btn" data-mode="list" onclick="setViewMode('list')" title="列表视图">≡</button>
+    </div>
+  </div>
+
+  <!-- 工具列表头部 -->
+  <div class="tools-section-header">
+    <span class="section-title" id="tools-count">加载中…</span>
+    <button class="btn-tool btn-tool-ghost" style="font-size:12px" onclick="showStore()">+ 添加更多工具</button>
+  </div>
+
+  <!-- 工具网格 -->
+  <div id="tools-grid" class="tools-grid">
+    <div style="height:180px" class="skeleton"></div>
+    <div style="height:180px" class="skeleton"></div>
+    <div style="height:180px" class="skeleton"></div>
+  </div>
+</div>
+
+<!-- ===== 工具商城页 ===== -->
+<div id="store-page" style="display:none">
+  <div class="store-header">
+    <div class="store-header-inner">
+      <div>
+        <h1 style="font-size:clamp(24px,3.5vw,36px);font-weight:800;letter-spacing:-0.5px;margin-bottom:8px">
+          🏪 <span class="gradient-text">工具商城</span>
+        </h1>
+        <p style="font-size:14px;color:var(--text-secondary)">浏览全部工具，订阅你常用的</p>
+      </div>
+      <button class="btn-nav btn-nav-ghost" onclick="showHome()" style="font-size:14px;padding:8px 20px">
+        ← 返回我的工具
+      </button>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <!-- 搜索 -->
+    <div class="toolbar" style="margin-bottom:20px">
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input
+          id="store-search"
+          class="search-input"
+          type="text"
+          placeholder="搜索工具名称、描述、标签…"
+          autocomplete="off"
+        />
+      </div>
+    </div>
+
+    <!-- 分类筛选 -->
+    <div class="toolbar" style="margin-bottom:16px">
+      <div id="store-filter-tabs" class="filter-tabs"></div>
+    </div>
+
+    <!-- 工具数量 -->
+    <div class="tools-section-header">
+      <span class="section-title" id="store-count">加载中…</span>
+    </div>
+
+    <!-- 商城工具网格 -->
+    <div id="store-grid" class="tools-grid" style="margin-bottom:48px"></div>
+  </div>
+</div>
+
+<!-- ===== 页脚 ===== -->
+<footer>
+  <p>My Toolkit · 持续构建中 · 所有工具均为个人自制</p>
+</footer>
+
+<!-- ===== 工具文档模态框 ===== -->
+<div id="modal-overlay" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <div class="modal-icon" id="modal-icon">🔧</div>
+        <div>
+          <div class="modal-title" id="modal-title">工具名称</div>
+          <div class="modal-subtitle" id="modal-subtitle">分类 · 版本</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" data-tab="doc" onclick="showModalTab('doc')">📖 使用指南</button>
+      <button class="modal-tab" data-tab="info" onclick="showModalTab('info')">ℹ️ 工具信息</button>
+    </div>
+    <div class="modal-body">
+      <div id="pane-doc" class="modal-pane">
+        <div id="modal-doc"></div>
+      </div>
+      <div id="pane-info" class="modal-pane" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== AI 工具选择模态框 ===== -->
+<div id="ai-modal-overlay" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <div class="modal-icon">🤖</div>
+        <div>
+          <div class="modal-title">AI 智能工具匹配</div>
+          <div class="modal-subtitle">描述你的需求，自动推荐最合适的工具</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeAIPanel()">✕</button>
+    </div>
+    <div class="modal-body ai-modal-body">
+      <div>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">
+          💡 示例："帮我整理代码片段"、"我想记录今天的花费"、"写一篇技术文档"
+        </p>
+        <div class="ai-input-wrapper">
+          <input id="ai-input" class="ai-text-input" type="text" placeholder="描述你现在想做的事情…" autocomplete="off" />
+          <button class="btn-ai-run" onclick="aiSelectTool()">匹配工具</button>
+        </div>
+      </div>
+      <div id="ai-result" class="ai-result"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Toast 通知 ===== -->
+<div id="toast" class="toast"></div>
+
+<script src="./assets/js/app.js"></script>
+</body>
+</html>

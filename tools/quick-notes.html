@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快速便签贴</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-left h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .header-left p {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .header-right {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 24px;
+            margin-right: 24px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .btn-secondary:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+        
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        
+        .note-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+            border-left: 4px solid;
+        }
+        
+        .note-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+        
+        .note-card.red {
+            border-left-color: #f44336;
+        }
+        
+        .note-card.yellow {
+            border-left-color: #ffc107;
+        }
+        
+        .note-card.green {
+            border-left-color: #4caf50;
+        }
+        
+        .note-card.blue {
+            border-left-color: #2196f3;
+        }
+        
+        .note-card.purple {
+            border-left-color: #9c27b0;
+        }
+        
+        .note-card.pink {
+            border-left-color: #e91e63;
+        }
+        
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .note-time {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .note-color-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        
+        .note-card:hover .note-color-btn {
+            opacity: 1;
+        }
+        
+        .note-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+        }
+        
+        .note-actions {
+            display: flex;
+            gap: 8px;
+            padding-top: 12px;
+            border-top: 1px solid #f0f0f0;
+        }
+        
+        .note-btn {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .note-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .note-btn.delete {
+            color: #f44336;
+            border-color: #f44336;
+        }
+        
+        .note-btn.delete:hover {
+            background: #f44336;
+            color: white;
+        }
+        
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 500px;
+            max-width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .modal-close {
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            background: none;
+            border: none;
+        }
+        
+        .modal-close:hover {
+            color: #333;
+        }
+        
+        .modal-body {
+            padding: 24px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .form-textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+        
+        .form-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .color-picker {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+        
+        .color-option.selected {
+            border-color: #333;
+        }
+        
+        .modal-footer {
+            padding: 24px;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #333;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            z-index: 1001;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            grid-column: 1 / -1;
+        }
+        
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+        
+        .empty-text {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .empty-hint {
+            font-size: 13px;
+            color: #999;
+        }
+        
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1>📝 快速便签贴</h1>
+                <p>快捷键: Ctrl+Alt+N | 双击便签复制内容</p>
+            </div>
+            <div class="header-right">
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalCount">0</div>
+                        <div class="stat-label">总便签</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="todayCount">0</div>
+                        <div class="stat-label">今日</div>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="nm.toggleShowAll()">
+                    <span id="filterBtn">仅显示未完成</span>
+                </button>
+                <button class="btn btn-primary" onclick="nm.showAddModal()">
+                    ➕ 新建便签
+                </button>
+            </div>
+        </div>
+        
+        <div class="notes-grid" id="notesGrid">
+            <!-- 动态生成 -->
+        </div>
+    </div>
+    
+    <!-- 添加/编辑模态框 -->
+    <div class="modal" id="noteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">新建便签</div>
+                <button class="modal-close" onclick="nm.hideModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">便签内容</label>
+                    <textarea class="form-textarea" id="noteContent" placeholder="记录你的想法..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">便签颜色</label>
+                    <div class="color-picker">
+                        <div class="color-option selected" style="background: #fff3e0;" data-color="yellow" onclick="nm.selectColor('yellow')"></div>
+                        <div class="color-option" style="background: #ffebee;" data-color="red" onclick="nm.selectColor('red')"></div>
+                        <div class="color-option" style="background: #e8f5e9;" data-color="green" onclick="nm.selectColor('green')"></div>
+                        <div class="color-option" style="background: #e3f2fd;" data-color="blue" onclick="nm.selectColor('blue')"></div>
+                        <div class="color-option" style="background: #f3e5f5;" data-color="purple" onclick="nm.selectColor('purple')"></div>
+                        <div class="color-option" style="background: #fce4ec;" data-color="pink" onclick="nm.selectColor('pink')"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="nm.hideModal()">取消</button>
+                <button class="btn btn-primary" onclick="nm.saveNote()">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 便签管理器
+        class NoteManager {
+            constructor() {
+                this.notes = this.loadNotes();
+                this.editingId = null;
+                this.selectedColor = 'yellow';
+                this.showAll = true;
+                this.init();
+            }
+            
+            init() {
+                this.render();
+                this.updateStats();
+                this.bindEvents();
+            }
+            
+            loadNotes() {
+                const saved = localStorage.getItem('quickNotes');
+                return saved ? JSON.parse(saved) : [];
+            }
+            
+            saveNotes() {
+                localStorage.setItem('quickNotes', JSON.stringify(this.notes));
+            }
+            
+            showAddModal() {
+                this.editingId = null;
+                this.selectedColor = 'yellow';
+                document.getElementById('modalTitle').textContent = '新建便签';
+                document.getElementById('noteContent').value = '';
+                this.updateColorPicker();
+                document.getElementById('noteModal').classList.add('show');
+                
+                // 自动聚焦
+                setTimeout(() => {
+                    document.getElementById('noteContent').focus();
+                }, 100);
+            }
+            
+            editNote(id) {
+                const note = this.notes.find(n => n.id === id);
+                if (!note) return;
+                
+                this.editingId = id;
+                this.selectedColor = note.color;
+                document.getElementById('modalTitle').textContent = '编辑便签';
+                document.getElementById('noteContent').value = note.content;
+                this.updateColorPicker();
+                document.getElementById('noteModal').classList.add('show');
+            }
+            
+            hideModal() {
+                document.getElementById('noteModal').classList.remove('show');
+            }
+            
+            saveNote() {
+                const content = document.getElementById('noteContent').value.trim();
+                
+                if (!content) {
+                    this.showToast('请输入便签内容');
+                    return;
+                }
+                
+                if (this.editingId) {
+                    // 编辑
+                    const index = this.notes.findIndex(n => n.id === this.editingId);
+                    if (index !== -1) {
+                        this.notes[index] = {
+                            ...this.notes[index],
+                            content,
+                            color: this.selectedColor,
+                            updatedAt: new Date().toISOString()
+                        };
+                    }
+                } else {
+                    // 新建
+                    this.notes.unshift({
+                        id: Date.now(),
+                        content,
+                        color: this.selectedColor,
+                        completed: false,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    });
+                }
+                
+                this.saveNotes();
+                this.render();
+                this.updateStats();
+                this.hideModal();
+                this.showToast(this.editingId ? '已更新' : '已添加');
+            }
+            
+            deleteNote(id) {
+                if (!confirm('确定要删除这个便签吗？')) return;
+                
+                this.notes = this.notes.filter(n => n.id !== id);
+                this.saveNotes();
+                this.render();
+                this.updateStats();
+                this.showToast('已删除');
+            }
+            
+            copyNote(id) {
+                const note = this.notes.find(n => n.id === id);
+                if (!note) return;
+                
+                navigator.clipboard.writeText(note.content).then(() => {
+                    this.showToast('已复制到剪贴板');
+                });
+            }
+            
+            toggleComplete(id) {
+                const note = this.notes.find(n => n.id === id);
+                if (note) {
+                    note.completed = !note.completed;
+                    this.saveNotes();
+                    this.render();
+                    this.updateStats();
+                    this.showToast(note.completed ? '已标记为完成' : '已取消完成');
+                }
+            }
+            
+            changeColor(id, color) {
+                const note = this.notes.find(n => n.id === id);
+                if (note) {
+                    note.color = color;
+                    this.saveNotes();
+                    this.render();
+                }
+            }
+            
+            selectColor(color) {
+                this.selectedColor = color;
+                this.updateColorPicker();
+            }
+            
+            updateColorPicker() {
+                document.querySelectorAll('.color-option').forEach(el => {
+                    el.classList.toggle('selected', el.dataset.color === this.selectedColor);
+                });
+            }
+            
+            toggleShowAll() {
+                this.showAll = !this.showAll;
+                document.getElementById('filterBtn').textContent = 
+                    this.showAll ? '仅显示未完成' : '显示全部';
+                this.render();
+            }
+            
+            formatTime(timestamp) {
+                const date = new Date(timestamp);
+                const now = new Date();
+                const diff = now - date;
+                
+                if (diff < 60000) return '刚刚';
+                if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
+                if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
+                
+                return date.toLocaleDateString('zh-CN', {
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+            
+            getColorName(color) {
+                const names = {
+                    red: '紧急',
+                    yellow: '待办',
+                    green: '备忘',
+                    blue: '代码',
+                    purple: '想法',
+                    pink: '重要'
+                };
+                return names[color] || '便签';
+            }
+            
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            render() {
+                const grid = document.getElementById('notesGrid');
+                
+                let filtered = this.notes;
+                if (!this.showAll) {
+                    filtered = this.notes.filter(n => !n.completed);
+                }
+                
+                if (filtered.length === 0) {
+                    grid.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📝</div>
+                            <div class="empty-text">暂无便签</div>
+                            <div class="empty-hint">点击"新建便签"按钮创建你的第一个便签</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                grid.innerHTML = filtered.map(n => `
+                    <div class="note-card ${n.color}" style="${n.completed ? 'opacity: 0.6;' : ''}">
+                        <div class="note-header">
+                            <span class="note-time">${this.formatTime(n.updatedAt)}</span>
+                            <button class="note-color-btn" onclick="event.stopPropagation(); nm.showColorMenu(${n.id})">
+                                🎨
+                            </button>
+                        </div>
+                        <div class="note-content" style="${n.completed ? 'text-decoration: line-through;' : ''}"
+                             ondblclick="nm.copyNote(${n.id})">
+                            ${this.escapeHtml(n.content)}
+                        </div>
+                        <div class="note-actions">
+                            <button class="note-btn" onclick="event.stopPropagation(); nm.toggleComplete(${n.id})">
+                                ${n.completed ? '↩️ 恢复' : '✓ 完成'}
+                            </button>
+                            <button class="note-btn" onclick="event.stopPropagation(); nm.editNote(${n.id})">
+                                ✏️ 编辑
+                            </button>
+                            <button class="note-btn delete" onclick="event.stopPropagation(); nm.deleteNote(${n.id})">
+                                🗑️ 删除
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            updateStats() {
+                document.getElementById('totalCount').textContent = this.notes.length;
+                
+                const today = new Date().toDateString();
+                const todayCount = this.notes.filter(n => 
+                    new Date(n.createdAt).toDateString() === today
+                ).length;
+                document.getElementById('todayCount').textContent = todayCount;
+            }
+            
+            bindEvents() {
+                // 快捷键
+                document.addEventListener('keydown', (e) => {
+                    // Ctrl+Alt+N 新建便签
+                    if (e.ctrlKey && e.altKey && e.key === 'n') {
+                        e.preventDefault();
+                        this.showAddModal();
+                    }
+                    
+                    // Esc关闭模态框
+                    if (e.key === 'Escape') {
+                        this.hideModal();
+                    }
+                    
+                    // Ctrl+Enter 保存
+                    if (e.ctrlKey && e.key === 'Enter') {
+                        if (document.getElementById('noteModal').classList.contains('show')) {
+                            this.saveNote();
+                        }
+                    }
+                });
+            }
+            
+            showToast(message) {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.classList.add('show');
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 2000);
+            }
+        }
+        
+        // 初始化
+        const nm = new NoteManager();
+        
+        // 添加示例数据（仅演示）
+        if (nm.notes.length === 0) {
+            const demoNotes = [
+                { content: '今天要完成项目文档编写', color: 'red' },
+                { content: '记得买牛奶\n买面包\n买水果', color: 'yellow' },
+                { content: 'const sum = (a, b) => a + b;\nconsole.log(sum(1, 2));', color: 'blue' },
+                { content: '明天下午3点开会\n会议室B-203', color: 'green' },
+                { content: '想法：做一个自动化测试工具', color: 'purple' }
+            ];
+            
+            demoNotes.forEach((note, index) => {
+                setTimeout(() => {
+                    nm.notes.push({
+                        id: Date.now() + index,
+                        ...note,
+                        completed: false,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    });
+                    nm.saveNotes();
+                    nm.render();
+                    nm.updateStats();
+                }, index * 100);
+            });
+        }
+    </script>
+</body>
+</html>

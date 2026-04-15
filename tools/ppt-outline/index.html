@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PPT 大纲生成器</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .main { padding: 20px; max-width: 1100px; margin: 0 auto; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: #1f2235; font-size: 12px; font-weight: 600; color: #8b90a7; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #2d3148; }
+    .card-body { padding: 16px; }
+    .input, textarea { width: 100%; background: #131520; border: 1px solid #363b5e; border-radius: 6px; padding: 8px 12px; color: #e2e8f0; font-size: 13px; outline: none; margin-bottom: 10px; }
+    .input:focus, textarea:focus { border-color: #6366f1; }
+    textarea { font-family: 'Cascadia Code', monospace; resize: vertical; min-height: 100px; }
+    .btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-primary:hover { background: #5457d4; }
+    .copy-btn { padding: 3px 10px; background: #2d3148; border: none; border-radius: 4px; color: #8b90a7; cursor: pointer; font-size: 11px; }
+    .copy-btn:hover { background: #6366f1; color: #fff; }
+    @media (max-width: 768px) { .grid2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">🖥️</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">PPT 大纲生成器</h1>
+    <p style="font-size:12px;color:#8b90a7;margin-top:2px">根据主题生成演讲大纲</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">输入信息</div>
+      <div class="card-body">
+        <input class="input" id="topic" placeholder="演讲主题">
+        <input class="input" id="audience" placeholder="目标听众">
+        <input class="input" id="time" placeholder="演讲时长（如：30分钟）">
+        <textarea id="key-points" placeholder="关键点（每行一个）"></textarea>
+        <button class="btn btn-primary" style="width:100%" onclick="generate()">🎤 生成大纲</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        大纲预览
+        <button class="copy-btn" onclick="copyOutline()">复制</button>
+      </div>
+      <textarea id="outline" readonly placeholder="大纲将显示在此..."></textarea>
+    </div>
+  </div>
+</div>
+
+<script>
+function generate() {
+  const topic = document.getElementById('topic').value.trim() || '演讲主题';
+  const audience = document.getElementById('audience').value.trim() || '专业人士';
+  const time = document.getElementById('time').value.trim() || '30分钟';
+  const points = document.getElementById('key-points').value.split('\n').filter(p => p.trim());
+
+  let outline = `# ${topic}
+
+**目标听众**: ${audience}  
+**时间**: ${time}
+
+## 幻灯片结构
+
+### 第1页：标题页
+- 标题：${topic}
+- 副标题或日期
+
+### 第2页：议程
+- 将涵盖的主要内容预览
+- 演讲目标
+
+### 第3-${Math.max(3, points.length + 2)}页：主要内容
+
+${points.map((p, i) => `#### 第${i+3}页：${p}
+- 要点1
+- 要点2
+- 要点3
+`).join('\n')}
+
+### 第${points.length + 3}页：总结
+- 关键要点回顾
+- 核心结论
+- 行动呼吁
+
+### 第${points.length + 4}页：Q&A
+- 互动环节
+
+---
+
+## 演讲提示
+- 每页约 40 秒左右
+- 使用图表和图片增强理解
+- 避免过多文字
+- 准备好常见问题的答案`;
+
+  document.getElementById('outline').value = outline;
+}
+
+function copyOutline() {
+  const v = document.getElementById('outline').value;
+  navigator.clipboard.writeText(v).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ 已复制';
+    setTimeout(() => btn.textContent = '复制', 1200);
+  });
+}
+</script>
+</body>
+</html>

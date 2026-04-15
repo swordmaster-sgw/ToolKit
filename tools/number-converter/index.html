@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>进制转换器</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .main { padding: 20px; max-width: 800px; margin: 0 auto; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: #1f2235; font-size: 12px; font-weight: 600; color: #8b90a7; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #2d3148; }
+    .card-body { padding: 20px; }
+    .input-group { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; }
+    .base-label { min-width: 110px; font-size: 13px; font-weight: 600; color: #6366f1; }
+    .num-input { flex: 1; background: #131520; border: 1px solid #363b5e; border-radius: 6px; padding: 10px 14px; color: #e2e8f0; font-family: monospace; font-size: 15px; outline: none; transition: border-color .2s; }
+    .num-input:focus { border-color: #6366f1; }
+    .num-input.active { border-color: #6366f1; background: #6366f111; }
+    .copy-btn { padding: 6px 12px; background: #2d3148; border: none; border-radius: 5px; color: #8b90a7; cursor: pointer; font-size: 12px; transition: all .2s; }
+    .copy-btn:hover { background: #6366f1; color: #fff; }
+    .error { color: #ef4444; font-size: 13px; padding: 8px 0; }
+    .table-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .ascii-item { background: #131520; border: 1px solid #363b5e; border-radius: 6px; padding: 8px; text-align: center; cursor: pointer; transition: all .2s; }
+    .ascii-item:hover { border-color: #6366f1; }
+    .ascii-char { font-size: 16px; font-weight: 700; color: #6366f1; }
+    .ascii-code { font-size: 11px; color: #8b90a7; font-family: monospace; margin-top: 2px; }
+    .presets { display: flex; gap: 8px; flex-wrap: wrap; }
+    .preset-btn { padding: 5px 12px; background: #2d3148; border: none; border-radius: 6px; color: #c4c9e2; font-size: 12px; cursor: pointer; font-family: monospace; transition: all .2s; }
+    .preset-btn:hover { background: #6366f1; color: #fff; }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">🔢</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">进制转换器</h1>
+    <p style="font-size:12px;color:#8b90a7;margin-top:2px">二进制、八进制、十进制、十六进制互转</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="card">
+    <div class="card-title">数值进制转换</div>
+    <div class="card-body">
+      <div class="input-group">
+        <span class="base-label">🔵 十进制 (10)</span>
+        <input class="num-input" id="dec" placeholder="输入十进制数..." oninput="convert('dec')">
+        <button class="copy-btn" onclick="copyVal('dec')">复制</button>
+      </div>
+      <div class="input-group">
+        <span class="base-label">🟢 二进制 (2)</span>
+        <input class="num-input" id="bin" placeholder="输入二进制数..." oninput="convert('bin')">
+        <button class="copy-btn" onclick="copyVal('bin')">复制</button>
+      </div>
+      <div class="input-group">
+        <span class="base-label">🟡 八进制 (8)</span>
+        <input class="num-input" id="oct" placeholder="输入八进制数..." oninput="convert('oct')">
+        <button class="copy-btn" onclick="copyVal('oct')">复制</button>
+      </div>
+      <div class="input-group">
+        <span class="base-label">🟠 十六进制 (16)</span>
+        <input class="num-input" id="hex" placeholder="输入十六进制数..." oninput="convert('hex')">
+        <button class="copy-btn" onclick="copyVal('hex')">复制</button>
+      </div>
+      <div id="error-msg" class="error"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">常用数值速查</div>
+    <div class="card-body">
+      <div class="presets">
+        <button class="preset-btn" onclick="setDec(0)">0</button>
+        <button class="preset-btn" onclick="setDec(1)">1</button>
+        <button class="preset-btn" onclick="setDec(127)">127 (INT8 max)</button>
+        <button class="preset-btn" onclick="setDec(255)">255 (0xFF)</button>
+        <button class="preset-btn" onclick="setDec(1024)">1024 (1K)</button>
+        <button class="preset-btn" onclick="setDec(65535)">65535 (0xFFFF)</button>
+        <button class="preset-btn" onclick="setDec(2147483647)">2147483647 (INT32 max)</button>
+        <button class="preset-btn" onclick="setDec(4294967295)">4294967295 (UINT32 max)</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ASCII 字符对照</div>
+    <div class="card-body">
+      <div class="table-grid" id="ascii-grid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const bases = { dec: 10, bin: 2, oct: 8, hex: 16 };
+
+function convert(from) {
+  const val = document.getElementById(from).value.trim();
+  document.getElementById('error-msg').textContent = '';
+  if (!val) { ['dec','bin','oct','hex'].filter(k=>k!==from).forEach(k=>document.getElementById(k).value=''); return; }
+  try {
+    const n = parseInt(val, bases[from]);
+    if (isNaN(n)) throw new Error('无效输入');
+    document.getElementById('dec').value = from !== 'dec' ? n.toString(10) : val;
+    document.getElementById('bin').value = from !== 'bin' ? n.toString(2) : val;
+    document.getElementById('oct').value = from !== 'oct' ? n.toString(8) : val;
+    document.getElementById('hex').value = from !== 'hex' ? n.toString(16).toUpperCase() : val;
+  } catch(e) {
+    document.getElementById('error-msg').textContent = '❌ 输入值在该进制下无效';
+  }
+}
+
+function setDec(n) {
+  document.getElementById('dec').value = n;
+  convert('dec');
+}
+
+function copyVal(id) {
+  const v = document.getElementById(id).value;
+  navigator.clipboard.writeText(v).then(() => {
+    const btn = document.querySelector(`#${id} + button`) || document.querySelectorAll('.copy-btn')[['dec','bin','oct','hex'].indexOf(id)];
+  });
+  const btns = document.querySelectorAll('.copy-btn');
+  const idx = ['dec','bin','oct','hex'].indexOf(id);
+  if (btns[idx]) { btns[idx].textContent = '✓'; setTimeout(()=>btns[idx].textContent='复制', 1200); }
+}
+
+// ASCII表
+const ASCII_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'.split('');
+document.getElementById('ascii-grid').innerHTML = ASCII_CHARS.map(c => `
+  <div class="ascii-item" onclick="setDec(${c.charCodeAt(0)})">
+    <div class="ascii-char">${c}</div>
+    <div class="ascii-code">Dec: ${c.charCodeAt(0)} / Hex: ${c.charCodeAt(0).toString(16).toUpperCase()}</div>
+  </div>
+`).join('');
+</script>
+</body>
+</html>

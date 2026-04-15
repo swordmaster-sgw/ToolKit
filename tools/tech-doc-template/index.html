@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>技术方案模板</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .main { padding: 20px; max-width: 900px; margin: 0 auto; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: #1f2235; font-size: 12px; font-weight: 600; color: #8b90a7; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #2d3148; }
+    .card-body { padding: 16px; }
+    .section { margin-bottom: 16px; }
+    .label { font-size: 12px; font-weight: 600; color: #8b90a7; margin-bottom: 6px; }
+    textarea { width: 100%; background: #131520; border: 1px solid #363b5e; border-radius: 6px; padding: 10px; color: #e2e8f0; font-size: 12px; resize: vertical; outline: none; min-height: 80px; transition: border-color .2s; }
+    textarea:focus { border-color: #6366f1; }
+    .btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-primary:hover { background: #5457d4; }
+    .copy-btn { padding: 3px 10px; background: #2d3148; border: none; border-radius: 4px; color: #8b90a7; cursor: pointer; font-size: 11px; }
+    .copy-btn:hover { background: #6366f1; color: #fff; }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">📑</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">技术方案模板</h1>
+    <p style="font-size:12px;color:#8b90a7;margin-top:2px">规范的技术方案文档框架</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="card">
+    <div class="card-title">填写方案内容</div>
+    <div class="card-body">
+      <div class="section">
+        <div class="label">1. 方案标题</div>
+        <textarea id="title" placeholder="输入技术方案标题..."></textarea>
+      </div>
+
+      <div class="section">
+        <div class="label">2. 背景与现状</div>
+        <textarea id="background" placeholder="描述当前系统的问题和业务背景..."></textarea>
+      </div>
+
+      <div class="section">
+        <div class="label">3. 目标和收益</div>
+        <textarea id="goals" placeholder="解决什么问题、预期收益..."></textarea>
+      </div>
+
+      <div class="section">
+        <div class="label">4. 技术方案</div>
+        <textarea id="solution" placeholder="详细的技术设计和实现方案..."></textarea>
+      </div>
+
+      <div class="section">
+        <div class="label">5. 架构图描述</div>
+        <textarea id="architecture" placeholder="系统架构、数据流等..."></textarea>
+      </div>
+
+      <div class="section">
+        <div class="label">6. 风险评估</div>
+        <textarea id="risks" placeholder="可能的风险和应对措施..."></textarea>
+      </div>
+
+      <div class="section">
+        <div class="label">7. 时间和资源</div>
+        <textarea id="timeline" placeholder="预计耗时、需要的人力资源..."></textarea>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%" onclick="generate()">📝 生成方案文档</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      文档预览
+      <button class="copy-btn" onclick="copyDoc()">复制</button>
+    </div>
+    <div class="card-body">
+      <textarea id="doc" readonly placeholder="生成的方案文档将显示在此..." style="height:400px;resize:vertical"></textarea>
+    </div>
+  </div>
+</div>
+
+<script>
+function generate() {
+  const title = document.getElementById('title').value.trim() || '未命名方案';
+  const bg = document.getElementById('background').value.trim() || '[待补充]';
+  const goals = document.getElementById('goals').value.trim() || '[待补充]';
+  const solution = document.getElementById('solution').value.trim() || '[待补充]';
+  const arch = document.getElementById('architecture').value.trim() || '[待补充]';
+  const risks = document.getElementById('risks').value.trim() || '[待补充]';
+  const timeline = document.getElementById('timeline').value.trim() || '[待补充]';
+
+  const doc = `# 技术方案文档
+
+## ${title}
+
+**版本**: 1.0  
+**日期**: ${new Date().toLocaleString('zh-CN', {timeZone:'Asia/Shanghai'})}  
+**作者**: [开发人员]
+
+---
+
+## 1. 背景与现状
+
+${bg}
+
+## 2. 目标和收益
+
+${goals}
+
+## 3. 技术方案
+
+### 3.1 总体设计
+
+${solution}
+
+### 3.2 架构与数据流
+
+${arch}
+
+## 4. 实现细节
+
+- 核心模块设计
+- 数据库设计
+- API 接口定义
+
+## 5. 风险评估
+
+${risks}
+
+## 6. 时间规划
+
+${timeline}
+
+## 7. 后续跟进
+
+- 上线计划
+- 监控和优化
+- 文档更新
+
+---
+
+**签名**: ________  
+**日期**: ________`;
+
+  document.getElementById('doc').value = doc;
+}
+
+function copyDoc() {
+  const v = document.getElementById('doc').value;
+  navigator.clipboard.writeText(v).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ 已复制';
+    setTimeout(() => btn.textContent = '复制', 1200);
+  });
+}
+</script>
+</body>
+</html>

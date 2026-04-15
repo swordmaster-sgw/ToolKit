@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据脱敏工具 - Data Masking</title>
+  <meta name="description" content="智能数据脱敏工具，支持20+敏感信息自动识别，多级脱敏强度，实时预览高亮，反向还原，审计报告导出。">
+  <style>
+    :root {
+      --bg-base: #0d1117; --bg-surface: #161b27; --bg-elevated: #1c2133;
+      --border-default: #2a3050; --border-subtle: #1e2438;
+      --text-primary: #cdd6f4; --text-secondary: #8892b4; --text-muted: #4a5278;
+      --accent: #6366f1; --accent-light: #818cf8; --accent-green: #4ade80;
+      --accent-orange: #ff9e64; --accent-red: #f7768e; --accent-cyan: #22d3ee;
+      --accent-yellow: #fbbf24;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-base); color: var(--text-primary); min-height: 100vh; }
+    .header { background: var(--bg-surface); border-bottom: 1px solid var(--border-default); padding: 14px 20px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid var(--border-default); color: var(--text-muted); border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .main { padding: 20px; max-width: 1100px; margin: 0 auto; }
+    .card { background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: var(--bg-elevated); font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border-default); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    .card-body { padding: 16px; }
+    textarea { width: 100%; background: var(--bg-base); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 12px; font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 13px; resize: vertical; outline: none; min-height: 120px; transition: border-color .2s; line-height: 1.6; }
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: var(--text-muted); }
+
+    .btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-light); }
+    .btn-secondary { background: var(--border-default); color: var(--text-secondary); }
+    .btn-secondary:hover { background: var(--accent); color: #fff; }
+    .btn-sm { padding: 4px 10px; font-size: 11px; border-radius: 4px; }
+    .btn-danger { background: rgba(247,118,142,.15); color: var(--accent-red); border: 1px solid rgba(247,118,142,.3); }
+    .btn-danger:hover { background: var(--accent-red); color: #fff; }
+
+    .mode-tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
+    .mode-tab { padding: 6px 16px; background: var(--border-default); border: none; border-radius: 6px; color: var(--text-muted); font-size: 12px; cursor: pointer; transition: all .2s; }
+    .mode-tab.active { background: var(--accent); color: #fff; }
+
+    .mask-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+    .checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary); cursor: pointer; padding: 6px 10px; background: var(--bg-base); border-radius: 6px; border: 1px solid var(--border-subtle); transition: all .2s; }
+    .checkbox-label:hover { border-color: var(--accent); }
+    input[type=checkbox] { accent-color: var(--accent); }
+    .checkbox-label .check-count { margin-left: auto; font-size: 10px; color: var(--text-muted); font-family: monospace; background: var(--bg-elevated); padding: 1px 6px; border-radius: 10px; min-width: 20px; text-align: center; }
+
+    .regex-row { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+    .regex-input { flex: 1; min-width: 120px; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 12px; color: var(--text-primary); font-family: monospace; font-size: 13px; outline: none; transition: border-color .2s; }
+    .regex-input:focus { border-color: var(--accent); }
+    .regex-label { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+
+    .btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+    /* Security Level */
+    .level-bar { display: flex; gap: 4px; align-items: center; margin-top: 12px; padding: 10px 14px; background: var(--bg-base); border-radius: 8px; border: 1px solid var(--border-subtle); }
+    .level-btn { padding: 5px 14px; border: 1px solid var(--border-subtle); background: transparent; color: var(--text-muted); border-radius: 5px; cursor: pointer; font-size: 12px; transition: all .2s; }
+    .level-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(99,102,241,.1); }
+    .level-btn.active.lvl-light { border-color: var(--accent-green); color: var(--accent-green); background: rgba(74,222,128,.1); }
+    .level-btn.active.lvl-medium { border-color: var(--accent-orange); color: var(--accent-orange); background: rgba(255,158,100,.1); }
+    .level-btn.active.lvl-heavy { border-color: var(--accent-red); color: var(--accent-red); background: rgba(247,118,142,.1); }
+
+    /* Risk Badge */
+    .risk-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+    .risk-safe { background: rgba(74,222,128,.1); color: var(--accent-green); border: 1px solid rgba(74,222,128,.3); }
+    .risk-low { background: rgba(251,191,36,.1); color: var(--accent-yellow); border: 1px solid rgba(251,191,36,.3); }
+    .risk-medium { background: rgba(255,158,100,.1); color: var(--accent-orange); border: 1px solid rgba(255,158,100,.3); }
+    .risk-high { background: rgba(247,118,142,.1); color: var(--accent-red); border: 1px solid rgba(247,118,142,.3); }
+
+    /* Diff view */
+    .diff-view { font-family: 'SF Mono', monospace; font-size: 13px; line-height: 1.8; white-space: pre-wrap; word-break: break-all; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 12px; max-height: 400px; overflow-y: auto; }
+    .diff-masked { background: rgba(249,115,22,.15); color: var(--accent-orange); border-radius: 3px; padding: 0 2px; }
+    .diff-original { text-decoration: line-through; opacity: .4; color: var(--text-muted); font-size: 11px; }
+
+    /* Report */
+    .report { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+    .report-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg-base); border-radius: 6px; border: 1px solid var(--border-subtle); }
+    .report-icon { font-size: 16px; }
+    .report-label { font-size: 11px; color: var(--text-muted); }
+    .report-count { font-size: 18px; font-weight: 700; font-family: monospace; }
+
+    /* Scan results */
+    .scan-bar { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-base); border-radius: 8px; border: 1px solid var(--border-subtle); margin-top: 8px; flex-wrap: wrap; }
+    .scan-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+    .scan-tag { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(99,102,241,.1); color: var(--accent-light); border: 1px solid rgba(99,102,241,.2); }
+    .scan-tag.high { background: rgba(247,118,142,.1); color: var(--accent-red); border-color: rgba(247,118,142,.2); }
+
+    /* Highlight layer - MUST match textarea text rendering exactly */
+    .input-wrap { position: relative; }
+    .highlight-layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; padding: 12px; font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; overflow-y: scroll; overflow-x: hidden; color: transparent; z-index: 1; border: 1px solid transparent; width: 100%; letter-spacing: normal; text-indent: 0; tab-size: 4; -moz-tab-size: 4; scrollbar-width: none; -ms-overflow-style: none; }
+    .highlight-layer::-webkit-scrollbar { display: none; }
+    .highlight-layer mark { color: transparent; background: rgba(255,158,100,.2); border-bottom: 2px solid var(--accent-orange); border-radius: 2px; }
+    .input-wrap textarea { position: relative; z-index: 2; background: transparent !important; caret-color: var(--text-primary); border-color: transparent !important; width: 100%; letter-spacing: normal; text-indent: 0; tab-size: 4; -moz-tab-size: 4; }
+    .input-bg { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; z-index: 0; }
+    .input-wrap:focus-within .input-bg { border-color: var(--accent); }
+
+    /* Rule editor */
+    .rule-editor { display: flex; gap: 8px; align-items: center; padding: 10px 14px; background: var(--bg-base); border-radius: 8px; border: 1px solid var(--border-subtle); margin-top: 8px; flex-wrap: wrap; }
+    .rule-editor label { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+    .rule-editor input, .rule-editor select { background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 5px 10px; color: var(--text-primary); font-size: 12px; outline: none; }
+
+    /* Presets */
+    .preset-grid { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .preset-btn { padding: 5px 12px; border: 1px solid var(--border-subtle); background: var(--bg-base); color: var(--text-secondary); border-radius: 5px; cursor: pointer; font-size: 11px; transition: all .2s; }
+    .preset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* History */
+    .history-list { max-height: 200px; overflow-y: auto; }
+    .history-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--border-subtle); font-size: 12px; cursor: pointer; transition: background .2s; }
+    .history-item:hover { background: var(--bg-elevated); }
+    .history-item:last-child { border-bottom: none; }
+    .history-time { color: var(--text-muted); font-size: 11px; font-family: monospace; white-space: nowrap; }
+    .history-summary { color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Drop zone */
+    .drop-overlay { position: absolute; inset: 0; background: rgba(99,102,241,.1); border: 2px dashed var(--accent); border-radius: 10px; display: none; align-items: center; justify-content: center; z-index: 50; font-size: 14px; color: var(--accent); pointer-events: none; }
+    .drop-overlay.show { display: flex; }
+
+    /* Example */
+    .example-row { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: var(--bg-base); border-radius: 6px; margin-top: 6px; font-size: 12px; }
+    .example-before { flex: 1; font-family: monospace; }
+    .example-arrow { color: var(--text-muted); }
+    .example-after { flex: 1; font-family: monospace; color: var(--accent-orange); }
+
+    /* JSON field list */
+    .json-field-list { max-height: 250px; overflow-y: auto; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px; margin: 8px 0; }
+    .json-field-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px; border-bottom: 1px solid var(--border-subtle); }
+    .json-field-item:last-child { border-bottom: none; }
+    .json-field-path { color: var(--accent-light); font-family: monospace; flex: 1; word-break: break-all; }
+    .json-field-val { color: var(--accent-orange); font-family: monospace; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--bg-elevated); color: var(--text-primary); padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border-default); font-size: 13px; z-index: 1000; opacity: 0; transition: all .3s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* Custom rule list */
+    .custom-rules { margin-top: 8px; }
+    .custom-rule-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--bg-base); border-radius: 6px; margin-bottom: 4px; font-size: 12px; }
+    .custom-rule-item .rule-text { flex: 1; font-family: monospace; color: var(--text-secondary); }
+    .custom-rule-item .rule-repl { color: var(--accent-orange); font-family: monospace; }
+    .remove-rule { cursor: pointer; color: var(--text-muted); font-size: 14px; padding: 0 4px; border: none; background: none; }
+    .remove-rule:hover { color: var(--accent-red); }
+
+    @media (max-width: 700px) {
+      .mask-grid { grid-template-columns: 1fr 1fr; }
+      .report { grid-template-columns: 1fr 1fr; }
+      .rule-editor { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">&#x1F6E1;&#xFE0F;</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">数据脱敏工具</h1>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:2px">智能识别敏感信息 · 多级脱敏 · 实时预览 · 审计报告</p>
+  </div>
+  <a class="back-btn" href="../../index.html">&larr; 返回工具集</a>
+</div>
+
+<div class="main" id="main-area" style="position:relative">
+  <div class="drop-overlay" id="drop-overlay">&#x1F4C2; 释放文件以导入数据</div>
+
+  <!-- Mode + Presets -->
+  <div class="card">
+    <div class="card-title">脱敏模式</div>
+    <div class="card-body">
+      <div class="mode-tabs">
+        <button class="mode-tab active" id="tab-plain" onclick="switchMode('plain')">纯文本</button>
+        <button class="mode-tab" id="tab-json" onclick="switchMode('json')">JSON</button>
+        <button class="mode-tab" id="tab-csv" onclick="switchMode('csv')">CSV</button>
+        <button class="mode-tab" id="tab-sql" onclick="switchMode('sql')">SQL</button>
+        <button class="mode-tab" id="tab-log" onclick="switchMode('log')">日志</button>
+      </div>
+
+      <!-- Presets -->
+      <div class="preset-grid">
+        <button class="preset-btn" onclick="applyPreset('db-export')">🗄️ 数据库导出</button>
+        <button class="preset-btn" onclick="applyPreset('log-clean')">📋 日志清洗</button>
+        <button class="preset-btn" onclick="applyPreset('api-response')">🌐 API 响应</button>
+        <button class="preset-btn" onclick="applyPreset('resume')">👤 简历脱敏</button>
+        <button class="preset-btn" onclick="applyPreset('finance')">💳 金融数据</button>
+        <button class="preset-btn" onclick="applyPreset('full')">🔒 全部类型</button>
+      </div>
+
+      <!-- Plain config -->
+      <div id="plain-config" style="margin-top:12px">
+        <div class="mask-grid" id="mask-grid">
+          <!-- Generated by JS -->
+        </div>
+        <div class="regex-row">
+          <span class="regex-label">添加自定义规则:</span>
+          <input type="text" class="regex-input" id="custom-regex" placeholder="正则表达式，如: \d{4,}">
+          <span class="regex-label">替换为:</span>
+          <input type="text" class="regex-input" id="custom-repl" placeholder="****" style="max-width:120px">
+          <button class="btn btn-sm btn-secondary" onclick="addCustomRule()">+ 添加</button>
+        </div>
+        <div class="custom-rules" id="custom-rules-list"></div>
+      </div>
+
+      <!-- JSON config -->
+      <div id="json-config" style="display:none;margin-top:12px">
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px">输入 JSON 后点击"解析并选择字段"</p>
+        <div class="regex-row">
+          <span class="regex-label">自定义正则:</span>
+          <input type="text" class="regex-input" id="custom-regex-json" placeholder="如: \d{4,}">
+          <span class="regex-label">替换为:</span>
+          <input type="text" class="regex-input" id="custom-repl-json" placeholder="****" style="max-width:120px">
+        </div>
+        <div id="json-field-area"></div>
+      </div>
+
+      <!-- CSV config -->
+      <div id="csv-config" style="display:none;margin-top:12px">
+        <div class="regex-row">
+          <span class="regex-label">分隔符:</span>
+          <input type="text" class="regex-input" id="csv-sep" value="," style="max-width:60px" onchange="doMask()">
+          <span class="regex-label" style="margin-left:12px">脱敏列 (从1开始):</span>
+          <input type="text" class="regex-input" id="csv-cols" placeholder="如: 2,4" style="max-width:120px" onchange="doMask()">
+          <label class="checkbox-label" style="display:inline-flex;border:none;padding:0;margin-left:8px"><input type="checkbox" id="csv-skip-header" checked> 跳过首行(标题)</label>
+        </div>
+      </div>
+
+      <!-- SQL config -->
+      <div id="sql-config" style="display:none;margin-top:12px">
+        <p style="font-size:12px;color:var(--text-muted)">自动解析 SQL INSERT 语句中的值进行脱敏，保留 SQL 结构不变</p>
+      </div>
+
+      <!-- Log config -->
+      <div id="log-config" style="display:none;margin-top:12px">
+        <p style="font-size:12px;color:var(--text-muted)">自动识别 access log / error log / 应用日志中的敏感信息</p>
+        <div class="regex-row">
+          <span class="regex-label">日志格式:</span>
+          <select class="regex-input" id="log-format" style="max-width:180px">
+            <option value="auto">自动检测</option>
+            <option value="nginx">Nginx Access Log</option>
+            <option value="apache">Apache Access Log</option>
+            <option value="json-log">JSON 日志</option>
+            <option value="generic">通用文本日志</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Level + Rule Editor -->
+      <div class="level-bar">
+        <span class="regex-label" style="font-weight:600">脱敏强度:</span>
+        <button class="level-btn lvl-light" onclick="setLevel('light')">🍃 轻度</button>
+        <button class="level-btn lvl-medium active" onclick="setLevel('medium')">⚡ 标准</button>
+        <button class="level-btn lvl-heavy" onclick="setLevel('heavy')">🔒 重度</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-sm btn-secondary" onclick="toggleRuleEditor()">✏️ 规则编辑器</button>
+      </div>
+
+      <!-- Rule Editor (collapsed by default) -->
+      <div class="rule-editor" id="rule-editor" style="display:none">
+        <span style="font-size:12px;font-weight:600;color:var(--text-secondary)">自定义脱敏规则 (可视化)</span>
+        <label>类型:
+          <select id="re-type">
+            <option value="phone">手机号</option><option value="idcard">身份证</option>
+            <option value="email">邮箱</option><option value="bank">银行卡</option>
+            <option value="name">中文名</option><option value="ip">IP</option>
+            <option value="address">地址</option><option value="plate">车牌</option>
+          </select>
+        </label>
+        <label>保留前 <input type="number" id="re-keep-start" value="3" style="width:50px" min="0" max="20"> 位</label>
+        <label>掩码符 <input type="text" id="re-mask-char" value="*" style="width:40px" maxlength="2"></label>
+        <label>保留后 <input type="number" id="re-keep-end" value="4" style="width:50px" min="0" max="20"> 位</label>
+        <button class="btn btn-sm btn-primary" onclick="applyRuleEditor()">应用</button>
+      </div>
+
+      <!-- Templates -->
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button class="btn btn-sm btn-secondary" onclick="saveTemplate()">💾 保存配置</button>
+        <button class="btn btn-sm btn-secondary" onclick="loadTemplate()">📂 加载配置</button>
+        <button class="btn btn-sm btn-secondary" onclick="clearTemplate()">🗑️ 清除</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-sm btn-secondary" onclick="toggleHistory()">📜 历史</button>
+      </div>
+
+      <!-- History (collapsed) -->
+      <div id="history-panel" style="display:none;margin-top:8px">
+        <div class="card" style="margin:0">
+          <div class="card-body" style="padding:8px">
+            <div class="history-list" id="history-list"><div style="padding:12px;color:var(--text-muted);font-size:12px;text-align:center">暂无历史记录</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="card">
+    <div class="card-title">
+      输入数据
+      <div class="scan-bar" id="scan-bar" style="margin:0">
+        <span id="risk-badge" class="risk-badge risk-safe">🟢 未检测到敏感信息</span>
+        <div class="scan-tags" id="scan-tags"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="input-wrap" id="input-wrap">
+        <div class="input-bg"></div>
+        <div class="highlight-layer" id="highlight-layer"></div>
+        <textarea id="input-text" placeholder="输入包含敏感信息的文本、JSON、CSV、SQL 或日志...&#10;&#10;支持拖拽文件导入 · 实时高亮预览 · 自动识别 20+ 敏感数据类型" oninput="onInputChange()" onscroll="syncHighlightScroll()"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="doMask()">🔒 执行脱敏</button>
+        <button class="btn btn-danger" onclick="undoMask()" id="btn-undo" style="display:none">↩️ 反向还原</button>
+        <button class="btn btn-secondary" onclick="loadSample()">📋 加载示例</button>
+        <button class="btn btn-secondary" onclick="exportReport()">📄 审计报告</button>
+        <button class="btn btn-secondary" onclick="exportMapping()">📊 导出映射表</button>
+        <button class="btn btn-secondary" onclick="clearAll()">🗑️ 清空</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Output -->
+  <div class="card">
+    <div class="card-title">
+      脱敏结果
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-sm" style="background:var(--border-default);border:none;color:var(--text-muted);cursor:pointer" onclick="switchView('diff')" id="view-diff">对比视图</button>
+        <button class="btn btn-sm" style="background:var(--accent);border:none;color:#fff;cursor:pointer" onclick="switchView('plain')" id="view-plain">纯文本</button>
+        <button class="btn btn-sm" style="background:var(--border-default);border:none;color:var(--text-muted);cursor:pointer" onclick="copyOutput()">&#x1F4CB; 复制</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="output-diff" class="diff-view" style="display:none"></div>
+      <textarea id="output-text" placeholder="脱敏结果将显示在此..."></textarea>
+    </div>
+  </div>
+
+  <!-- Report -->
+  <div class="card" id="report-card" style="display:none">
+    <div class="card-title">&#x1F4CA; 脱敏报告</div>
+    <div class="card-body">
+      <div class="report" id="report-content"></div>
+    </div>
+  </div>
+
+  <!-- Examples -->
+  <div class="card">
+    <div class="card-title">脱敏规则示例（标准模式）</div>
+    <div class="card-body">
+      <div class="example-row"><span class="example-before">13812345678</span><span class="example-arrow">&rarr;</span><span class="example-after" id="ex-phone">138****5678</span></div>
+      <div class="example-row"><span class="example-before">110101199003071234</span><span class="example-arrow">&rarr;</span><span class="example-after" id="ex-idcard">110101********1234</span></div>
+      <div class="example-row"><span class="example-before">user@example.com</span><span class="example-arrow">&rarr;</span><span class="example-after" id="ex-email">u***@example.com</span></div>
+      <div class="example-row"><span class="example-before">6228480402564890018</span><span class="example-arrow">&rarr;</span><span class="example-after" id="ex-bank">6228************0018</span></div>
+      <div class="example-row"><span class="example-before">张三丰</span><span class="example-arrow">&rarr;</span><span class="example-after" id="ex-name">张**</span></div>
+      <div class="example-row"><span class="example-before">192.168.1.100</span><span class="example-arrow">&rarr;</span><span class="example-after" id="ex-ip">192.168.*.*</span></div>
+      <div class="example-row"><span class="example-before">北京市朝阳区建国路88号</span><span class="example-arrow">&rarr;</span><span class="example-after" id="ex-address">北京市朝阳区***</span></div>
+      <div class="example-row"><span class="example-before">京A12345</span><span class="example-arrow">&rarr;</span><span class="example-after" id="ex-plate">京A***5</span></div>
+      <div class="example-row"><span class="example-before">91110108MA01KFL80X</span><span class="example-arrow">&rarr;</span><span class="example-after" id="ex-credit">911101**********0X</span></div>
+      <div class="example-row"><span class="example-before">010-12345678</span><span class="example-arrow">&rarr;</span><span class="example-after" id="ex-landline">010-******78</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============== State ==============
+let currentMode = 'plain';
+let currentView = 'plain';
+let currentLevel = 'medium'; // light / medium / heavy
+let jsonMaskFields = new Set();
+let jsonFields = [];
+let lastOriginalText = '';
+let lastMaskedText = '';
+let lastReplacements = []; // [{start, end, original, masked}]
+let customRules = []; // [{regex, repl}]
+let historyItems = [];
+
+// ============== Patterns (20+ types) ==============
+const PATTERNS = {
+  phone: {
+    regex: /(?<!\d)(?:\+86[-\s]?)?1[3-9]\d{9}(?!\d)/g,
+    label: '手机号', icon: '📱', risk: 'high',
+    mask: { light: v => v.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'), medium: v => v.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'), heavy: v => v.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') }
+  },
+  landline: {
+    regex: /(?<!\d)0\d{2,3}[-]?\d{7,8}(?!\d)/g,
+    label: '座机号', icon: '☎️', risk: 'medium',
+    mask: { light: v => v.replace(/(-?\d{2})\d{2,3}(\d{2})$/, '$1****$2'), medium: v => v.replace(/(-?\d{2})\d{2,3}(\d{2})$/, '$1****$2'), heavy: v => v.replace(/(-?\d{2})\d{2,3}(\d{2})$/, '$1******$2') }
+  },
+  idcard: {
+    regex: /(?<!\d)\d{6}(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx](?!\d)/g,
+    label: '身份证', icon: '🪪', risk: 'high',
+    mask: { light: v => v.slice(0,10) + '****' + v.slice(-4), medium: v => v.slice(0,6) + '********' + v.slice(-4), heavy: v => v.replace(/(?<=.{6}).*(?=.{4})/, '***********') }
+  },
+  passport: {
+    regex: /(?<![A-Z0-9])(?:E|G|D|S|P|H)[A-Z]\d{8}(?![A-Z0-9])/g,
+    label: '护照号', icon: '🛂', risk: 'high',
+    mask: { light: v => v[0] + '********', medium: v => v[0] + '******' + v.slice(-2), heavy: v => v[0] + '*******' }
+  },
+  credit_code: {
+    regex: /(?<![A-Z0-9])[0-9A-Z]{18}(?![A-Z0-9])/g,
+    label: '社会信用代码', icon: '🏛️', risk: 'medium',
+    mask: { light: v => v.slice(0,8) + '********' + v.slice(-2), medium: v => v.slice(0,6) + '************', heavy: v => v.slice(0,2) + '****************' }
+  },
+  email: {
+    regex: /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g,
+    label: '邮箱', icon: '📧', risk: 'medium',
+    mask: { light: v => { const i = v.indexOf('@'); return v.slice(0, Math.min(3, i)) + '***' + v.slice(i); }, medium: v => v[0] + '***' + v.slice(v.indexOf('@')), heavy: v => '***' + v.slice(v.indexOf('@')) }
+  },
+  bank: {
+    regex: /(?<!\d)(?:3[47]\d{13}|4\d{12}(?:\d{3})?|5[1-5]\d{14}|6(?:011|5\d{2})\d{12,14}|62\d{14,17}|35\d{14,17}|30[0-5]\d{11,14}|50\d{14,17}|6011\d{12,14}|6217\d{12,14}|6222\d{12,17}|6225\d{12,17}|6228\d{12,14}|623\d{15,17})(?!\d)/g,
+    label: '银行卡', icon: '💳', risk: 'high',
+    mask: { light: v => v.slice(0,4) + v.slice(4,-4).replace(/./g,'*') + v.slice(-4), medium: v => v.slice(0,4) + '*'.repeat(v.length-8) + v.slice(-4), heavy: v => '****' + '*'.repeat(v.length-8) + v.slice(-4) }
+  },
+  name: {
+    regex: /(?:姓名|名字|联系人|收件人|寄件人|申请人|经办人|负责人|采购人|创建人|修改人|审核人|收货人|付款人|收款人|员工|会员|客户|用户)[：:为是\s]*([\u4e00-\u9fa5]{2,3})(?=[,，。、\s;；\n\r"')]|$)/gm,
+    label: '中文名', icon: '👤', risk: 'medium',
+    mask: { light: v => { const n = cleanName(v); return n[0] + '*'.repeat(n.length-1); }, medium: v => { const n = cleanName(v); return n[0] + '*'.repeat(n.length-1); }, heavy: v => { const n = cleanName(v); return '*'.repeat(n.length); } }
+  },
+  ip: {
+    regex: /\b(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\b/g,
+    label: 'IP地址', icon: '🌐', risk: 'low',
+    mask: { light: v => { const p = v.split('.'); return p.slice(0,3).join('.') + '.*'; }, medium: v => v.replace(/\d+\.\d+$/, '*.*'), heavy: v => '*.*.*.*' }
+  },
+  address: {
+    regex: /[\u4e00-\u9fa5]{2,}(?:省|自治区|市|区|县|镇|乡|村|街道|路|弄|幢|栋|单元|室|层|座|院|园|小区|大厦|广场|公寓)[\u4e00-\u9fa5\d]*(?:号[\d]*)?(?=[,，。！？\s;；\n\r]|$)/g,
+    label: '地址', icon: '🏠', risk: 'medium',
+    mask: { light: v => v.slice(0,6) + '***', medium: v => v.slice(0,4) + '***', heavy: v => '***' }
+  },
+  plate: {
+    regex: /[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤川青藏琼宁][A-Z][A-HJ-NP-Z0-9]{4,5}[A-HJ-NP-Z0-9挂学警港澳]/g,
+    label: '车牌号', icon: '🚗', risk: 'low',
+    mask: { light: v => v.slice(0,2) + '***' + v.slice(-1), medium: v => v.slice(0,2) + '***' + v.slice(-1), heavy: v => v[0] + '*****' }
+  },
+  password: {
+    regex: /(?:password|passwd|pwd|secret|token|api[_\-]?key|access[_\-]?key|private[_\-]?key|auth)\s*[=:：]\s*['"]?([^'"\s,;，;}\]]{1,64})/gi,
+    label: '密码字段', icon: '🔑', risk: 'high',
+    mask: { light: (v, f) => { const p = f.match(/^(?:password|passwd|pwd|secret|token|api[_\-]?key|access[_\-]?key|private[_\-]?key|auth)\s*[=:：]\s*['"]?/i)[0]; return p + '******' + (f.endsWith('"')||f.endsWith("'") ? f[f.length-1] : ''); }, medium: (v, f) => { const p = f.match(/^(?:password|passwd|pwd|secret|token|api[_\-]?key|access[_\-]?key|private[_\-]?key|auth)\s*[=:：]\s*['"]?/i)[0]; return p + '********' + (f.endsWith('"')||f.endsWith("'") ? f[f.length-1] : ''); }, heavy: (v, f) => { const p = f.match(/^(?:password|passwd|pwd|secret|token|api[_\-]?key|access[_\-]?key|private[_\-]?key|auth)\s*[=:：]\s*['"]?/i)[0]; return p + '********************'; } }
+  },
+  military_id: {
+    regex: /军字第?\d{6,10}号?/g,
+    label: '军官证', icon: '🎖️', risk: 'high',
+    mask: { light: v => v.replace(/\d{4,}/, m => m.slice(0,2) + '****'), medium: v => v.replace(/\d{4,}/, m => m.slice(0,2) + '******'), heavy: v => v.replace(/\d{4,}/, m => '**********') }
+  },
+  mac_address: {
+    regex: /(?<![A-Fa-f0-9])(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}(?![A-Fa-f0-9])/g,
+    label: 'MAC地址', icon: '🔌', risk: 'low',
+    mask: { light: v => v.replace(/[:-][A-Fa-f0-9]{2}[:-][A-Fa-f0-9]{2}$/, ':**:**'), medium: v => v.replace(/[:-][A-Fa-f0-9]{2}[:-][A-Fa-f0-9]{2}$/, ':**:**'), heavy: v => v.replace(/[:-][A-Fa-f0-9]{2}[:-][A-Fa-f0-9]{2}[:-][A-Fa-f0-9]{2}$/, ':**:**:**') }
+  },
+  ipv6: {
+    regex: /(?<![A-Fa-f0-9:])(?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}(?![A-Fa-f0-9:])/g,
+    label: 'IPv6地址', icon: '🌐', risk: 'low',
+    mask: { light: v => v.replace(/:[0-9A-Fa-f]{1,4}:[0-9A-Fa-f]{1,4}$/, ':*:*'), medium: v => v.replace(/:[0-9A-Fa-f]{1,4}:[0-9A-Fa-f]{1,4}:[0-9A-Fa-f]{1,4}:[0-9A-Fa-f]{1,4}$/, ':*:*:*:*'), heavy: v => '*:*:*:*:*:*:*:*' }
+  }
+};
+
+const PATTERN_ORDER = ['phone','landline','idcard','passport','credit_code','email','bank','name','ip','address','plate','password','military_id','mac_address','ipv6'];
+const PATTERN_DEFAULT_ON = new Set(['phone','idcard','email','bank']);
+
+function cleanName(v) { return v.replace(/^(?:姓\s*名[：:]\s*)/, ''); }
+// Common Chinese words that look like 2-3 char names but aren't
+const NAME_BLOCKLIST = new Set([
+  '密码','账户','用户名','手机号','银行卡','身份证','邮箱','座机','护照号','军官证','车牌','地址',
+  '用户','住址','姓名','电话','联系','手机','备注','说明','标题','分类','类别','状态','类型','版本',
+  '内容','描述','系统','网络','数据','信息','文件','文档','记录','操作','结果','原因','问题','方案',
+  '方法','功能','模块','服务','接口','参数','配置','选项','设置','权限','角色','组件','代码','错误',
+  '异常','警告','提示','通知','消息','日志','缓存','任务','列表','详情','页面','搜索','过滤','排序',
+  '导出','导入','上传','下载','复制','粘贴','提交','审核','批准','拒绝','取消','确认','返回','首页',
+  '导航','菜单','工具','帮助','关于','安全','登录','注册','关闭','开启','启动','停止','暂停','继续',
+  '完成','执行','运行','调试','监控','管理','维护','优化','设计','开发','实现','创建','修改','查询',
+  '更新','删除','备份','还原','同步','请求','响应','连接','重置','打印','预览','发送','接收','存储',
+  '加载','刷新','撤销','恢复','保存','清空','工程师','设计师','分析师','程序员','架构师','经理',
+  '主管','专员','助理','顾问','律师','医生','教师','学生','记者','编辑','主播','导演','编剧','演员',
+  '歌手','画家','作家','教练','裁判','运动员','研究员','教授','专家','学者','局长','处长','部长',
+  '省长','市长','县长','区长','镇长','村长','组长','班长','队长','董事长','总经理','会计师',
+  '项目经理','产品经理','联系人','收件人','申请人','负责人','创建人','审核人','收货人','付款人',
+  '测试','运维','前端','后端','全栈','产品','项目','运营','市场','销售','财务','人事','行政','客服',
+  '技术','法务','商务','采购','物流','中国','美国','日本','韩国','英国','法国','德国','北京','上海',
+  '广州','深圳','杭州','成都','武汉','重庆','天津','西安','电脑','平板','耳机','键盘','鼠标',
+  '平台','网站','应用','程序','软件','硬件','框架','年龄','性别','生日','籍贯','民族','学历',
+  '职务','职称','收入','支出','余额','总额','数量','重量','上午','下午','晚上','凌晨','今天',
+  '明天','昨天','本周','下周','本月','明年','去年','红色','绿色','蓝色','黄色','黑色','白色',
+  '密钥','令牌','票据','证书','签名','印章','合同','协议','发票','收据','账单','清单','明细',
+  '报表','合计','总计','小计','总计','国家','城市','公司','部门','单位','学校','医院','金额',
+  '日期','时间','编号','序号','管理员','代理','负责','队列','线程','进程','容器','节点','集群',
+  '实例','部署','发布','打印','打包','构建','安装','卸载','迁移','扩容','缩容','重构','改造',
+  '加固','清洗','转换','编码','解码','加密','解密','校验','核验','核对','比对','匹配','聚合',
+  '分组','统计','分析','计算','估算','预测','推理','判断','识别','检测','扫描','监测','排查',
+  '诊断','定位','隔离','复位','重启','关机','开机','编译','解释','渲染','解析','生成',
+]);
+
+// ============== Toast ==============
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => showToast('✓ 已复制')).catch(() => {
+    const ta = document.createElement('textarea'); ta.value = text;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta); showToast('✓ 已复制');
+  });
+}
+
+function escapeHtmlChar(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/\t/g, '    '); }
+
+// ============== Build Mask Grid ==============
+function buildMaskGrid() {
+  const grid = document.getElementById('mask-grid');
+  grid.innerHTML = PATTERN_ORDER.map(type => {
+    const p = PATTERNS[type];
+    const checked = PATTERN_DEFAULT_ON.has(type) ? 'checked' : '';
+    return `<label class="checkbox-label"><input type="checkbox" ${checked} id="m-${type}" onchange="onInputChange()">${p.icon} ${p.label} <span class="check-count" id="c-${type}">0</span></label>`;
+  }).join('');
+}
+
+// ============== Mode Switching ==============
+function switchMode(mode) {
+  currentMode = mode;
+  ['plain','json','csv','sql','log'].forEach(m => {
+    const tab = document.getElementById('tab-' + m);
+    const cfg = document.getElementById(m + '-config');
+    if (tab) tab.classList.toggle('active', m === mode);
+    if (cfg) cfg.style.display = m === mode ? 'block' : 'none';
+  });
+  document.getElementById('json-field-area').innerHTML = '';
+  const ph = { plain: '输入包含敏感信息的文本...', json: '输入 JSON 数据...', csv: '输入 CSV 数据...', sql: '输入 SQL 语句...', log: '输入日志内容...' };
+  document.getElementById('input-text').placeholder = ph[mode] || ph.plain;
+  onInputChange();
+}
+
+function switchView(view) {
+  currentView = view;
+  document.getElementById('view-diff').style.background = view === 'diff' ? 'var(--accent)' : 'var(--border-default)';
+  document.getElementById('view-plain').style.background = view === 'plain' ? 'var(--accent)' : 'var(--border-default)';
+  document.getElementById('view-diff').style.color = view === 'diff' ? '#fff' : 'var(--text-muted)';
+  document.getElementById('view-plain').style.color = view === 'plain' ? '#fff' : 'var(--text-muted)';
+  document.getElementById('output-diff').style.display = view === 'diff' ? 'block' : 'none';
+  document.getElementById('output-text').style.display = view === 'plain' ? 'block' : 'none';
+}
+
+// ============== Level ==============
+function setLevel(lv) {
+  currentLevel = lv;
+  document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.level-btn.lvl-' + lv).classList.add('active');
+  updateExamples();
+  onInputChange();
+}
+
+function updateExamples() {
+  const ex = { phone: '13812345678', idcard: '110101199003071234', email: 'user@example.com', bank: '6228480402564890018', name: '张三丰', ip: '192.168.1.100', address: '北京市朝阳区建国路88号', plate: '京A12345', credit_code: '91110108MA01KFL80X', landline: '010-12345678' };
+  for (const [type, val] of Object.entries(ex)) {
+    const el = document.getElementById('ex-' + type);
+    if (el && PATTERNS[type]) {
+      el.textContent = getMaskFn(type)(val, val);
+    }
+  }
+}
+
+function getMaskFn(type) {
+  const p = PATTERNS[type];
+  if (!p) return v => v;
+  return p.mask[currentLevel] || p.mask.medium;
+}
+
+// ============== Real-time Scan & Highlight ==============
+function onInputChange() {
+  const text = document.getElementById('input-text').value;
+  const enabledTypes = getEnabledTypes();
+  const counts = {};
+  let html = escapeHtmlChar(text);
+
+  // Count matches per type for badges
+  const sortedTypes = PATTERN_ORDER.filter(t => enabledTypes.includes(t));
+
+  // Apply custom rules too
+  const allHighlights = [];
+
+  for (const type of sortedTypes) {
+    const p = PATTERNS[type];
+    if (!p) continue;
+    const re = new RegExp(p.regex.source, p.regex.flags);
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      counts[type] = (counts[type] || 0) + 1;
+      allHighlights.push({ start: m.index, end: m.index + m[0].length, type });
+    }
+  }
+
+  // Custom rules
+  for (const rule of customRules) {
+    try {
+      const re = new RegExp(rule.regex, 'g');
+      let m;
+      while ((m = re.exec(text)) !== null) {
+        counts['custom'] = (counts['custom'] || 0) + 1;
+        allHighlights.push({ start: m.index, end: m.index + m[0].length, type: 'custom' });
+      }
+    } catch(e) {}
+  }
+
+  // Update check-counts
+  for (const type of PATTERN_ORDER) {
+    const el = document.getElementById('c-' + type);
+    const cb = document.getElementById('m-' + type);
+    if (!el) continue;
+    if (!cb || !cb.checked) { el.textContent = '-'; el.style.color = 'var(--text-muted)'; continue; }
+    const c = counts[type] || 0;
+    el.textContent = c;
+    el.style.color = c > 0 ? 'var(--accent-orange)' : 'var(--text-muted)';
+  }
+
+  // Risk badge
+  updateRiskBadge(counts);
+
+  // Highlight layer
+  renderHighlightLayer(text, allHighlights);
+}
+
+function renderHighlightLayer(text, highlights) {
+  const layer = document.getElementById('highlight-layer');
+  if (!text || highlights.length === 0) { layer.innerHTML = escapeHtmlChar(text); return; }
+
+  // Sort by start, remove overlaps (keep first)
+  highlights.sort((a, b) => a.start - b.start);
+  const cleaned = [];
+  let lastEnd = -1;
+  for (const h of highlights) {
+    if (h.start >= lastEnd) { cleaned.push(h); lastEnd = h.end; }
+  }
+
+  let result = '';
+  let pos = 0;
+  for (const h of cleaned) {
+    if (h.start > pos) result += escapeHtmlChar(text.slice(pos, h.start));
+    result += '<mark>' + escapeHtmlChar(text.slice(h.start, h.end)) + '</mark>';
+    pos = h.end;
+  }
+  if (pos < text.length) result += escapeHtmlChar(text.slice(pos));
+  layer.innerHTML = result;
+}
+
+function syncHighlightScroll() {
+  const ta = document.getElementById('input-text');
+  document.getElementById('highlight-layer').scrollTop = ta.scrollTop;
+  document.getElementById('highlight-layer').scrollLeft = ta.scrollLeft;
+}
+
+function updateRiskBadge(counts) {
+  const badge = document.getElementById('risk-badge');
+  const tags = document.getElementById('scan-tags');
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+
+  if (total === 0) {
+    badge.className = 'risk-badge risk-safe';
+    badge.textContent = '🟢 未检测到敏感信息';
+    tags.innerHTML = '';
+    return;
+  }
+
+  let hasHighRisk = false;
+  let hasMedRisk = false;
+  for (const [type, c] of Object.entries(counts)) {
+    if (c === 0) continue;
+    const p = PATTERNS[type];
+    if (p && p.risk === 'high') hasHighRisk = true;
+    if (p && p.risk === 'medium') hasMedRisk = true;
+  }
+
+  if (hasHighRisk) { badge.className = 'risk-badge risk-high'; badge.textContent = '🔴 高风险: ' + total + ' 项敏感信息'; }
+  else if (hasMedRisk) { badge.className = 'risk-badge risk-medium'; badge.textContent = '🟡 中风险: ' + total + ' 项敏感信息'; }
+  else { badge.className = 'risk-badge risk-low'; badge.textContent = '🟢 低风险: ' + total + ' 项'; }
+
+  tags.innerHTML = Object.entries(counts).filter(([, c]) => c > 0).map(([type, c]) => {
+    const p = PATTERNS[type];
+    const cls = (p && p.risk === 'high') ? 'high' : '';
+    return `<span class="scan-tag ${cls}">${p ? p.icon : '🔧'} ${p ? p.label : '自定义'} ${c}</span>`;
+  }).join('');
+}
+
+// ============== Masking Engine ==============
+function maskText(text, enabledTypes) {
+  const counts = {};
+  let masked = text;
+  const replacements = [];
+
+  for (const type of enabledTypes) {
+    const pattern = PATTERNS[type];
+    if (!pattern) continue;
+    counts[type] = 0;
+    try {
+      const re = new RegExp(pattern.regex.source, pattern.regex.flags);
+      const maskFn = getMaskFn(type);
+      masked = masked.replace(re, (match, p1) => {
+        if (type === 'name') {
+          const n = p1 || cleanName(match);
+          if (NAME_BLOCKLIST.has(n)) return match;
+          counts[type]++;
+          const label = match.slice(0, match.length - n.length);
+          const maskedName = n[0] + '*'.repeat(n.length - 1);
+          const result = label + maskedName;
+          replacements.push({ original: match, masked: result });
+          return result;
+        }
+        counts[type]++;
+        try {
+          const result = maskFn.length >= 2 ? maskFn(match, match) : maskFn(match);
+          replacements.push({ original: match, masked: result });
+          return result;
+        } catch(e) {
+          console.warn('Mask function failed for', type, match, e);
+          return match;
+        }
+      });
+    } catch(e) {
+      console.warn('Regex failed for type', type, e);
+    }
+  }
+
+  // Custom rules
+  for (const rule of customRules) {
+    try {
+      const re = new RegExp(rule.regex, 'g');
+      let c = 0;
+      masked = masked.replace(re, (match) => {
+        c++;
+        replacements.push({ original: match, masked: rule.repl || '****' });
+        return rule.repl || '****';
+      });
+      if (c > 0) counts['custom'] = c;
+    } catch(e) {}
+  }
+
+  return { masked, counts, replacements };
+}
+
+function getEnabledTypes() {
+  if (currentMode === 'plain') {
+    return PATTERN_ORDER.filter(type => document.getElementById('m-' + type)?.checked);
+  }
+  return PATTERN_ORDER.filter(t => t !== 'mac_address' && t !== 'ipv6'); // reasonable defaults
+}
+
+function getCustomRegex() {
+  if (currentMode === 'json') return { regex: document.getElementById('custom-regex-json').value, repl: document.getElementById('custom-repl-json').value };
+  return { regex: document.getElementById('custom-regex').value, repl: document.getElementById('custom-repl').value };
+}
+
+// ============== Execute Mask ==============
+function doMask() {
+  try {
+  const text = document.getElementById('input-text').value;
+  if (!text.trim()) { showToast('请输入要脱敏的内容'); return; }
+
+  if (currentMode === 'json') { doJsonMask(); return; }
+  if (currentMode === 'csv') { doCsvMask(); return; }
+  if (currentMode === 'sql') { doSqlMask(); return; }
+  if (currentMode === 'log') { doLogMask(); return; }
+
+  const enabledTypes = getEnabledTypes();
+  if (enabledTypes.length === 0) { showToast('请至少选择一种脱敏类型'); return; }
+  const { masked, counts, replacements } = maskText(text, enabledTypes);
+
+  lastOriginalText = text;
+  lastMaskedText = masked;
+  lastReplacements = replacements;
+
+  document.getElementById('output-text').value = masked;
+  document.getElementById('btn-undo').style.display = lastReplacements.length > 0 ? 'inline-flex' : 'none';
+  renderDiffView(text, masked, replacements);
+  switchView(currentView);
+  renderReport(counts, enabledTypes);
+  saveHistory(text, masked, counts);
+
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  showToast(total > 0 ? '✓ 脱敏完成，隐藏 ' + total + ' 项敏感信息' : '未发现敏感信息');
+  } catch(e) {
+    console.error('doMask error:', e);
+    showToast('脱敏执行出错: ' + e.message);
+  }
+}
+
+// ============== Undo Mask ==============
+function undoMask() {
+  if (!lastMaskedText || !lastOriginalText) return;
+  document.getElementById('output-text').value = lastOriginalText;
+  document.getElementById('btn-undo').style.display = 'none';
+  renderDiffView(lastOriginalText, lastOriginalText, []);
+  showToast('✓ 已还原为原文');
+}
+
+// ============== SQL Mask ==============
+function doSqlMask() {
+  try {
+  const text = document.getElementById('input-text').value;
+  if (!text.trim()) { showToast('请输入 SQL 语句'); return; }
+
+  // Parse SQL values in INSERT statements
+  const enabledTypes = getEnabledTypes();
+  let masked = text;
+  let totalCount = 0;
+
+  // Match VALUES (...) blocks
+  masked = masked.replace(/(VALUES\s*\()((?:[^()]*|\((?:[^()]*|\([^()]*\))*\))*)(\))/gi, (match, prefix, valuesBlock, suffix) => {
+    // Split by commas (respecting nested parens)
+    const values = splitSqlValues(valuesBlock);
+    const maskedValues = values.map(v => {
+      const trimmed = v.trim();
+      if (!trimmed) return v;
+      // Extract string values
+      const strMatch = trimmed.match(/^(['"])(.*)\1$/s);
+      if (strMatch) {
+        const content = strMatch[2];
+        const { masked: m, counts } = maskText(content, enabledTypes);
+        const c = Object.values(counts).reduce((a, b) => a + b, 0);
+        totalCount += c;
+        return strMatch[1] + m + strMatch[1];
+      }
+      return v;
+    });
+    return prefix + maskedValues.join(',') + suffix;
+  });
+
+  lastOriginalText = text;
+  lastMaskedText = masked;
+  document.getElementById('output-text').value = masked;
+  document.getElementById('btn-undo').style.display = 'none';
+  renderDiffView(text, masked, []);
+  switchView(currentView);
+  showToast(totalCount > 0 ? '✓ SQL 脱敏完成，处理 ' + totalCount + ' 项' : '未发现敏感信息');
+  } catch(e) {
+    console.error('doSqlMask error:', e);
+    showToast('SQL 脱敏出错: ' + e.message);
+  }
+}
+
+function splitSqlValues(block) {
+  const values = [];
+  let depth = 0;
+  let current = '';
+  let inStr = false;
+  let strChar = '';
+  for (let i = 0; i < block.length; i++) {
+    const ch = block[i];
+    if (inStr) {
+      current += ch;
+      if (ch === strChar && block[i-1] !== '\\') inStr = false;
+    } else if (ch === "'" || ch === '"') {
+      inStr = true; strChar = ch; current += ch;
+    } else if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth--; current += ch; }
+    else if (ch === ',' && depth === 0) { values.push(current); current = ''; }
+    else { current += ch; }
+  }
+  if (current.trim()) values.push(current);
+  return values;
+}
+
+// ============== Log Mask ==============
+function parseCsvLine(line, sep) {
+  // Properly split CSV line respecting quoted fields
+  const fields = []; let cur = '', inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuote) { cur += ch; if (ch === '"' && line[i+1] === '"') { i++; cur += '"'; } else if (ch === '"') { inQuote = false; } }
+    else if (ch === '"') { inQuote = true; }
+    else if (ch === sep) { fields.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  fields.push(cur);
+  return fields;
+}
+
+function doLogMask() {
+  try {
+  const text = document.getElementById('input-text').value;
+  if (!text.trim()) { showToast('请输入日志内容'); return; }
+
+  const enabledTypes = getEnabledTypes();
+  const format = document.getElementById('log-format').value;
+  let masked = text;
+  let totalCount = 0;
+
+  if (format === 'json-log') {
+    // JSON log mode: parse each line as JSON, mask string values, re-serialize
+    const lines = text.split('\n');
+    masked = lines.map(line => {
+      line = line.trim();
+      if (!line) return line;
+      try {
+        const obj = JSON.parse(line);
+        const { masked: m, counts } = maskJsonObjectStrings(obj, enabledTypes);
+        const c = Object.values(counts).reduce((a, b) => a + b, 0);
+        totalCount += c;
+        return JSON.stringify(m);
+      } catch(e) { return line; }
+    }).join('\n');
+  } else if (format === 'nginx' || format === 'apache') {
+    // Web access log: mask IP, email, phone, token in query strings
+    const lines = text.split('\n');
+    masked = lines.map(line => {
+      // Mask client IP
+      line = line.replace(/\b(\d{1,3}\.){3}\d{1,3}\b/, match => {
+        totalCount++; return getMaskFn('ip')(match, match);
+      });
+      // Mask emails
+      line = line.replace(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g, match => {
+        totalCount++; return getMaskFn('email')(match, match);
+      });
+      // Mask tokens/keys in query strings
+      line = line.replace(/(?:token|key|session|sid|uuid|id|user)[=:]([^&\s"']+)/gi, match => {
+        const eqIdx = match.indexOf('='); const colonIdx = match.indexOf(':');
+        const sepIdx = Math.max(eqIdx, colonIdx);
+        if (sepIdx === -1) return match;
+        totalCount++;
+        return match.slice(0, sepIdx + 1) + '****';
+      });
+      // Mask passwords
+      line = line.replace(/(?:password|passwd|pwd|secret)\s*[=:：]\s*['"]?([^'"\s,;，;}\]]{1,64})/gi, match => {
+        totalCount++; return getMaskFn('password')(match, match);
+      });
+      // Mask phones
+      line = line.replace(/(?<!\d)(?:\+86[-\s]?)?1[3-9]\d{9}(?!\d)/g, match => {
+        totalCount++; return getMaskFn('phone')(match, match);
+      });
+      return line;
+    }).join('\n');
+  } else if (format === 'generic' || format === 'auto') {
+    // Generic / auto: use standard maskText
+    const { masked: m, counts } = maskText(text, enabledTypes);
+    masked = m;
+    totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
+  }
+
+  lastOriginalText = text;
+  lastMaskedText = masked;
+  document.getElementById('output-text').value = masked;
+  document.getElementById('btn-undo').style.display = totalCount > 0 ? 'inline-flex' : 'none';
+  renderDiffView(text, masked, []);
+  switchView(currentView);
+  showToast(totalCount > 0 ? '✓ 日志脱敏完成，处理 ' + totalCount + ' 项' : '未发现敏感信息');
+  } catch(e) {
+    console.error('doLogMask error:', e);
+    showToast('日志脱敏出错: ' + e.message);
+  }
+}
+
+function maskJsonObjectStrings(obj, enabledTypes) {
+  const counts = {};
+  if (typeof obj === 'string') {
+    const { masked, counts: c } = maskText(obj, enabledTypes);
+    return { masked, counts: c };
+  }
+  if (Array.isArray(obj)) {
+    const arr = []; const totalC = {};
+    for (const item of obj) { const { masked, counts } = maskJsonObjectStrings(item, enabledTypes); arr.push(masked); for (const [k,v] of Object.entries(counts)) totalC[k] = (totalC[k]||0) + v; }
+    return { masked: arr, counts: totalC };
+  }
+  if (typeof obj === 'object' && obj !== null) {
+    const result = {}; const totalC = {};
+    for (const [key, val] of Object.entries(obj)) { const { masked, counts } = maskJsonObjectStrings(val, enabledTypes); result[key] = masked; for (const [k,v] of Object.entries(counts)) totalC[k] = (totalC[k]||0) + v; }
+    return { masked: result, counts: totalC };
+  }
+  return { masked: obj, counts: {} };
+}
+
+// ============== Diff View ==============
+function renderDiffView(original, masked, replacements) {
+  const el = document.getElementById('output-diff');
+  if (original === masked) {
+    el.innerHTML = '<span style="color:var(--text-muted);font-size:13px">✓ 未发现敏感信息，无需脱敏</span>';
+    return;
+  }
+  // 基于 replacements 数组精确标注每个替换位置
+  // 构建一个区间表：每个位置标记是"原文"还是"脱敏后"
+  const segments = []; // { text, type: 'orig'|'mask' }
+  if (replacements && replacements.length > 0) {
+    // 在 original 文本中找到每个替换的位置，逐步拼接
+    let pos = 0;
+    for (const r of replacements) {
+      const idx = original.indexOf(r.original, pos);
+      if (idx === -1) continue;
+      // 原文到替换位置之前的普通文本
+      if (idx > pos) segments.push({ text: original.slice(pos, idx), type: 'normal' });
+      segments.push({ text: r.original, type: 'orig' });
+      pos = idx + r.original.length;
+    }
+    // 剩余普通文本
+    if (pos < original.length) segments.push({ text: original.slice(pos), type: 'normal' });
+  } else {
+    // fallback: 逐行对比
+    const origLines = original.split('\n');
+    const maskLines = masked.split('\n');
+    const maxLen = Math.max(origLines.length, maskLines.length);
+    for (let i = 0; i < maxLen; i++) {
+      const ol = origLines[i] || '';
+      const ml = maskLines[i] || '';
+      segments.push({ text: ol === ml ? ml : ol, type: ol === ml ? 'normal' : 'orig' });
+      if (ol !== ml) segments.push({ text: ml, type: 'mask' });
+    }
+    if (segments.length > 0) segments[segments.length - 1].text += '\n';
+  }
+
+  let html = '';
+  for (const seg of segments) {
+    if (seg.type === 'normal') {
+      html += escapeHtmlChar(seg.text);
+    } else if (seg.type === 'orig') {
+      html += '<span class="diff-original">' + escapeHtmlChar(seg.text) + '</span>';
+    } else if (seg.type === 'mask') {
+      html += '<span class="diff-masked">' + escapeHtmlChar(seg.text) + '</span>';
+    }
+  }
+  el.innerHTML = html;
+}
+
+// ============== Report ==============
+function renderReport(counts, enabledTypes) {
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const card = document.getElementById('report-card');
+  const content = document.getElementById('report-content');
+  if (total === 0) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  const items = enabledTypes.filter(t => counts[t] > 0).map(t => {
+    const p = PATTERNS[t];
+    return `<div class="report-item"><span class="report-icon">${p?.icon || '❓'}</span><div><div class="report-count">${counts[t]}</div><div class="report-label">${p?.label || t}</div></div></div>`;
+  }).join('');
+  content.innerHTML = `<div class="report-item"><span class="report-icon">📊</span><div><div class="report-count">${total}</div><div class="report-label">总计脱敏</div></div></div>${items}`;
+}
+
+// ============== JSON Mask ==============
+function doJsonMask() {
+  const text = document.getElementById('input-text').value;
+  try {
+    const json = JSON.parse(text);
+    jsonFields = extractJsonStrings(json);
+    const recommended = recommendJsonFields(jsonFields);
+    const fieldArea = document.getElementById('json-field-area');
+    fieldArea.innerHTML = `
+      <div class="json-field-list">
+        <div style="padding:4px 0;font-size:11px;color:var(--text-muted);border-bottom:1px solid var(--border-subtle)">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" ${recommended.size === jsonFields.length ? 'checked' : ''} onchange="toggleAllJsonFields(this)"> 全选/取消</label>
+          ${recommended.size > 0 ? '<span style="margin-left:auto;font-size:10px;color:var(--accent-cyan)">智能推荐 ' + recommended.size + '/' + jsonFields.length + '</span>' : ''}
+        </div>
+        ${jsonFields.map(f => {
+          const isRec = recommended.has(f.path);
+          return `<div class="json-field-item"><input type="checkbox" ${isRec ? 'checked' : ''} data-path="${f.path}" onchange="toggleJsonField(this)"><span class="json-field-path">${isRec ? '🤖 ' : ''}${f.path}</span><span class="json-field-val">${escapeHtmlChar(f.value.length > 30 ? f.value.slice(0,30) + '...' : f.value)}</span></div>`;
+        }).join('')}
+      </div>
+      <div class="btn-row"><button class="btn btn-primary" onclick="applyJsonMask()">🔒 脱敏选中字段</button></div>`;
+    jsonMaskFields = new Set(jsonFields.filter(f => recommended.has(f.path)).map(f => f.path));
+    showToast('JSON 解析成功，找到 ' + jsonFields.length + ' 个字符串字段' + (recommended.size > 0 ? '，智能推荐 ' + recommended.size + ' 个' : ''));
+  } catch(e) { showToast('JSON 解析失败: ' + e.message); }
+}
+
+function extractJsonStrings(obj, path) {
+  const fields = [];
+  if (typeof obj === 'string') { fields.push({ path: path || '', value: obj }); }
+  else if (Array.isArray(obj)) { obj.forEach((item, i) => fields.push(...extractJsonStrings(item, path ? path + '[' + i + ']' : '[' + i + ']'))); }
+  else if (typeof obj === 'object' && obj !== null) { for (const [key, val] of Object.entries(obj)) { fields.push(...extractJsonStrings(val, path ? path + '.' + key : key)); } }
+  return fields;
+}
+
+function toggleAllJsonFields(cb) {
+  jsonMaskFields = cb.checked ? new Set(jsonFields.map(f => f.path)) : new Set();
+  document.querySelectorAll('#json-field-area input[type=checkbox][data-path]').forEach(i => i.checked = cb.checked);
+}
+
+function toggleJsonField(cb) { if (cb.checked) jsonMaskFields.add(cb.dataset.path); else jsonMaskFields.delete(cb.dataset.path); }
+
+function applyJsonMask() {
+  try {
+    const json = JSON.parse(document.getElementById('input-text').value);
+    const enabledTypes = getEnabledTypes();
+    const masked = JSON.parse(JSON.stringify(json));
+    let count = 0;
+    const replacements = [];
+    jsonMaskFields.forEach(path => {
+      const parts = path.match(/[^.\[\]]+|\[\d+\]/g) || [];
+      let current = masked;
+      for (let i = 0; i < parts.length - 1; i++) { const p = parts[i].replace(/[\[\]]/g, ''); if (current[p] === undefined) return; current = current[p]; }
+      const lastKey = parts[parts.length - 1].replace(/[\[\]]/g, '');
+      if (current && typeof current[lastKey] === 'string') {
+        const { masked: m, counts } = maskText(current[lastKey], enabledTypes);
+        if (Object.values(counts).reduce((a, b) => a + b, 0) > 0) { replacements.push({ original: current[lastKey], masked: m }); current[lastKey] = m; count++; }
+      }
+    });
+    lastOriginalText = document.getElementById('input-text').value;
+    lastMaskedText = JSON.stringify(masked, null, 2);
+    lastReplacements = replacements;
+    document.getElementById('output-text').value = lastMaskedText;
+    document.getElementById('btn-undo').style.display = replacements.length > 0 ? 'inline-flex' : 'none';
+    renderDiffView(lastOriginalText, lastMaskedText, []);
+    switchView(currentView);
+    showToast('✓ JSON 脱敏完成，处理了 ' + count + ' 个字段');
+  } catch(e) { showToast('脱敏失败: ' + e.message); }
+}
+
+// ============== CSV Mask ==============
+function doCsvMask() {
+  const text = document.getElementById('input-text').value;
+  const sep = document.getElementById('csv-sep').value || ',';
+  const colsStr = document.getElementById('csv-cols').value.trim();
+  if (!colsStr) { showToast('请指定要脱敏的列号'); return; }
+  const cols = colsStr.split(',').map(s => parseInt(s.trim()) - 1).filter(n => !isNaN(n));
+  const lines = text.split('\n');
+  const enabledTypes = getEnabledTypes();
+  let count = 0;
+  const masked = lines.map((line, li) => {
+    if (li === 0 && document.getElementById('csv-skip-header').checked) return line;
+    const parts = parseCsvLine(line, sep);
+    cols.forEach(col => {
+      if (parts[col] !== undefined) {
+        const { masked: m, counts } = maskText(parts[col], enabledTypes);
+        if (Object.values(counts).reduce((a, b) => a + b, 0) > 0) { parts[col] = m; count++; }
+      }
+    });
+    return parts.join(sep);
+  }).join('\n');
+  lastOriginalText = text; lastMaskedText = masked;
+  document.getElementById('output-text').value = masked;
+  document.getElementById('btn-undo').style.display = 'none';
+  renderDiffView(text, masked, []);
+  switchView(currentView);
+  showToast('✓ CSV 脱敏完成，处理了 ' + count + ' 个单元格');
+}
+
+// ============== Export Mapping Table ==============
+function exportMapping() {
+  if (!lastReplacements || lastReplacements.length === 0) { showToast('没有可导出的脱敏映射，请先执行脱敏'); return; }
+  const csv = '原始值,脱敏值,脱敏类型\n' + lastReplacements.map(r => {
+    const orig = r.original.replace(/"/g, '""');
+    const mask = r.masked.replace(/"/g, '""');
+    return '"' + orig + '","' + mask + '","映射"';
+  }).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '脱敏映射表_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('✓ 映射表已导出 (' + lastReplacements.length + ' 条)');
+}
+
+// ============== JSON Smart Field Recommendation ==============
+const FIELD_NAME_PATTERNS = {
+  phone: /\b(phone|mobile|tel|cellphone|手机号|电话|手机)\b/i,
+  idcard: /\b(idcard|id_card|identity|身份证|身份证号|id_number|cert_no|certno)\b/i,
+  email: /\b(email|mail|邮箱|电子邮件|e_mail)\b/i,
+  bank: /\b(bank|card|银行卡|信用卡|借记卡|bank_card|bankcard|credit_card|card_no|cardno|account)\b/i,
+  name: /\b(name|username|real_name|realname|姓名|用户名|联系人|member_name)\b/i,
+  ip: /\b(ip|ip_addr|ip_address|remote_addr|remote_ip|client_ip|地址)\b/i,
+  address: /\b(address|addr|住址|地址|home_address|location)\b/i,
+  plate: /\b(plate|车牌|car_no|license_plate|vehicle_no)\b/i,
+  credit_code: /\b(credit|统一社会信用|social_credit|org_code|uscc)\b/i,
+  landline: /\b(landline|座机|telephone|tel_no|land_line)\b/i,
+};
+
+function recommendJsonFields(fields) {
+  const recommended = new Set();
+  for (const f of fields) {
+    const lastKey = f.path.split('.').pop().replace(/\[\d+\]$/, '');
+    for (const [type, regex] of Object.entries(FIELD_NAME_PATTERNS)) {
+      if (regex.test(lastKey) || regex.test(f.path)) {
+        recommended.add(f.path);
+        break;
+      }
+    }
+  }
+  return recommended;
+}
+
+// ============== Export Report ==============
+function exportReport() {
+  if (!lastOriginalText && !lastMaskedText) { showToast('请先执行脱敏'); return; }
+  const now = new Date().toLocaleString('zh-CN');
+  const hasDiff = lastOriginalText !== lastMaskedText;
+  const report = `# 数据脱敏审计报告
+
+**生成时间**: ${now}
+**脱敏强度**: ${{light:'轻度',medium:'标准',heavy:'重度'}[currentLevel]}
+**处理模式**: ${{plain:'纯文本',json:'JSON',csv:'CSV',sql:'SQL',log:'日志'}[currentMode]}
+
+---
+
+## 统计摘要
+
+| 项目 | 数值 |
+|------|------|
+| 输入字符数 | ${lastOriginalText.length} |
+| 输出字符数 | ${lastMaskedText.length} |
+| 是否有变更 | ${hasDiff ? '✅ 是' : '❌ 否'} |
+
+## 脱敏类型
+
+${PATTERN_ORDER.map(t => {
+  const p = PATTERNS[t];
+  const cb = document.getElementById('m-' + t);
+  return `- [${cb && cb.checked ? 'x' : ' '}] ${p.icon} ${p.label} (风险: ${p.risk})`;
+}).join('\n')}
+
+${hasDiff ? `
+## 对比
+
+### 原文（前500字符）
+\`\`\`
+${lastOriginalText.slice(0, 500)}
+\`\`\`
+
+### 脱敏后（前500字符）
+\`\`\`
+${lastMaskedText.slice(0, 500)}
+\`\`\`
+` : '## 无需脱敏\n\n未检测到需要脱敏的敏感信息。'}
+
+---
+*由 ToolKit 数据脱敏工具生成*
+`;
+
+  const blob = new Blob([report], { type: 'text/markdown' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '脱敏审计报告_' + new Date().toISOString().slice(0, 10) + '.md';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('✓ 审计报告已导出');
+}
+
+// ============== Presets ==============
+function applyPreset(preset) {
+  const configs = {
+    'db-export': { on: ['phone','idcard','email','bank','name','address','ip','password'], mode: 'sql' },
+    'log-clean': { on: ['phone','email','ip','password','name','idcard'], mode: 'log' },
+    'api-response': { on: ['phone','idcard','email','bank','name','ip','password'], mode: 'json' },
+    'resume': { on: ['phone','email','name','idcard','address','landline'], mode: 'plain' },
+    'finance': { on: ['phone','idcard','email','bank','credit_code','password'], mode: 'plain' },
+    'full': { on: PATTERN_ORDER.slice(), mode: 'plain' }
+  };
+  const cfg = configs[preset];
+  if (!cfg) return;
+
+  if (cfg.mode !== currentMode) switchMode(cfg.mode);
+  const onSet = new Set(cfg.on);
+  PATTERN_ORDER.forEach(t => {
+    const cb = document.getElementById('m-' + t);
+    if (cb) cb.checked = onSet.has(t);
+  });
+  onInputChange();
+  showToast('✓ 已应用预设: ' + { 'db-export': '数据库导出', 'log-clean': '日志清洗', 'api-response': 'API 响应', 'resume': '简历脱敏', 'finance': '金融数据', 'full': '全部类型' }[preset]);
+}
+
+// ============== Rule Editor ==============
+function toggleRuleEditor() {
+  const el = document.getElementById('rule-editor');
+  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+}
+
+function applyRuleEditor() {
+  const type = document.getElementById('re-type').value;
+  const keepStart = parseInt(document.getElementById('re-keep-start').value) || 0;
+  const keepEnd = parseInt(document.getElementById('re-keep-end').value) || 0;
+  const maskChar = document.getElementById('re-mask-char').value || '*';
+
+  if (!PATTERNS[type]) return;
+  const p = PATTERNS[type];
+
+  // Create a new mask function based on user params
+  const newMask = (v) => {
+    if (v.length <= keepStart + keepEnd) return v;
+    return v.slice(0, keepStart) + maskChar.repeat(Math.min(v.length - keepStart - keepEnd, 20)) + v.slice(-keepEnd || undefined);
+  };
+
+  // Apply to all levels
+  p.mask = { light: newMask, medium: newMask, heavy: (v) => v.slice(0, Math.min(keepStart, 1)) + maskChar.repeat(Math.min(v.length - Math.min(keepStart, 1) - (keepEnd || 0), 20)) + (keepEnd > 0 ? v.slice(-keepEnd) : '') };
+
+  updateExamples();
+  onInputChange();
+  showToast('✓ 已更新 ' + p.label + ' 的脱敏规则');
+}
+
+// ============== Custom Rules ==============
+function addCustomRule() {
+  const regex = document.getElementById('custom-regex').value.trim();
+  const repl = document.getElementById('custom-repl').value.trim() || '****';
+  if (!regex) { showToast('请输入正则表达式'); return; }
+  try { new RegExp(regex); } catch(e) { showToast('正则表达式无效: ' + e.message); return; }
+  customRules.push({ regex, repl });
+  document.getElementById('custom-regex').value = '';
+  document.getElementById('custom-repl').value = '';
+  renderCustomRules();
+  onInputChange();
+  showToast('✓ 已添加自定义规则');
+}
+
+function removeCustomRule(idx) {
+  customRules.splice(idx, 1);
+  renderCustomRules();
+  onInputChange();
+}
+
+function renderCustomRules() {
+  const list = document.getElementById('custom-rules-list');
+  if (customRules.length === 0) { list.innerHTML = ''; return; }
+  list.innerHTML = customRules.map((r, i) => `<div class="custom-rule-item"><span class="rule-text">/${escapeHtmlChar(r.regex)}/g</span><span style="color:var(--text-muted)">→</span><span class="rule-repl">${escapeHtmlChar(r.repl)}</span><button class="remove-rule" onclick="removeCustomRule(${i})">✕</button></div>`).join('');
+}
+
+// ============== History ==============
+function saveHistory(original, masked, counts) {
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  historyItems.unshift({
+    time: new Date().toLocaleString('zh-CN'),
+    mode: currentMode,
+    total,
+    types: Object.entries(counts).filter(([, c]) => c > 0).map(([t]) => PATTERNS[t]?.label || t),
+    preview: original.slice(0, 50) + (original.length > 50 ? '...' : ''),
+    original, masked
+  });
+  if (historyItems.length > 20) historyItems.length = 20;
+  try { localStorage.setItem('data-masking-history', JSON.stringify(historyItems.map(h => ({ time: h.time, mode: h.mode, total: h.total, types: h.types, preview: h.preview })))); } catch(e) {}
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (historyItems.length === 0) { list.innerHTML = '<div style="padding:12px;color:var(--text-muted);font-size:12px;text-align:center">暂无历史记录</div>'; return; }
+  list.innerHTML = historyItems.map((h, i) => `<div class="history-item" onclick="restoreHistory(${i})"><span class="history-time">${h.time}</span><span class="history-summary">${h.total}项 · ${h.types.join(', ')} · ${h.preview}</span></div>`).join('');
+}
+
+function restoreHistory(idx) {
+  const h = historyItems[idx];
+  if (!h) return;
+  document.getElementById('input-text').value = h.original;
+  lastOriginalText = h.original;
+  lastMaskedText = h.masked;
+  document.getElementById('output-text').value = h.masked;
+  if (h.mode !== currentMode) switchMode(h.mode);
+  onInputChange();
+  showToast('✓ 已恢复历史记录');
+}
+
+function toggleHistory() {
+  const panel = document.getElementById('history-panel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+// ============== Drag & Drop ==============
+const mainArea = document.getElementById('main-area');
+mainArea.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('drop-overlay').classList.add('show'); });
+mainArea.addEventListener('dragleave', e => { if (e.target === mainArea || !mainArea.contains(e.relatedTarget)) document.getElementById('drop-overlay').classList.remove('show'); });
+mainArea.addEventListener('drop', e => {
+  e.preventDefault();
+  document.getElementById('drop-overlay').classList.remove('show');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const modeMap = { json: 'json', csv: 'csv', sql: 'sql', log: 'log', txt: 'plain', md: 'plain' };
+  if (modeMap[ext]) switchMode(modeMap[ext]);
+  const reader = new FileReader();
+  reader.onload = ev => { document.getElementById('input-text').value = ev.target.result; onInputChange(); showToast('✓ 已导入 ' + file.name); };
+  reader.readAsText(file);
+});
+
+// ============== Actions ==============
+function copyOutput() { const t = document.getElementById('output-text').value; if (!t) { showToast('输出为空'); return; } copyToClipboard(t); }
+
+function clearAll() {
+  document.getElementById('input-text').value = '';
+  document.getElementById('output-text').value = '';
+  document.getElementById('output-diff').innerHTML = '';
+  document.getElementById('report-card').style.display = 'none';
+  document.getElementById('json-field-area').innerHTML = '';
+  document.getElementById('highlight-layer').innerHTML = '';
+  document.getElementById('btn-undo').style.display = 'none';
+  lastOriginalText = ''; lastMaskedText = ''; lastReplacements = [];
+  onInputChange();
+}
+
+function loadSample() {
+  const samples = {
+    plain: `员工信息汇总表
+
+姓名: 张三, 手机号: 13812345678, 邮箱: zhangsan@example.com
+身份证号: 110101199003071234, 员工编号: EMP-2024-001
+银行卡: 6228480402564890018
+IP地址: 192.168.1.100
+家庭住址: 上海市浦东新区陆家嘴金融中心88号
+车牌号: 京A88888
+护照号: E12345678
+社会信用代码: 91110108MA01KFL80X
+
+姓名: 李四, 电话: 15912347890, 座机: 010-67895432
+邮箱: lisi@company.org, 身份证: 310115199512121234
+MAC地址: AA:BB:CC:DD:EE:FF
+password=admin123, token=eyJhbGciOiJIUzI1NiJ9`,
+    json: JSON.stringify({
+      users: [
+        { name: "张三", phone: "13812345678", email: "zhangsan@example.com", idcard: "110101199003071234", bank_card: "6228480402564890018" },
+        { name: "李四", phone: "15912347890", email: "lisi@company.org", idcard: "310115199512121234" }
+      ],
+      company: { name: "科技有限公司", credit_code: "91110108MA01KFL80X", address: "北京市朝阳区建国路88号" }
+    }, null, 2),
+    csv: `姓名,手机号,邮箱,银行卡,身份证
+张三,13812345678,zhangsan@example.com,6228480402564890018,110101199003071234
+李四,15912347890,lisi@company.org,6217000012345678,310115199512121234
+王五,18600112233,wangwu@test.cn,6222021234567890123,440301199001011234`,
+    sql: `INSERT INTO users (name, phone, email, idcard, bank_card) VALUES
+('张三', '13812345678', 'zhangsan@example.com', '110101199003071234', '6228480402564890018'),
+('李四', '15912347890', 'lisi@company.org', '310115199512121234', '6217000012345678'),
+('王五', '18600112233', 'wangwu@test.cn', '440301199001011234', '6222021234567890123');
+
+INSERT INTO orders (id, user_id, amount, address) VALUES
+(1001, 1, 9999.00, '北京市朝阳区建国路88号'),
+(1002, 2, 15000.00, '上海市浦东新区陆家嘴金融中心');`,
+    log: `192.168.1.100 - - [15/Apr/2026:10:30:01 +0800] "POST /api/login HTTP/1.1" 200 1234 "-" "Mozilla/5.0"
+10.0.0.55 - zhangsan [15/Apr/2026:10:30:05 +0800] "GET /api/user/profile HTTP/1.1" 200 567 "token=eyJhbGciOiJIUzI1NiJ9"
+ERROR: Failed to authenticate user lisi@company.org from 172.16.0.100, phone: 13812345678
+INFO: Order #ORD-2026-001 shipped to 北京市朝阳区建国路88号, recipient: 李四 (ID: 310115199512121234)`
+  };
+  document.getElementById('input-text').value = samples[currentMode] || samples.plain;
+  onInputChange();
+  if (currentMode === 'json') { doJsonMask(); } else if (currentMode === 'csv') { document.getElementById('csv-cols').value = '2,3,4,5'; }
+  else { doMask(); }
+}
+
+// ============== Templates ==============
+function saveTemplate() {
+  const template = { mode: currentMode, level: currentLevel, types: {}, csvSep: document.getElementById('csv-sep').value, csvCols: document.getElementById('csv-cols').value, csvSkipHeader: document.getElementById('csv-skip-header').checked, customRules };
+  PATTERN_ORDER.forEach(t => { const cb = document.getElementById('m-' + t); if (cb) template.types[t] = cb.checked; });
+  localStorage.setItem('data-masking-template', JSON.stringify(template));
+  showToast('✓ 配置已保存');
+}
+
+function loadTemplate() {
+  const saved = localStorage.getItem('data-masking-template');
+  if (!saved) { showToast('没有已保存的配置'); return; }
+  try {
+    const t = JSON.parse(saved);
+    if (t.mode) switchMode(t.mode);
+    if (t.level) setLevel(t.level);
+    if (t.types) { Object.entries(t.types).forEach(([type, checked]) => { const cb = document.getElementById('m-' + type); if (cb) cb.checked = checked; }); }
+    if (t.csvSep) document.getElementById('csv-sep').value = t.csvSep;
+    if (t.csvCols) document.getElementById('csv-cols').value = t.csvCols;
+    if (t.csvSkipHeader !== undefined) document.getElementById('csv-skip-header').checked = t.csvSkipHeader;
+    if (t.customRules) { customRules = t.customRules; renderCustomRules(); }
+    onInputChange();
+    showToast('✓ 配置已加载');
+  } catch(e) { showToast('配置加载失败'); }
+}
+
+function clearTemplate() { localStorage.removeItem('data-masking-template'); showToast('✓ 配置已清除'); }
+
+// ============== Keyboard Shortcuts ==============
+document.addEventListener('keydown', e => {
+  const isCtrl = e.ctrlKey || e.metaKey;
+  if (isCtrl && e.key === 'Enter') { e.preventDefault(); doMask(); }
+  if (isCtrl && e.key === 'z') { e.preventDefault(); undoMask(); }
+});
+
+// ============== Init ==============
+buildMaskGrid();
+switchView('plain');
+updateExamples();
+</script>
+</body>
+</html>

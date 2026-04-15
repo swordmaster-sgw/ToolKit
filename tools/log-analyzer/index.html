@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>日志分析工具</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .main { padding: 20px; max-width: 1000px; margin: 0 auto; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: #1f2235; font-size: 12px; font-weight: 600; color: #8b90a7; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #2d3148; }
+    .card-body { padding: 16px; }
+    textarea { width: 100%; background: #131520; color: #e2e8f0; border: 1px solid #363b5e; border-radius: 6px; padding: 12px; font-family: 'Cascadia Code', monospace; font-size: 12px; resize: vertical; outline: none; min-height: 200px; transition: border-color .2s; }
+    textarea:focus { border-color: #6366f1; }
+    .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-primary:hover { background: #5457d4; }
+    .log-line { padding: 4px 8px; margin: 2px 0; border-radius: 3px; font-size: 12px; font-family: monospace; }
+    .log-error { background: #dc262622; color: #ef4444; border-left: 3px solid #ef4444; }
+    .log-warn { background: #f59e0b22; color: #fbbf24; border-left: 3px solid #f59e0b; }
+    .log-info { background: #3b82f622; color: #60a5fa; border-left: 3px solid #3b82f6; }
+    .stat { padding: 8px 12px; background: #131520; border-radius: 4px; margin-top: 8px; font-size: 12px; color: #8b90a7; }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">🔎</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">日志分析工具</h1>
+    <p style="font-size:12px;color:#8b90a7;margin-top:2px">提取错误、警告，按级别分类高亮</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">输入日志</div>
+      <div class="card-body">
+        <textarea id="logs" placeholder="粘贴日志内容..."></textarea>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn btn-primary" onclick="analyze()">🔍 分析</button>
+          <button class="btn" onclick="loadSample()" style="background:#2d3148;color:#c4c9e2">示例</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">分析结果</div>
+      <div class="card-body" id="result" style="max-height:400px;overflow-y:auto">
+        <p style="color:#4a4f6a;font-size:12px">输入日志后点击分析...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function analyze() {
+  const logs = document.getElementById('logs').value;
+  const lines = logs.split('\n');
+  
+  const errors = lines.filter(l => /error|exception|failed|fail|fatal/i.test(l));
+  const warns = lines.filter(l => /warn|warning|deprecated/i.test(l));
+  const infos = lines.filter(l => /info|debug/i.test(l));
+  
+  let html = `<div class="stat">
+    🔴 错误: ${errors.length} | 🟡 警告: ${warns.length} | 🔵 信息: ${infos.length}
+  </div>`;
+  
+  if (errors.length > 0) {
+    html += '<div style="margin-top:12px"><div style="font-size:12px;font-weight:600;color:#ef4444;margin-bottom:6px">❌ 错误 (${errors.length})</div>';
+    errors.slice(0, 10).forEach(e => {
+      html += `<div class="log-line log-error">${e.trim()}</div>`;
+    });
+    html += '</div>';
+  }
+  
+  if (warns.length > 0) {
+    html += '<div style="margin-top:12px"><div style="font-size:12px;font-weight:600;color:#fbbf24;margin-bottom:6px">⚠️ 警告 (${warns.length})</div>';
+    warns.slice(0, 5).forEach(w => {
+      html += `<div class="log-line log-warn">${w.trim()}</div>`;
+    });
+    html += '</div>';
+  }
+  
+  document.getElementById('result').innerHTML = html;
+}
+
+function loadSample() {
+  document.getElementById('logs').value = `[2026-03-18 10:30:45] INFO: Application started
+[2026-03-18 10:30:46] DEBUG: Loading config from /etc/app.conf
+[2026-03-18 10:30:47] INFO: Database connection pool initialized
+[2026-03-18 10:30:48] WARN: Deprecated API endpoint used
+[2026-03-18 10:31:02] ERROR: Connection timeout to database
+[2026-03-18 10:31:03] ERROR: Exception in database query: java.sql.SQLException
+[2026-03-18 10:31:04] WARN: Retrying failed request...
+[2026-03-18 10:31:05] INFO: Retry successful
+[2026-03-18 10:35:12] ERROR: Fatal error in payment processing
+[2026-03-18 10:35:13] ERROR: Stack trace: at com.example.PaymentService.process()`;
+  analyze();
+}
+</script>
+</body>
+</html>

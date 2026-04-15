@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>项目倒计时</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .main { padding: 20px; max-width: 1000px; margin: 0 auto; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+    .card-title { padding: 10px 16px; background: #1f2235; font-size: 12px; font-weight: 600; color: #8b90a7; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #2d3148; }
+    .card-body { padding: 16px; }
+    .input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .input { flex: 1; background: #131520; border: 1px solid #363b5e; border-radius: 6px; padding: 8px 12px; color: #e2e8f0; font-size: 13px; outline: none; }
+    .input:focus { border-color: #6366f1; }
+    .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-primary:hover { background: #5457d4; }
+    .milestone { background: #131520; border: 1px solid #363b5e; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+    .milestone-title { font-weight: 600; margin-bottom: 8px; }
+    .countdown { font-size: 20px; font-weight: 700; color: #6366f1; font-family: monospace; margin: 8px 0; }
+    .countdown.warning { color: #fbbf24; }
+    .countdown.danger { color: #ef4444; }
+    .progress-bar { background: #2d3148; border-radius: 4px; height: 8px; overflow: hidden; margin: 8px 0; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6); border-radius: 4px; transition: width .2s; }
+    .milestone-actions { display: flex; gap: 6px; margin-top: 10px; }
+    .milestone-btn { padding: 4px 10px; background: #2d3148; border: none; border-radius: 4px; color: #8b90a7; cursor: pointer; font-size: 11px; transition: all .2s; }
+    .milestone-btn:hover { background: #6366f1; color: #fff; }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">⏳</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">项目倒计时</h1>
+    <p style="font-size:12px;color:#8b90a7;margin-top:2px">追踪 Deadline，防止遗忘关键里程碑</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="card">
+    <div class="card-title">添加里程碑</div>
+    <div class="card-body">
+      <div class="input-row">
+        <input class="input" id="name" placeholder="里程碑名称（如：产品上线）" style="flex:1">
+        <input class="input" id="date" type="date">
+        <button class="btn btn-primary" onclick="addMilestone()">+ 添加</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">倒计时列表</div>
+    <div class="card-body" id="milestones-list">
+      <p style="color:#4a4f6a;font-size:12px">暂无里程碑</p>
+    </div>
+  </div>
+</div>
+
+<script>
+let milestones = JSON.parse(localStorage.getItem('milestones') || '[]');
+
+function addMilestone() {
+  const name = document.getElementById('name').value.trim();
+  const date = document.getElementById('date').value;
+  if (!name || !date) return;
+  
+  milestones.push({ id: Date.now(), name, date, created: new Date().toISOString() });
+  localStorage.setItem('milestones', JSON.stringify(milestones));
+  
+  document.getElementById('name').value = '';
+  document.getElementById('date').value = '';
+  render();
+}
+
+function removeMilestone(id) {
+  milestones = milestones.filter(m => m.id !== id);
+  localStorage.setItem('milestones', JSON.stringify(milestones));
+  render();
+}
+
+function render() {
+  const now = new Date();
+  const sorted = milestones.sort((a, b) => new Date(a.date) - new Date(b.date));
+  
+  const html = sorted.map(m => {
+    const target = new Date(m.date);
+    const diff = target - now;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    const isPassed = diff < 0;
+    const isUrgent = diff < 3 * 24 * 60 * 60 * 1000 && diff > 0;
+    
+    const pct = Math.max(0, Math.min(100, (30 - days) / 30 * 100));
+    
+    return `<div class="milestone">
+      <div class="milestone-title">${m.name}</div>
+      <div class="countdown ${isPassed ? 'danger' : isUrgent ? 'warning' : ''}">
+        ${isPassed ? '❌ 已超期' : isUrgent ? '⚠️ ' : '📅 '}
+        ${isPassed ? '超期 ' + (-days) + ' 天' : days + ' 天 ' + hours + '小时'}
+      </div>
+      <div style="font-size:12px;color:#8b90a7">
+        目标: ${target.toLocaleString('zh-CN', {timeZone:'Asia/Shanghai'})}
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div class="milestone-actions">
+        <button class="milestone-btn" onclick="removeMilestone(${m.id})">🗑️ 删除</button>
+      </div>
+    </div>`;
+  }).join('');
+  
+  document.getElementById('milestones-list').innerHTML = html || '<p style="color:#4a4f6a;font-size:12px">暂无里程碑</p>';
+}
+
+// 每分钟更新一次
+setInterval(render, 60000);
+render();
+</script>
+</body>
+</html>

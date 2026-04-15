@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>颜色转换器 - Color Converter</title>
+  <meta name="description" content="在线颜色转换工具，支持 HEX/RGB/HSL 互转、Tailwind CSS 色阶匹配、渐变生成器、WCAG 对比度检查。">
+  <style>
+    :root {
+      --bg-base: #0d1117;
+      --bg-surface: #161b27;
+      --bg-elevated: #1c2133;
+      --border-default: #2a3050;
+      --border-subtle: #1e2438;
+      --text-primary: #cdd6f4;
+      --text-secondary: #8892b4;
+      --text-muted: #4a5278;
+      --accent: #6366f1;
+      --accent-light: #818cf8;
+      --accent-green: #4ade80;
+      --accent-orange: #ff9e64;
+      --accent-red: #f7768e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-base); color: var(--text-primary); min-height: 100vh; }
+    .header { background: var(--bg-surface); border-bottom: 1px solid var(--border-default); padding: 14px 20px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid var(--border-default); color: var(--text-muted); border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .main { padding: 20px; max-width: 960px; margin: 0 auto; }
+    .card { background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: var(--bg-elevated); font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border-default); display: flex; align-items: center; gap: 8px; }
+    .card-body { padding: 16px; }
+    .btn { padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 12px; font-weight: 500; transition: all .2s; display: inline-flex; align-items: center; gap: 4px; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-default { background: var(--border-default); color: var(--text-secondary); }
+    .btn-default:hover { background: var(--accent); color: #fff; }
+    .btn-accent { background: var(--accent); color: #fff; }
+    .btn-accent:hover { background: var(--accent-light); }
+    .btn-sm { padding: 3px 10px; font-size: 11px; }
+
+    /* Color picker area */
+    .picker-grid { display: grid; grid-template-columns: 1fr 180px; gap: 16px; }
+    .color-preview { width: 100%; height: 100%; min-height: 140px; border-radius: 8px; border: 1px solid var(--border-subtle); transition: background .2s; cursor: pointer; }
+    .input-row { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
+    .color-picker-input { width: 48px; height: 38px; border: none; border-radius: 6px; cursor: pointer; padding: 0; background: none; }
+    .text-input { flex: 1; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 9px 12px; color: var(--text-primary); font-family: 'SF Mono', monospace; font-size: 14px; outline: none; transition: border-color .2s; }
+    .text-input:focus { border-color: var(--accent); }
+    .slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .slider-label { min-width: 28px; font-size: 12px; color: var(--text-muted); font-weight: 600; }
+    input[type=range] { flex: 1; accent-color: var(--accent); cursor: pointer; height: 6px; }
+    .slider-val { min-width: 36px; font-size: 12px; color: var(--text-primary); text-align: right; font-family: monospace; }
+
+    /* Formats grid */
+    .formats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .format-item { background: var(--bg-base); border-radius: 8px; padding: 10px 12px; border: 1px solid var(--border-subtle); }
+    .format-label { font-size: 10px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .3px; }
+    .format-val { font-family: 'SF Mono', monospace; font-size: 13px; color: var(--text-primary); margin-bottom: 6px; word-break: break-all; min-height: 20px; }
+    .copy-btn { padding: 3px 10px; background: var(--border-default); border: none; border-radius: 4px; color: var(--text-muted); cursor: pointer; font-size: 11px; transition: all .15s; }
+    .copy-btn:hover { background: var(--accent); color: #fff; }
+
+    /* Tailwind scale */
+    .tw-section { margin-top: 12px; }
+    .tw-scale { display: flex; gap: 4px; margin-bottom: 8px; }
+    .tw-swatch { flex: 1; height: 48px; border-radius: 6px; cursor: pointer; transition: all .2s; position: relative; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 4px; }
+    .tw-swatch:hover { transform: scaleY(1.15); z-index: 2; }
+    .tw-swatch.active { outline: 2px solid #fff; outline-offset: 1px; }
+    .tw-swatch span { font-size: 9px; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+    .tw-match-info { font-size: 12px; color: var(--text-secondary); padding: 8px 0; display: flex; align-items: center; gap: 8px; }
+    .tw-match-info .color-dot { width: 16px; height: 16px; border-radius: 4px; display: inline-block; }
+    .tw-class-name { font-family: 'SF Mono', monospace; color: var(--accent-light); font-weight: 600; }
+
+    /* Gradient generator */
+    .gradient-preview { width: 100%; height: 120px; border-radius: 8px; border: 1px solid var(--border-subtle); margin-bottom: 12px; }
+    .gradient-controls { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin-bottom: 12px; }
+    .gradient-stop { display: flex; flex-direction: column; gap: 4px; }
+    .gradient-stop label { font-size: 10px; color: var(--text-muted); }
+    .gradient-code { background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px 12px; font-family: 'SF Mono', monospace; font-size: 12px; color: var(--text-secondary); word-break: break-all; margin-bottom: 8px; }
+    .direction-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .dir-btn { padding: 5px 10px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-elevated); color: var(--text-secondary); font-size: 11px; cursor: pointer; transition: all .2s; }
+    .dir-btn:hover, .dir-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(99,102,241,.1); }
+    .gradient-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+    .gradient-preset { width: 48px; height: 28px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; transition: all .2s; }
+    .gradient-preset:hover { border-color: var(--accent); transform: scale(1.1); }
+
+    /* WCAG contrast */
+    .contrast-grid { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: end; }
+    .contrast-input-wrap { display: flex; flex-direction: column; gap: 4px; }
+    .contrast-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+    .contrast-input { width: 100px; height: 36px; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 2px; cursor: pointer; }
+    .contrast-preview { min-width: 100px; height: 56px; border-radius: 8px; border: 1px solid var(--border-default); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; }
+    .contrast-result { display: flex; flex-direction: column; gap: 6px; }
+    .contrast-ratio { font-size: 28px; font-weight: 800; color: var(--text-primary); font-family: monospace; }
+    .contrast-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+    .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-pass { background: rgba(34,197,94,.12); color: var(--accent-green); border: 1px solid rgba(34,197,94,.25); }
+    .badge-fail { background: rgba(248,113,113,.12); color: var(--accent-red); border: 1px solid rgba(248,113,113,.25); }
+
+    /* Palette */
+    .palette { display: flex; flex-wrap: wrap; gap: 6px; }
+    .swatch { width: 36px; height: 36px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; transition: all .15s; }
+    .swatch:hover { transform: scale(1.2); border-color: rgba(255,255,255,.3); z-index: 2; }
+
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--bg-elevated); color: var(--text-primary); padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border-default); font-size: 13px; z-index: 1000; opacity: 0; transition: all .3s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 700px) {
+      .picker-grid { grid-template-columns: 1fr; }
+      .formats-grid { grid-template-columns: 1fr 1fr; }
+      .contrast-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">&#x1F3A8;</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">颜色转换器</h1>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:2px">HEX / RGB / HSL 互转 &#183; Tailwind 色阶 &#183; 渐变生成 &#183; 对比度检查</p>
+  </div>
+  <a class="back-btn" href="../../index.html">&larr; 返回工具集</a>
+</div>
+
+<div class="main">
+  <!-- Color Picker -->
+  <div class="card">
+    <div class="card-title">&#x1F3A8; 颜色选择</div>
+    <div class="card-body">
+      <div class="picker-grid">
+        <div>
+          <div class="input-row">
+            <input type="color" class="color-picker-input" id="picker" value="#6366f1">
+            <input class="text-input" id="hex-input" value="#6366f1" placeholder="#6366f1 或 coral">
+            <input class="text-input" id="hsl-input" value="" placeholder="hsl(239, 84%, 67%)" style="max-width:200px">
+          </div>
+          <div class="slider-row"><span class="slider-label">R</span><input type="range" id="sr" min="0" max="255"><span class="slider-val" id="rv">99</span></div>
+          <div class="slider-row"><span class="slider-label">G</span><input type="range" id="sg" min="0" max="255"><span class="slider-val" id="gv">102</span></div>
+          <div class="slider-row"><span class="slider-label">B</span><input type="range" id="sb" min="0" max="255"><span class="slider-val" id="bv">241</span></div>
+          <div class="slider-row"><span class="slider-label">A</span><input type="range" id="sa" min="0" max="255" value="255"><span class="slider-val" id="av">1.00</span></div>
+        </div>
+        <div id="preview" class="color-preview" style="background:#6366f1"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formats -->
+  <div class="card">
+    <div class="card-title">&#x1F4CB; 格式转换</div>
+    <div class="card-body">
+      <div class="formats-grid" id="formats"></div>
+    </div>
+  </div>
+
+  <!-- Tailwind CSS Scale -->
+  <div class="card">
+    <div class="card-title">&#x1F3A8; Tailwind CSS 色阶</div>
+    <div class="card-body">
+      <div class="tw-match-info" id="tw-match-info"></div>
+      <div class="tw-scale" id="tw-scale"></div>
+      <div style="margin-top:8px">
+        <div class="tw-match-info" style="font-size:11px;color:var(--text-muted)">其他相近色系:</div>
+        <div id="tw-alternatives" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gradient Generator -->
+  <div class="card">
+    <div class="card-title">&#x1F308; 渐变生成器</div>
+    <div class="card-body">
+      <div class="gradient-presets" id="gradient-presets"></div>
+      <div class="gradient-preview" id="gradient-preview"></div>
+      <div class="gradient-controls">
+        <div class="gradient-stop">
+          <label>起始色</label>
+          <input type="color" id="grad-from" value="#6366f1">
+        </div>
+        <div class="gradient-stop">
+          <label>终止色</label>
+          <input type="color" id="grad-to" value="#ec4899">
+        </div>
+        <div class="gradient-stop">
+          <label>中间色 (可选)</label>
+          <input type="color" id="grad-mid" value="#f59e0b">
+        </div>
+        <label style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px">
+          <input type="checkbox" id="grad-use-mid"> 使用中间色
+        </label>
+      </div>
+      <div class="direction-row" id="dir-row"></div>
+      <div class="gradient-code" id="gradient-code"></div>
+      <div>
+        <button class="btn btn-accent" onclick="copyGradientCode()">复制 CSS</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WCAG Contrast -->
+  <div class="card">
+    <div class="card-title">&#x1F3AF; WCAG 对比度检查</div>
+    <div class="card-body">
+      <div class="contrast-grid">
+        <div class="contrast-input-wrap">
+          <span class="contrast-label">前景色</span>
+          <input type="color" class="contrast-input" id="fg" value="#ffffff">
+        </div>
+        <div class="contrast-input-wrap">
+          <span class="contrast-label">背景色</span>
+          <input type="color" class="contrast-input" id="bg" value="#6366f1">
+        </div>
+        <div class="contrast-preview" id="contrast-preview" style="background:#6366f1;color:#fff">Aa</div>
+        <div class="contrast-result">
+          <span class="contrast-ratio" id="contrast-ratio">5.74:1</span>
+          <div class="contrast-badges" id="contrast-badges"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Color Palette -->
+  <div class="card">
+    <div class="card-title">
+      &#x1F3A8; 常用色板
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-sm btn-default" onclick="addColorToPalette()">+ 添加当前色</button>
+        <button class="btn btn-sm btn-default" onclick="exportPalette('css')">导出 CSS</button>
+        <button class="btn btn-sm btn-default" onclick="exportPalette('scss')">导出 SCSS</button>
+        <button class="btn btn-sm btn-default" onclick="exportPalette('tailwind')">导出 Tailwind</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="palette" id="palette"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============== Named Colors ==============
+const NAMED_COLORS = {
+  'aliceblue':'#f0f8ff','antiquewhite':'#faebd7','aqua':'#00ffff','aquamarine':'#7fffd4','azure':'#f0ffff',
+  'beige':'#f5f5dc','bisque':'#ffe4c4','black':'#000000','blanchedalmond':'#ffebcd','blue':'#0000ff',
+  'blueviolet':'#8a2be2','brown':'#a52a2a','burlywood':'#deb887','cadetblue':'#5f9ea0','chartreuse':'#7fff00',
+  'chocolate':'#d2691e','coral':'#ff7f50','cornflowerblue':'#6495ed','cornsilk':'#fff8dc','crimson':'#dc143c',
+  'cyan':'#00ffff','darkblue':'#00008b','darkcyan':'#008b8b','darkgoldenrod':'#b8860b','darkgray':'#a9a9a9',
+  'darkgreen':'#006400','darkkhaki':'#bdb76b','darkmagenta':'#8b008b','darkolivegreen':'#556b2f',
+  'darkorange':'#ff8c00','darkorchid':'#9932cc','darkred':'#8b0000','darksalmon':'#e9967a',
+  'darkseagreen':'#8fbc8f','darkslateblue':'#483d8b','darkslategray':'#2f4f4f','darkturquoise':'#00ced1',
+  'darkviolet':'#9400d3','deeppink':'#ff1493','deepskyblue':'#00bfff','dimgray':'#696969',
+  'dodgerblue':'#1e90ff','firebrick':'#b22222','floralwhite':'#fffaf0','forestgreen':'#228b22',
+  'fuchsia':'#ff00ff','gainsboro':'#dcdcdc','ghostwhite':'#f8f8ff','gold':'#ffd700','goldenrod':'#daa520',
+  'gray':'#808080','green':'#008000','greenyellow':'#adff2f','honeydew':'#f0fff0','hotpink':'#ff69b4',
+  'indianred':'#cd5c5c','indigo':'#4b0082','ivory':'#fffff0','khaki':'#f0e68c','lavender':'#e6e6fa',
+  'lavenderblush':'#fff0f5','lawngreen':'#7cfc00','lemonchiffon':'#fffacd','lightblue':'#add8e6',
+  'lightcoral':'#f08080','lightcyan':'#e0ffff','lightgoldenrodyellow':'#fafad2','lightgray':'#d3d3d3',
+  'lightgreen':'#90ee90','lightpink':'#ffb6c1','lightsalmon':'#ffa07a','lightseagreen':'#20b2aa',
+  'lightskyblue':'#87cefa','lightslategray':'#778899','lightsteelblue':'#b0c4de','lightyellow':'#ffffe0',
+  'lime':'#00ff00','limegreen':'#32cd32','linen':'#faf0e6','magenta':'#ff00ff','maroon':'#800000',
+  'mediumaquamarine':'#66cdaa','mediumblue':'#0000cd','mediumorchid':'#ba55d3','mediumpurple':'#9370db',
+  'mediumseagreen':'#3cb371','mediumslateblue':'#7b68ee','mediumspringgreen':'#00fa9a',
+  'mediumturquoise':'#48d1cc','mediumvioletred':'#c71585','midnightblue':'#191970','mintcream':'#f5fffa',
+  'mistyrose':'#ffe4e1','moccasin':'#ffe4b5','navajowhite':'#ffdead','navy':'#000080','oldlace':'#fdf5e6',
+  'olive':'#808000','olivedrab':'#6b8e23','orange':'#ffa500','orangered':'#ff4500','orchid':'#da70d6',
+  'palegoldenrod':'#eee8aa','palegreen':'#98fb98','paleturquoise':'#afeeee','palevioletred':'#db7093',
+  'papayawhip':'#ffefd5','peachpuff':'#ffdab9','peru':'#cd853f','pink':'#ffc0cb','plum':'#dda0dd',
+  'powderblue':'#b0e0e6','purple':'#800080','rebeccapurple':'#663399','red':'#ff0000','rosybrown':'#bc8f8f',
+  'royalblue':'#4169e1','saddlebrown':'#8b4513','salmon':'#fa8072','sandybrown':'#f4a460',
+  'seagreen':'#2e8b57','seashell':'#fff5ee','sienna':'#a0522d','silver':'#c0c0c0','skyblue':'#87ceeb',
+  'slateblue':'#6a5acd','slategray':'#708090','snow':'#fffafa','springgreen':'#00ff7f',
+  'steelblue':'#4682b4','tan':'#d2b48c','teal':'#008080','thistle':'#d8bfd8','tomato':'#ff6347',
+  'turquoise':'#40e0d0','violet':'#ee82ee','wheat':'#f5deb3','white':'#ffffff','whitesmoke':'#f5f5f5',
+  'yellow':'#ffff00','yellowgreen':'#9acd32'
+};
+
+// ============== Color Utilities ==============
+function hexToRgb(hex) {
+  hex = hex.replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+  return { r: parseInt(hex.slice(0,2),16), g: parseInt(hex.slice(2,4),16), b: parseInt(hex.slice(4,6),16) };
+}
+
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('');
+}
+
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h, s, l = (max + min) / 2;
+  if (max === min) { h = s = 0; }
+  else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      default: h = ((r - g) / d + 4) / 6;
+    }
+  }
+  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
+function hslToRgb(h, s, l) {
+  s /= 100; l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => {
+    const k = (n + h / 30) % 12;
+    return l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+  };
+  return { r: Math.round(f(0) * 255), g: Math.round(f(8) * 255), b: Math.round(f(4) * 255) };
+}
+
+function getLuminance(r, g, b) {
+  const [rs, gs, bs] = [r, g, b].map(v => {
+    v /= 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+function colorDist(a, b) {
+  return Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2);
+}
+
+function contrastRatio(fg, bg) {
+  const l1 = getLuminance(fg.r, fg.g, fg.b);
+  const l2 = getLuminance(bg.r, bg.g, bg.b);
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+}
+
+// ============== Toast ==============
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ============== Clipboard ==============
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => showToast('✓ 已复制: ' + text)).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('✓ 已复制');
+  });
+}
+
+// ============== Tailwind CSS Full Scale ==============
+const TW_COLORS = {
+  slate:   { 50:[248,250,252],100:[241,245,249],200:[226,232,240],300:[203,213,225],400:[148,163,184],500:[100,116,139],600:[71,85,105],700:[51,65,85],800:[30,41,59],900:[15,23,42],950:[2,6,23] },
+  gray:    { 50:[249,250,251],100:[243,244,246],200:[229,231,235],300:[209,213,219],400:[156,163,175],500:[107,114,128],600:[75,85,99],700:[55,65,81],800:[31,41,55],900:[17,24,39],950:[3,7,18] },
+  zinc:    { 50:[250,250,250],100:[244,244,245],200:[228,228,231],300:[212,212,216],400:[161,161,170],500:[113,113,122],600:[82,82,91],700:[63,63,70],800:[39,39,42],900:[24,24,27],950:[9,9,11] },
+  neutral: { 50:[250,250,250],100:[245,245,245],200:[229,229,229],300:[212,212,212],400:[163,163,163],500:[115,115,115],600:[82,82,82],700:[64,64,64],800:[38,38,38],900:[23,23,23],950:[10,10,10] },
+  stone:   { 50:[250,250,249],100:[245,245,244],200:[231,229,228],300:[214,211,209],400:[168,162,158],500:[120,113,108],600:[87,83,78],700:[68,64,60],800:[41,37,36],900:[28,25,23],950:[12,10,9] },
+  red:     { 50:[254,242,242],100:[254,226,226],200:[254,202,202],300:[252,165,165],400:[248,113,113],500:[239,68,68],600:[220,38,38],700:[185,28,28],800:[153,27,27],900:[127,29,29],950:[69,10,10] },
+  orange:  { 50:[255,247,237],100:[255,237,213],200:[254,215,170],300:[253,186,116],400:[251,146,60],500:[249,115,22],600:[234,88,12],700:[194,65,12],800:[154,52,18],900:[124,45,18],950:[67,20,7] },
+  amber:   { 50:[255,251,235],100:[254,243,199],200:[253,230,138],300:[252,211,77],400:[251,191,36],500:[245,158,11],600:[217,119,6],700:[180,83,9],800:[146,64,14],900:[120,53,15],950:[69,26,3] },
+  yellow:  { 50:[254,252,232],100:[254,249,195],200:[254,240,138],300:[253,224,71],400:[250,204,21],500:[234,179,8],600:[202,138,4],700:[161,98,7],800:[133,77,14],900:[113,63,18],950:[66,32,6] },
+  lime:    { 50:[247,254,231],100:[236,252,203],200:[217,249,157],300:[190,242,100],400:[163,230,53],500:[132,204,22],600:[101,163,13],700:[77,124,15],800:[63,98,18],900:[54,83,20],950:[26,46,5] },
+  green:   { 50:[240,253,244],100:[220,252,231],200:[187,247,208],300:[134,239,172],400:[74,222,128],500:[34,197,94],600:[22,163,74],700:[21,128,61],800:[22,101,52],900:[20,83,45],950:[5,46,22] },
+  emerald: { 50:[236,253,245],100:[209,250,229],200:[167,243,208],300:[110,231,183],400:[52,211,153],500:[16,185,129],600:[5,150,105],700:[4,120,87],800:[6,95,70],900:[6,78,59],950:[2,44,34] },
+  teal:    { 50:[240,253,250],100:[204,251,241],200:[153,246,228],300:[94,234,212],400:[45,212,191],500:[20,184,166],600:[13,148,136],700:[15,118,110],800:[17,94,89],900:[19,78,74],950:[4,47,46] },
+  cyan:    { 50:[236,254,255],100:[207,250,254],200:[165,243,252],300:[103,232,249],400:[34,211,238],500:[6,182,212],600:[8,145,178],700:[14,116,144],800:[17,94,89],900:[22,78,99],950:[8,51,68] },
+  sky:     { 50:[240,249,255],100:[224,242,254],200:[186,230,253],300:[125,211,252],400:[56,189,248],500:[14,165,233],600:[2,132,199],700:[3,105,161],800:[7,89,133],900:[12,74,110],950:[8,47,73] },
+  blue:    { 50:[239,246,255],100:[219,234,254],200:[191,219,254],300:[147,197,253],400:[96,165,250],500:[59,130,246],600:[37,99,235],700:[29,78,216],800:[30,64,175],900:[30,58,138],950:[23,37,84] },
+  indigo:  { 50:[238,242,255],100:[224,231,255],200:[199,210,254],300:[165,180,252],400:[129,140,248],500:[99,102,241],600:[79,70,229],700:[67,56,202],800:[55,48,163],900:[49,46,129],950:[30,27,75] },
+  violet:  { 50:[245,243,255],100:[237,233,254],200:[221,214,254],300:[196,181,253],400:[167,139,250],500:[139,92,246],600:[124,58,237],700:[109,40,217],800:[91,33,182],900:[76,29,149],950:[46,16,101] },
+  purple:  { 50:[250,245,255],100:[243,232,255],200:[233,213,255],300:[216,180,254],400:[192,132,252],500:[168,85,247],600:[147,51,234],700:[126,34,206],800:[107,33,168],900:[88,28,135],950:[59,7,100] },
+  fuchsia: { 50:[253,244,255],100:[250,232,255],200:[245,208,254],300:[232,121,249],400:[217,70,239],500:[192,38,211],600:[162,28,175],700:[134,25,143],800:[112,26,117],900:[88,15,110],950:[51,7,46] },
+  pink:    { 50:[253,242,248],100:[252,231,243],200:[251,207,232],300:[249,168,212],400:[244,114,182],500:[236,72,153],600:[219,39,119],700:[190,24,93],800:[157,23,77],900:[131,24,67],950:[80,7,36] },
+  rose:    { 50:[255,241,242],100:[255,228,230],200:[254,205,211],300:[253,164,175],400:[251,113,133],500:[244,63,94],600:[225,29,72],700:[190,18,60],800:[159,18,57],900:[136,19,55],950:[76,5,25] },
+};
+
+function findBestTailwind(r, g, b) {
+  let bestColor = 'gray', bestShade = 500, bestDist = Infinity;
+  const target = [r, g, b];
+
+  for (const [colorName, shades] of Object.entries(TW_COLORS)) {
+    for (const [shade, rgb] of Object.entries(shades)) {
+      const d = colorDist(target, rgb);
+      if (d < bestDist) {
+        bestDist = d;
+        bestColor = colorName;
+        bestShade = parseInt(shade);
+      }
+    }
+  }
+
+  // Find top 3 color families
+  const familyScores = {};
+  for (const [colorName, shades] of Object.entries(TW_COLORS)) {
+    let minD = Infinity, bestS = 500;
+    for (const [shade, rgb] of Object.entries(shades)) {
+      const d = colorDist(target, rgb);
+      if (d < minD) { minD = d; bestS = parseInt(shade); }
+    }
+    if (colorName === 'gray' || colorName === 'slate' || colorName === 'zinc' || colorName === 'neutral' || colorName === 'stone') continue;
+    familyScores[colorName] = { shade: bestS, dist: minD };
+  }
+  const sortedFamilies = Object.entries(familyScores).sort((a, b) => a[1].dist - b[1].dist).slice(0, 5);
+
+  return { color: bestColor, shade: bestShade, dist: bestDist, alternatives: sortedFamilies };
+}
+
+function textColorFor(r, g, b) {
+  return getLuminance(r, g, b) > 0.35 ? '#000' : '#fff';
+}
+
+function renderTailwindScale(r, g, b) {
+  const match = findBestTailwind(r, g, b);
+  const shades = TW_COLORS[match.color];
+
+  // Best match info
+  const matchHex = rgbToHex(...shades[match.shade]);
+  document.getElementById('tw-match-info').innerHTML = `
+    <span class="color-dot" style="background:${matchHex}"></span>
+    最近匹配: <span class="tw-class-name">${match.color}-${match.shade}</span>
+    <span style="color:var(--text-muted)">${matchHex}</span>
+    <span style="color:var(--text-muted);font-size:10px">(距离: ${match.dist.toFixed(1)})</span>
+  `;
+
+  // Render main scale
+  document.getElementById('tw-scale').innerHTML = Object.entries(shades).map(([shade, rgb]) => {
+    const hex = rgbToHex(...rgb);
+    const active = parseInt(shade) === match.shade && match.dist < 100 ? ' active' : '';
+    const tc = textColorFor(...rgb);
+    return `<div class="tw-swatch${active}" style="background:${hex}" onclick="setColor('${hex}')" title="${match.color}-${shade} ${hex}">
+      <span style="color:${tc}">${shade}</span>
+    </div>`;
+  }).join('');
+
+  // Render alternatives
+  document.getElementById('tw-alternatives').innerHTML = match.alternatives.map(([name, info]) => {
+    const rgb = TW_COLORS[name][info.shade];
+    const hex = rgbToHex(...rgb);
+    return `<div class="tw-scale" style="margin-bottom:8px">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">${name} (距离: ${info.dist.toFixed(1)})</div>
+      ${Object.entries(TW_COLORS[name]).map(([shade, rgb]) => {
+        const h = rgbToHex(...rgb);
+        const tc = textColorFor(...rgb);
+        const active = parseInt(shade) === info.shade ? ' active' : '';
+        return `<div class="tw-swatch${active}" style="background:${h};height:32px" onclick="setColor('${h}')" title="${name}-${shade} ${h}">
+          <span style="color:${tc};font-size:8px">${shade}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ============== Gradient Generator ==============
+const GRADIENT_DIRS = [
+  { label: '&#x2192;', value: 'to right' },
+  { label: '&#x2193;', value: 'to bottom' },
+  { label: '&#x2199;', value: 'to bottom right' },
+  { label: '&#x2196;', value: 'to bottom left' },
+  { label: '&#x2B05;', value: 'to left' },
+  { label: '&#x2B06;', value: 'to top' },
+  { label: '&#x2197;', value: 'to top right' },
+  { label: '&#x2198;', value: 'to top left' },
+];
+
+const GRADIENT_PRESETS = [
+  ['#667eea', '#764ba2'], ['#f093fb', '#f5576c'], ['#4facfe', '#00f2fe'],
+  ['#43e97b', '#38f9d7'], ['#fa709a', '#fee140'], ['#a18cd1', '#fbc2eb'],
+  ['#fccb90', '#d57eeb'], ['#e0c3fc', '#8ec5fc'], ['#f5576c', '#ff6a00'],
+  ['#0acffe', '#495aff'], ['#667eea', '#764ba2'], ['#89f7fe', '#66a6ff'],
+  ['#fddb92', '#d1fdff'], ['#a1c4fd', '#c2e9fb'], ['#d4fc79', '#96e6a1'],
+  ['#84fab0', '#8fd3f4'], ['#cfd9df', '#e2ebf0'], ['#ffecd2', '#fcb69f'],
+];
+
+let gradDir = 'to right';
+
+function updateGradient() {
+  const from = document.getElementById('grad-from').value;
+  const to = document.getElementById('grad-to').value;
+  const useMid = document.getElementById('grad-use-mid').checked;
+  const mid = document.getElementById('grad-mid').value;
+  const stops = useMid ? `${from}, ${mid}, ${to}` : `${from}, ${to}`;
+  const css = `linear-gradient(${gradDir}, ${stops})`;
+  document.getElementById('gradient-preview').style.background = css;
+  document.getElementById('gradient-code').textContent = `background: ${css};`;
+}
+
+function renderGradientUI() {
+  // Direction buttons
+  document.getElementById('dir-row').innerHTML = GRADIENT_DIRS.map(d =>
+    `<button class="dir-btn${d.value === gradDir ? ' active' : ''}" onclick="setGradDir('${d.value}')" title="${d.value}">${d.label}</button>`
+  ).join('');
+
+  // Presets
+  document.getElementById('gradient-presets').innerHTML = GRADIENT_PRESETS.map(([c1, c2]) =>
+    `<div class="gradient-preset" style="background:linear-gradient(135deg,${c1},${c2})" onclick="applyPreset('${c1}','${c2}')"></div>`
+  ).join('');
+
+  updateGradient();
+}
+
+function setGradDir(dir) {
+  gradDir = dir;
+  renderGradientUI();
+}
+
+function applyPreset(c1, c2) {
+  document.getElementById('grad-from').value = c1;
+  document.getElementById('grad-to').value = c2;
+  document.getElementById('grad-use-mid').checked = false;
+  updateGradient();
+}
+
+function copyGradientCode() {
+  copyText(document.getElementById('gradient-code').textContent);
+}
+
+// ============== Main Update ==============
+function updateAll(r, g, b, a) {
+  a = a !== undefined ? a : 255;
+  r = Math.round(r); g = Math.round(g); b = Math.round(b);
+
+  // Sliders
+  document.getElementById('sr').value = r; document.getElementById('rv').textContent = r;
+  document.getElementById('sg').value = g; document.getElementById('gv').textContent = g;
+  document.getElementById('sb').value = b; document.getElementById('bv').textContent = b;
+  document.getElementById('sa').value = a; document.getElementById('av').textContent = (a / 255).toFixed(2);
+
+  const hex = rgbToHex(r, g, b);
+  document.getElementById('hex-input').value = hex;
+  document.getElementById('picker').value = hex;
+
+  const hsl = rgbToHsl(r, g, b);
+  document.getElementById('hsl-input').value = `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
+
+  const alpha = (a / 255).toFixed(2);
+  const preview = a < 255 ? `rgba(${r},${g},${b},${alpha})` : hex;
+  document.getElementById('preview').style.background = preview;
+
+  // Formats
+  const formats = [
+    ['HEX', hex.toUpperCase()],
+    ['RGB', `rgb(${r}, ${g}, ${b})`],
+    ['RGBA', `rgba(${r}, ${g}, ${b}, ${alpha})`],
+    ['HSL', `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`],
+    ['HSLA', `hsla(${hsl.h}, ${hsl.s}%, ${hsl.l}%, ${alpha})`],
+    ['CSS', `--color: ${hex};`],
+  ];
+
+  const tw = findBestTailwind(r, g, b);
+  if (tw.dist < 100) {
+    formats.push(['Tailwind', `${tw.color}-${tw.shade}`]);
+  }
+
+  document.getElementById('formats').innerHTML = formats.map(([label, val]) => `
+    <div class="format-item">
+      <div class="format-label">${label}</div>
+      <div class="format-val">${val}</div>
+      <button class="copy-btn" onclick="copyText('${val.replace(/'/g, "\\'")}')">复制</button>
+    </div>
+  `).join('');
+
+  // Tailwind scale
+  renderTailwindScale(r, g, b);
+
+  // Contrast
+  updateContrast();
+}
+
+function updateContrast() {
+  const fgHex = document.getElementById('fg').value;
+  const bgHex = document.getElementById('bg').value;
+  const fg = hexToRgb(fgHex), bg = hexToRgb(bgHex);
+  const ratio = contrastRatio(fg, bg);
+
+  document.getElementById('contrast-preview').style.background = bgHex;
+  document.getElementById('contrast-preview').style.color = fgHex;
+  document.getElementById('contrast-ratio').textContent = ratio.toFixed(2) + ':1';
+  document.getElementById('contrast-badges').innerHTML = `
+    <span class="badge ${ratio >= 3 ? 'badge-pass' : 'badge-fail'}">${ratio >= 3 ? '✓' : '✗'} AA 大字 (3:1)</span>
+    <span class="badge ${ratio >= 4.5 ? 'badge-pass' : 'badge-fail'}">${ratio >= 4.5 ? '✓' : '✗'} AA (4.5:1)</span>
+    <span class="badge ${ratio >= 7 ? 'badge-pass' : 'badge-fail'}">${ratio >= 7 ? '✓' : '✗'} AAA (7:1)</span>
+  `;
+}
+
+function setColor(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  updateAll(r, g, b);
+}
+
+// ============== Event Bindings ==============
+document.getElementById('picker').addEventListener('input', function() { setColor(this.value); });
+
+document.getElementById('hex-input').addEventListener('input', function() {
+  let val = this.value.trim();
+  // Check named color
+  const named = NAMED_COLORS[val.toLowerCase()];
+  if (named) { setColor(named); return; }
+  let hex = val;
+  if (!hex.startsWith('#')) hex = '#' + hex;
+  if (/^#[0-9a-fA-F]{3}$/.test(hex) || /^#[0-9a-fA-F]{6}$/.test(hex) || /^#[0-9a-fA-F]{8}$/.test(hex)) {
+    setColor(hex.slice(0, 7)); // Only use first 6 hex chars for RGB
+  }
+});
+
+document.getElementById('hsl-input').addEventListener('input', function() {
+  const m = this.value.match(/hsl[a]?\(\s*(\d+)\s*,\s*(\d+)%?\s*,\s*(\d+)%?/);
+  if (m) {
+    const { r, g, b } = hslToRgb(parseInt(m[1]), parseInt(m[2]), parseInt(m[3]));
+    updateAll(r, g, b);
+  }
+});
+
+['sr', 'sg', 'sb', 'sa'].forEach(id => {
+  document.getElementById(id).addEventListener('input', function() {
+    const r = +document.getElementById('sr').value;
+    const g = +document.getElementById('sg').value;
+    const b = +document.getElementById('sb').value;
+    const a = +document.getElementById('sa').value;
+    updateAll(r, g, b, a);
+  });
+});
+
+document.getElementById('fg').addEventListener('input', updateContrast);
+document.getElementById('bg').addEventListener('input', updateContrast);
+document.getElementById('grad-from').addEventListener('input', updateGradient);
+document.getElementById('grad-to').addEventListener('input', updateGradient);
+document.getElementById('grad-mid').addEventListener('input', updateGradient);
+document.getElementById('grad-use-mid').addEventListener('change', updateGradient);
+
+// ============== Palette ==============
+let customPalette = JSON.parse(localStorage.getItem('color-palette') || '[]');
+const DEFAULT_PALETTE = [
+  '#ef4444','#f97316','#f59e0b','#eab308','#84cc16','#22c55e','#10b981','#14b8a6',
+  '#06b6d4','#0ea5e9','#3b82f6','#6366f1','#8b5cf6','#a855f7','#d946ef','#ec4899',
+  '#f43f5e','#ffffff','#e2e8f0','#94a3b8','#475569','#1e293b','#0f172a','#000000'
+];
+
+function renderPalette() {
+  const all = [...DEFAULT_PALETTE, ...customPalette];
+  document.getElementById('palette').innerHTML = all.map((c, i) => {
+    const isCustom = i >= DEFAULT_PALETTE.length;
+    return `<div class="swatch" style="background:${c};${c === '#ffffff' ? 'border-color:var(--border-subtle)' : ''}" onclick="setColor('${c}')" title="${c}${isCustom ? ' (双击删除)' : ''}" ${isCustom ? 'ondblclick="removeFromPalette(' + i + ')"' : ''}></div>`;
+  }).join('');
+}
+
+function addColorToPalette() {
+  const hex = document.getElementById('hex-input').value;
+  if (!hex || !hex.startsWith('#')) return;
+  if (!customPalette.includes(hex)) {
+    customPalette.push(hex);
+    localStorage.setItem('color-palette', JSON.stringify(customPalette));
+    renderPalette();
+    showToast('✓ 已添加 ' + hex + ' 到色板');
+  }
+}
+
+function removeFromPalette(index) {
+  const customIndex = index - DEFAULT_PALETTE.length;
+  if (customIndex >= 0 && customIndex < customPalette.length) {
+    customPalette.splice(customIndex, 1);
+    localStorage.setItem('color-palette', JSON.stringify(customPalette));
+    renderPalette();
+    showToast('已从色板移除');
+  }
+}
+
+function exportPalette(format) {
+  const all = [...DEFAULT_PALETTE, ...customPalette];
+  let output = '';
+  if (format === 'css') {
+    output = ':root {\n' + all.map((c, i) => `  --color-${i + 1}: ${c};`).join('\n') + '\n}';
+  } else if (format === 'scss') {
+    output = all.map((c, i) => `$color-${i + 1}: ${c};`).join('\n');
+  } else if (format === 'tailwind') {
+    output = 'colors: {\n' + all.map((c, i) => `  'custom-${i + 1}': '${c}',`).join('\n') + '\n}';
+  }
+  copyText(output);
+}
+
+renderPalette();
+
+// ============== Keyboard Shortcuts ==============
+document.addEventListener('keydown', (e) => {
+  const isCtrl = e.ctrlKey || e.metaKey;
+  if (isCtrl && e.key === 'c' && !window.getSelection().toString()) {
+    const hex = document.getElementById('hex-input').value;
+    if (hex) { e.preventDefault(); copyText(hex); }
+  }
+});
+
+// ============== Init ==============
+updateAll(99, 102, 241);
+renderGradientUI();
+</script>
+</body>
+</html>

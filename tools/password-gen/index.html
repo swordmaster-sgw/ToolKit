@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>密码生成器</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .back-btn { position: fixed; top: 20px; right: 20px; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .container { background: #1a1d2e; border-radius: 12px; padding: 40px; max-width: 500px; width: 90%; }
+    .title { font-size: 28px; font-weight: 700; margin-bottom: 30px; text-align: center; }
+    .pwd-display { background: #131520; border: 2px solid #6366f1; border-radius: 8px; padding: 16px; margin-bottom: 16px; font-family: 'Courier New', monospace; font-size: 16px; font-weight: 700; word-break: break-all; text-align: center; letter-spacing: 1px; }
+    .strength { height: 4px; background: #2d3148; border-radius: 2px; margin-bottom: 8px; overflow: hidden; }
+    .strength-bar { height: 100%; transition: width .2s; }
+    .strength-text { font-size: 12px; color: #8b90a7; }
+    .control { margin-bottom: 20px; }
+    .label { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #8b90a7; }
+    input[type=range] { width: 100%; accent-color: #6366f1; }
+    .length-display { font-size: 13px; color: #6366f1; font-weight: 700; }
+    .options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .checkbox { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+    input[type=checkbox] { accent-color: #6366f1; cursor: pointer; }
+    .buttons { display: flex; gap: 8px; }
+    .btn { flex: 1; padding: 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; transition: all .2s; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-primary:hover { background: #5457d4; }
+    .btn-secondary { background: #2d3148; color: #c4c9e2; }
+    .btn-secondary:hover { background: #363b5e; }
+  </style>
+</head>
+<body>
+<a class="back-btn" href="../../index.html">← 返回工具集</a>
+
+<div class="container">
+  <div class="title">🔑 密码生成器</div>
+  
+  <div class="pwd-display" id="pwd-display">Click Generate</div>
+  <div class="strength"><div class="strength-bar" id="strength-bar"></div></div>
+  <div class="strength-text"><span id="strength-text">未生成</span> · 长度: <span id="pwd-length">0</span></div>
+
+  <div class="control">
+    <div class="label">密码长度: <span class="length-display" id="length-display">16</span></div>
+    <input type="range" id="length" value="16" min="8" max="64" oninput="updateLength()">
+  </div>
+
+  <div class="options">
+    <label class="checkbox">
+      <input type="checkbox" id="uppercase" checked> 大写字母 (A-Z)
+    </label>
+    <label class="checkbox">
+      <input type="checkbox" id="lowercase" checked> 小写字母 (a-z)
+    </label>
+    <label class="checkbox">
+      <input type="checkbox" id="numbers" checked> 数字 (0-9)
+    </label>
+    <label class="checkbox">
+      <input type="checkbox" id="symbols" checked> 符号 (!@#$...)
+    </label>
+  </div>
+
+  <div class="buttons">
+    <button class="btn btn-primary" onclick="generate()">✨ 生成</button>
+    <button class="btn btn-secondary" onclick="copy()">📋 复制</button>
+  </div>
+</div>
+
+<script>
+function updateLength() {
+  document.getElementById('length-display').textContent = document.getElementById('length').value;
+}
+
+function generate() {
+  const len = parseInt(document.getElementById('length').value);
+  let chars = '';
+  
+  if (document.getElementById('uppercase').checked) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  if (document.getElementById('lowercase').checked) chars += 'abcdefghijklmnopqrstuvwxyz';
+  if (document.getElementById('numbers').checked) chars += '0123456789';
+  if (document.getElementById('symbols').checked) chars += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+  
+  if (!chars) { alert('至少选择一种字符类型'); return; }
+  
+  let pwd = '';
+  for (let i = 0; i < len; i++) {
+    pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  
+  document.getElementById('pwd-display').textContent = pwd;
+  document.getElementById('pwd-length').textContent = len;
+  updateStrength(pwd);
+}
+
+function updateStrength(pwd) {
+  let strength = 0;
+  if (/[a-z]/.test(pwd)) strength += 20;
+  if (/[A-Z]/.test(pwd)) strength += 20;
+  if (/[0-9]/.test(pwd)) strength += 20;
+  if (/[^A-Za-z0-9]/.test(pwd)) strength += 20;
+  if (pwd.length >= 12) strength += 20;
+  
+  const bar = document.getElementById('strength-bar');
+  const text = document.getElementById('strength-text');
+  bar.style.width = strength + '%';
+  
+  if (strength < 40) { bar.style.background = '#ef4444'; text.textContent = '弱'; }
+  else if (strength < 70) { bar.style.background = '#f59e0b'; text.textContent = '中'; }
+  else { bar.style.background = '#22c55e'; text.textContent = '强'; }
+}
+
+function copy() {
+  const pwd = document.getElementById('pwd-display').textContent;
+  navigator.clipboard.writeText(pwd).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ 已复制';
+    setTimeout(() => btn.textContent = '📋 复制', 1200);
+  });
+}
+
+generate();
+</script>
+</body>
+</html>

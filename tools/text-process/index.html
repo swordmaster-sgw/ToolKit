@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文本批处理工具 - Text Batch Processor</title>
+  <meta name="description" content="在线文本批处理工具，支持去重、排序、查找替换、大小写转换、命名风格转换、行操作、文本统计、Hash计算、链式操作等功能。">
+  <style>
+    :root {
+      --bg-base: #0d1117;
+      --bg-surface: #161b27;
+      --bg-elevated: #1c2133;
+      --border-default: #2a3050;
+      --border-subtle: #1e2438;
+      --text-primary: #cdd6f4;
+      --text-secondary: #8892b4;
+      --text-muted: #4a5278;
+      --accent: #6366f1;
+      --accent-light: #818cf8;
+      --accent-green: #4ade80;
+      --accent-orange: #ff9e64;
+      --accent-red: #f7768e;
+      --accent-cyan: #22d3ee;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-base); color: var(--text-primary); min-height: 100vh; }
+
+    .header { background: var(--bg-surface); border-bottom: 1px solid var(--border-default); padding: 14px 20px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid var(--border-default); color: var(--text-muted); border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .main { padding: 20px; max-width: 1200px; margin: 0 auto; }
+    .editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+    .card { background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 10px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: var(--bg-elevated); font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border-default); display: flex; align-items: center; justify-content: space-between; }
+    .card-title-left { display: flex; align-items: center; gap: 8px; }
+    .card-body { padding: 16px; }
+
+    textarea { width: 100%; background: var(--bg-base); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 12px; font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace; font-size: 13px; resize: vertical; outline: none; min-height: 280px; transition: border-color .2s; line-height: 1.6; }
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: var(--text-muted); }
+    textarea::-webkit-scrollbar { width: 6px; }
+    textarea::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
+
+    .stats-bar { display: flex; gap: 16px; flex-wrap: wrap; padding: 8px 0 0; font-size: 11px; color: var(--text-muted); }
+    .stats-bar span { white-space: nowrap; }
+    .stats-bar .stat-val { color: var(--text-secondary); font-family: monospace; }
+
+    .btn { padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 12px; font-weight: 500; transition: all .2s; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-default { background: var(--border-default); color: var(--text-secondary); }
+    .btn-default:hover { background: var(--accent); color: #fff; }
+    .btn-accent { background: var(--accent); color: #fff; }
+    .btn-accent:hover { background: var(--accent-light); }
+    .btn-danger { background: rgba(239,68,68,.15); color: var(--accent-red); border: 1px solid rgba(239,68,68,.2); }
+    .btn-danger:hover { background: rgba(239,68,68,.25); }
+    .btn-sm { padding: 3px 10px; font-size: 11px; }
+    .btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .toolbar-section { margin-bottom: 12px; }
+    .toolbar-section .card-body { padding: 0; }
+    .toolbar-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 10px 16px; }
+    .toolbar-label { font-size: 11px; color: var(--text-muted); font-weight: 500; min-width: 50px; flex-shrink: 0; }
+    .toolbar-row + .toolbar-row { border-top: 1px solid var(--border-subtle); }
+
+    /* Collapsible category header */
+    .cat-header { display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: pointer; user-select: none; transition: background .2s; }
+    .cat-header:hover { background: rgba(99,102,241,.05); }
+    .cat-header .cat-icon { font-size: 14px; width: 20px; text-align: center; }
+    .cat-header .cat-name { font-size: 12px; font-weight: 600; color: var(--text-secondary); flex: 1; }
+    .cat-header .cat-arrow { font-size: 10px; color: var(--text-muted); transition: transform .2s; }
+    .cat-header.collapsed .cat-arrow { transform: rotate(-90deg); }
+    .cat-body { padding: 8px 16px 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .cat-body.hidden { display: none; }
+
+    /* Dropdown menu */
+    .dropdown { position: relative; }
+    .dropdown-menu { display: none; position: absolute; top: 100%; right: 0; margin-top: 4px; background: var(--bg-elevated); border: 1px solid var(--border-default); border-radius: 8px; padding: 4px; min-width: 160px; z-index: 200; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+    .dropdown-menu.open { display: block; }
+    .dropdown-menu button { display: block; width: 100%; text-align: left; padding: 8px 12px; border: none; background: none; color: var(--text-secondary); font-size: 12px; border-radius: 5px; cursor: pointer; transition: all .15s; }
+    .dropdown-menu button:hover { background: rgba(99,102,241,.12); color: var(--text-primary); }
+
+    .find-replace-bar { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; }
+    .fr-group { display: flex; flex-direction: column; gap: 4px; }
+    .fr-group label { font-size: 11px; color: var(--text-muted); }
+    .fr-input { width: 100%; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 7px 10px; color: var(--text-primary); font-size: 13px; outline: none; font-family: 'SF Mono', monospace; transition: border-color .2s; }
+    .fr-input:focus { border-color: var(--accent); }
+    .fr-checkbox { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); cursor: pointer; }
+    .fr-checkbox input { accent-color: var(--accent); }
+    .fr-match-count { font-size: 11px; color: var(--accent-cyan); font-family: monospace; padding: 2px 8px; background: rgba(34,211,238,.1); border-radius: 4px; white-space: nowrap; }
+
+    .style-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+    .style-btn { padding: 7px 14px; border-radius: 6px; border: 1px solid var(--border-subtle); cursor: pointer; font-size: 12px; font-weight: 500; background: var(--bg-elevated); color: var(--text-secondary); transition: all .2s; }
+    .style-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(99,102,241,.1); }
+
+    .prefix-suffix-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .ps-input { width: 100px; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 7px 10px; color: var(--text-primary); font-size: 12px; outline: none; font-family: 'SF Mono', monospace; transition: border-color .2s; }
+    .ps-input:focus { border-color: var(--accent); }
+
+    /* Pipeline */
+    .pipeline-bar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; flex-wrap: wrap; }
+    .pipeline-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; background: rgba(99,102,241,.15); color: var(--accent-light); border: 1px solid rgba(99,102,241,.25); border-radius: 20px; font-size: 11px; }
+    .pipeline-tag .remove-pipe { cursor: pointer; opacity: .6; font-size: 12px; }
+    .pipeline-tag .remove-pipe:hover { opacity: 1; color: var(--accent-red); }
+    .pipeline-add { display: flex; gap: 6px; align-items: center; padding: 8px 16px; flex-wrap: wrap; }
+    .pipeline-add select { background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 5px 10px; color: var(--text-primary); font-size: 12px; outline: none; }
+    .pipeline-add select:focus { border-color: var(--accent); }
+
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--bg-elevated); color: var(--text-primary); padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border-default); font-size: 13px; z-index: 1000; opacity: 0; transition: all .3s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .undo-bar { position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--accent); color: #fff; padding: 8px 18px; border-radius: 8px; font-size: 13px; z-index: 1001; opacity: 0; transition: all .3s; pointer-events: none; display: flex; align-items: center; gap: 10px; }
+    .undo-bar.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+    .undo-bar button { background: rgba(255,255,255,.2); border: none; color: #fff; padding: 2px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    .undo-bar button:hover { background: rgba(255,255,255,.35); }
+
+    .drop-overlay { display: none; position: absolute; inset: 0; background: rgba(99,102,241,.1); border: 2px dashed var(--accent); border-radius: 6px; z-index: 10; align-items: center; justify-content: center; font-size: 14px; color: var(--accent); }
+    .card.dragover .drop-overlay { display: flex; }
+    .card.dragover textarea { opacity: .4; }
+
+    .freq-panel { background: var(--bg-elevated); border: 1px solid var(--border-default); border-radius: 8px; padding: 12px; margin-top: 12px; max-height: 260px; overflow-y: auto; }
+    .freq-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 12px; }
+    .freq-char { font-family: monospace; min-width: 40px; color: var(--accent-cyan); background: var(--bg-base); padding: 1px 6px; border-radius: 3px; text-align: center; }
+    .freq-bar-wrap { flex: 1; height: 6px; background: var(--bg-base); border-radius: 3px; overflow: hidden; }
+    .freq-bar { height: 100%; background: var(--accent); border-radius: 3px; transition: width .3s; }
+    .freq-count { min-width: 50px; text-align: right; color: var(--text-muted); font-family: monospace; }
+
+    /* Hash result */
+    .hash-result { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin-top: 8px; }
+    .hash-algo { font-size: 11px; color: var(--text-muted); font-family: monospace; padding: 2px 0; }
+    .hash-val { font-size: 11px; color: var(--accent-cyan); font-family: monospace; padding: 2px 0; word-break: break-all; cursor: pointer; }
+    .hash-val:hover { color: var(--accent-green); }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    @media (max-width: 768px) {
+      .editor-grid { grid-template-columns: 1fr; }
+      .find-replace-bar { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">📝</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">文本批处理</h1>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:2px">去重 · 排序 · 查找替换 · 大小写 · 编码 · Hash · 链式操作</p>
+  </div>
+  <a class="back-btn" href="../../index.html">&larr; 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="editor-grid">
+    <div class="card">
+      <div class="card-title">
+        <span class="card-title-left">📄 输入</span>
+        <div class="btn-group">
+          <button class="btn btn-sm btn-default" onclick="importFile()">📂 导入</button>
+          <button class="btn btn-sm btn-default" onclick="pasteFromClipboard()">📋 粘贴</button>
+          <button class="btn btn-sm btn-danger" onclick="clearInput()">清空</button>
+        </div>
+        <input type="file" id="file-input" accept=".txt,.md,.csv,.json,.log,.xml,.yaml,.yml,.ini,.conf,.toml,.html,.css,.js,.ts,.py,.java,.go,.rs,.c,.cpp,.h,.sql,.sh,.bat,.properties,.env" style="display:none" onchange="handleFileImport(event)">
+      </div>
+      <div class="card-body" style="position:relative">
+        <div class="drop-overlay">拖放文件到此处</div>
+        <textarea id="input" placeholder="输入或粘贴要处理的文本...
+
+支持拖放 .txt / .md / .csv / .json 文件
+支持多行文本，每行一条" oninput="updateInputStats()" ondragover="event.preventDefault()" ondrop="handleFileDrop(event)"></textarea>
+        <div class="stats-bar">
+          <span>行: <span class="stat-val" id="stat-lines">0</span></span>
+          <span>字符: <span class="stat-val" id="stat-chars">0</span></span>
+          <span>词: <span class="stat-val" id="stat-words">0</span></span>
+          <span>字节: <span class="stat-val" id="stat-bytes">0</span></span>
+          <span style="margin-left:auto"><button class="btn btn-sm btn-default" onclick="toggleFreq()">字符频率</button></span>
+        </div>
+        <div class="freq-panel" id="freq-panel" style="display:none"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span class="card-title-left">📤 输出</span>
+        <div class="btn-group">
+          <button class="btn btn-sm btn-accent" onclick="copyOutput()">📋 复制</button>
+          <div class="dropdown" id="export-dropdown">
+            <button class="btn btn-sm btn-default" onclick="toggleExportMenu()">💾 下载 ▾</button>
+            <div class="dropdown-menu" id="export-menu">
+              <button onclick="exportFile('txt')">📄 文本 (.txt)</button>
+              <button onclick="exportFile('csv')">📊 CSV (.csv)</button>
+              <button onclick="exportFile('md')">📝 Markdown (.md)</button>
+              <button onclick="exportFile('json')">🔧 JSON (.json)</button>
+              <button onclick="exportFile('log')">📋 日志 (.log)</button>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-default" onclick="useOutputAsInput()">⬌ 用作输入</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <textarea id="output" readonly placeholder="处理结果将显示在此..."></textarea>
+        <div class="stats-bar">
+          <span>行: <span class="stat-val" id="stat-out-lines">0</span></span>
+          <span>字符: <span class="stat-val" id="stat-out-chars">0</span></span>
+          <span>词: <span class="stat-val" id="stat-out-words">0</span></span>
+          <span>字节: <span class="stat-val" id="stat-out-bytes">0</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 查找替换 -->
+  <div class="card toolbar-section">
+    <div class="card-title"><span class="card-title-left">🔍 查找替换</span></div>
+    <div class="card-body">
+      <div class="find-replace-bar" style="padding:12px 16px">
+        <div class="fr-group">
+          <label>查找内容</label>
+          <input class="fr-input" id="find-input" placeholder="输入要查找的文本或正则" oninput="updateMatchCount()">
+        </div>
+        <div class="fr-group">
+          <label>替换为</label>
+          <input class="fr-input" id="replace-input" placeholder="替换后的文本">
+        </div>
+        <div>
+          <div class="btn-group" style="margin-bottom:8px">
+            <button class="btn btn-accent" onclick="doReplace()">替换全部</button>
+            <button class="btn btn-default" onclick="doFind()">查找</button>
+            <span class="fr-match-count" id="fr-match-count" style="display:none"></span>
+          </div>
+          <div style="display:flex;gap:12px">
+            <label class="fr-checkbox"><input type="checkbox" id="fr-regex"> 正则</label>
+            <label class="fr-checkbox"><input type="checkbox" id="fr-case"> 区分大小写</label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 命名风格转换 -->
+  <div class="card toolbar-section">
+    <div class="card-title"><span class="card-title-left">🔤 命名风格转换</span></div>
+    <div class="card-body">
+      <div style="padding:12px 16px">
+        <div class="style-buttons">
+          <button class="style-btn" onclick="convertStyle('camel')">camelCase 驼峰</button>
+          <button class="style-btn" onclick="convertStyle('pascal')">PascalCase 帕斯卡</button>
+          <button class="style-btn" onclick="convertStyle('snake')">snake_case 下划线</button>
+          <button class="style-btn" onclick="convertStyle('kebab')">kebab-case 短横线</button>
+          <button class="style-btn" onclick="convertStyle('constant')">CONSTANT_CASE 常量</button>
+          <button class="style-btn" onclick="convertStyle('dot')">dot.case 点分</button>
+          <button class="style-btn" onclick="convertStyle('path')">path/case 路径</button>
+          <button class="style-btn" onclick="convertStyle('title')">Title Case 标题</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 链式操作流水线 -->
+  <div class="card toolbar-section">
+    <div class="cat-header" onclick="toggleCategory(this)">
+      <span class="cat-icon">⛓️</span>
+      <span class="cat-name">链式操作流水线</span>
+      <span class="cat-arrow">▼</span>
+    </div>
+    <div class="cat-body hidden" id="pipeline-body">
+      <div class="pipeline-add">
+        <select id="pipeline-op-select">
+          <optgroup label="行操作">
+            <option value="unique">去重</option><option value="sort">A→Z 排序</option><option value="sortDesc">Z→A 排序</option>
+            <option value="sortNum">数字排序</option><option value="sortLen">按行长度排序</option><option value="reverse">反转行</option>
+            <option value="shuffle">随机打乱</option><option value="removeEmpty">删除空行</option>
+          </optgroup>
+          <optgroup label="大小写">
+            <option value="upper">全部大写</option><option value="lower">全部小写</option><option value="titleCase">首字母大写</option>
+            <option value="toggleCase">大小写互换</option>
+          </optgroup>
+          <optgroup label="清理">
+            <option value="trim">去首尾空格</option><option value="removeTrailing">去行尾空格</option><option value="collapseLines">合并连续空行</option>
+            <option value="removeDuplicateSpaces">合并多余空格</option>
+          </optgroup>
+        </select>
+        <button class="btn btn-sm btn-accent" onclick="addPipelineStep()">+ 添加步骤</button>
+        <button class="btn btn-sm btn-default" onclick="runPipeline()">▶ 执行全部</button>
+        <button class="btn btn-sm btn-danger" onclick="clearPipeline()">清空</button>
+      </div>
+      <div id="pipeline-steps" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+  </div>
+
+  <!-- 行操作 -->
+  <div class="card toolbar-section">
+    <div class="cat-header" onclick="toggleCategory(this)">
+      <span class="cat-icon">📊</span>
+      <span class="cat-name">行操作</span>
+      <span class="cat-arrow">▼</span>
+    </div>
+    <div class="cat-body hidden">
+      <button class="btn btn-default" onclick="op('unique')">🔄 去重</button>
+      <button class="btn btn-default" onclick="op('sort')">📊 A→Z 排序</button>
+      <button class="btn btn-default" onclick="op('sortDesc')">📊 Z→A 排序</button>
+      <button class="btn btn-default" onclick="op('sortNum')">🔢 数字排序</button>
+      <button class="btn btn-default" onclick="op('sortLen')">📏 按行长度排序</button>
+      <button class="btn btn-default" onclick="op('sortLenDesc')">📏 按行长度降序</button>
+      <button class="btn btn-default" onclick="op('randomSort')">🎲 随机排序</button>
+      <button class="btn btn-default" onclick="op('reverse')">⇅ 反转行</button>
+      <button class="btn btn-default" onclick="op('shuffle')">🔀 打乱</button>
+      <button class="btn btn-default" onclick="op('keepFirstN')" title="保留前 N 行">⬆️ 保留前N行</button>
+      <button class="btn btn-default" onclick="op('keepLastN')" title="保留后 N 行">⬇️ 保留后N行</button>
+      <button class="btn btn-default" onclick="op('removeFirstN')" title="删除前 N 行">⬆️ 删除前N行</button>
+      <button class="btn btn-default" onclick="op('removeLastN')" title="删除后 N 行">⬇️ 删除后N行</button>
+      <div style="display:flex;gap:6px;align-items:center;margin-top:4px;width:100%">
+        <input class="ps-input" id="n-lines-input" value="10" placeholder="N" style="width:60px">
+        <span style="font-size:11px;color:var(--text-muted)">行数</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 行过滤 -->
+  <div class="card toolbar-section">
+    <div class="cat-header" onclick="toggleCategory(this)">
+      <span class="cat-icon">🔎</span>
+      <span class="cat-name">行过滤</span>
+      <span class="cat-arrow">▼</span>
+    </div>
+    <div class="cat-body hidden">
+      <div style="display:flex;gap:8px;align-items:center;width:100%;flex-wrap:wrap">
+        <input class="fr-input" id="filter-keyword" placeholder="关键词" style="max-width:200px">
+        <label class="fr-checkbox"><input type="checkbox" id="filter-regex"> 正则</label>
+        <label class="fr-checkbox"><input type="checkbox" id="filter-case"> 区分大小写</label>
+        <button class="btn btn-sm btn-accent" onclick="op('filterKeep')">保留匹配行</button>
+        <button class="btn btn-sm btn-danger" onclick="op('filterRemove')">删除匹配行</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 大小写 -->
+  <div class="card toolbar-section">
+    <div class="cat-header" onclick="toggleCategory(this)">
+      <span class="cat-icon">🔤</span>
+      <span class="cat-name">大小写转换</span>
+      <span class="cat-arrow">▼</span>
+    </div>
+    <div class="cat-body hidden">
+      <button class="btn btn-default" onclick="op('upper')">⬆️ 全部大写</button>
+      <button class="btn btn-default" onclick="op('lower')">⬇️ 全部小写</button>
+      <button class="btn btn-default" onclick="op('titleCase')">📝 首字母大写</button>
+      <button class="btn btn-default" onclick="op('sentenceCase')">📄 句首大写</button>
+      <button class="btn btn-default" onclick="op('toggleCase')">🔄 大小写互换</button>
+    </div>
+  </div>
+
+  <!-- 清理 -->
+  <div class="card toolbar-section">
+    <div class="cat-header" onclick="toggleCategory(this)">
+      <span class="cat-icon">🧹</span>
+      <span class="cat-name">清理</span>
+      <span class="cat-arrow">▼</span>
+    </div>
+    <div class="cat-body hidden">
+      <button class="btn btn-default" onclick="op('trim')">✂️ 去首尾空格</button>
+      <button class="btn btn-default" onclick="op('trimAll')">✂️ 去所有空格</button>
+      <button class="btn btn-default" onclick="op('removeEmpty')">📭 删除空行</button>
+      <button class="btn btn-default" onclick="op('removeDuplicateSpaces')">🧹 合并多余空格</button>
+      <button class="btn btn-default" onclick="op('collapseLines')">📥 合并连续空行</button>
+      <button class="btn btn-default" onclick="op('removeTrailing')">✂️ 去行尾空格</button>
+    </div>
+  </div>
+
+  <!-- 编码 -->
+  <div class="card toolbar-section">
+    <div class="cat-header" onclick="toggleCategory(this)">
+      <span class="cat-icon">🔐</span>
+      <span class="cat-name">编码 / 解码</span>
+      <span class="cat-arrow">▼</span>
+    </div>
+    <div class="cat-body hidden">
+      <button class="btn btn-default" onclick="op('escape')">🔒 转义</button>
+      <button class="btn btn-default" onclick="op('unescape')">🔓 反转义</button>
+      <button class="btn btn-default" onclick="op('urlEncode')">🔗 URL 编码</button>
+      <button class="btn btn-default" onclick="op('urlDecode')">🔗 URL 解码</button>
+      <button class="btn btn-default" onclick="op('htmlEncode')">🖼️ HTML 编码</button>
+      <button class="btn btn-default" onclick="op('htmlDecode')">🖼️ HTML 解码</button>
+      <button class="btn btn-default" onclick="op('base64Encode')">📦 Base64 编码</button>
+      <button class="btn btn-default" onclick="op('base64Decode')">📦 Base64 解码</button>
+    </div>
+  </div>
+
+  <!-- 格式 -->
+  <div class="card toolbar-section">
+    <div class="cat-header" onclick="toggleCategory(this)">
+      <span class="cat-icon">📋</span>
+      <span class="cat-name">格式转换</span>
+      <span class="cat-arrow">▼</span>
+    </div>
+    <div class="cat-body hidden">
+      <button class="btn btn-default" onclick="op('jsonFormat')">📋 JSON 格式化</button>
+      <button class="btn btn-default" onclick="op('jsonMinify')">📋 JSON 压缩</button>
+      <button class="btn btn-default" onclick="op('mdTable')">📊 转 Markdown 表格</button>
+      <button class="btn btn-default" onclick="op('join')">🔗 合并为一行</button>
+      <button class="btn btn-default" onclick="op('split')">✂️ 按逗号分行</button>
+      <span class="toolbar-label" style="margin-left:4px">自定义分隔:</span>
+      <input class="ps-input" id="custom-split-input" placeholder="如: |" style="width:60px">
+      <button class="btn btn-default" onclick="op('customSplit')">✂️ 分行</button>
+    </div>
+  </div>
+
+  <!-- 行号与前缀 -->
+  <div class="card toolbar-section">
+    <div class="cat-header" onclick="toggleCategory(this)">
+      <span class="cat-icon">🔢</span>
+      <span class="cat-name">行号与前缀</span>
+      <span class="cat-arrow">▼</span>
+    </div>
+    <div class="cat-body hidden" style="flex-direction:column">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-default" onclick="op('addLineNum')">🔢 添加行号</button>
+        <button class="btn btn-default" onclick="op('removeLineNum')">🗑️ 移除行号</button>
+        <button class="btn btn-default" onclick="op('keepLineNum')">📌 仅保留行号行</button>
+      </div>
+      <div class="prefix-suffix-row" style="margin-top:8px">
+        <span class="toolbar-label">前缀:</span>
+        <input class="ps-input" id="prefix-input" placeholder="如: - ">
+        <span class="toolbar-label">后缀:</span>
+        <input class="ps-input" id="suffix-input" placeholder="如: ,">
+        <button class="btn btn-accent" onclick="op('addPrefixSuffix')">➕ 添加前后缀</button>
+        <span class="toolbar-label" style="margin-left:12px">连接符:</span>
+        <input class="ps-input" id="join-sep-input" placeholder="如: , ">
+        <button class="btn btn-accent" onclick="op('joinWith')">🔗 合并行</button>
+      </div>
+      <div class="prefix-suffix-row" style="margin-top:8px">
+        <span class="toolbar-label">提取列:</span>
+        <input class="ps-input" id="col-sep-input" placeholder="分隔符" value="\t" style="width:80px">
+        <span class="toolbar-label">列号:</span>
+        <input class="ps-input" id="col-num-input" placeholder="如: 1,3" style="width:80px">
+        <button class="btn btn-accent" onclick="op('extractCol')">📋 提取</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hash 计算 -->
+  <div class="card toolbar-section">
+    <div class="cat-header" onclick="toggleCategory(this)">
+      <span class="cat-icon">#️⃣</span>
+      <span class="cat-name">Hash 计算</span>
+      <span class="cat-arrow">▼</span>
+    </div>
+    <div class="cat-body hidden" style="flex-direction:column">
+      <button class="btn btn-default" onclick="computeHashes()">🔢 计算输入文本的 Hash</button>
+      <div class="hash-result" id="hash-result"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="undo-bar" id="undo-bar">
+  <span>操作已执行</span>
+  <button onclick="undoOp()">撤销 (Ctrl+Z)</button>
+</div>
+
+<script>
+// ============== Utilities ==============
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => showToast('✓ 已复制')).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('✓ 已复制');
+  });
+}
+
+function escapeHtmlStr(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function countWords(text) {
+  const chinese = (text.match(/[\u4e00-\u9fff]/g) || []).length;
+  const english = text.replace(/[\u4e00-\u9fff]/g, ' ').split(/\s+/).filter(w => w.length > 0).length;
+  return chinese + english;
+}
+
+function countBytes(text) { return new Blob([text]).size; }
+
+function getNLines() { return parseInt(document.getElementById('n-lines-input').value) || 10; }
+
+// ============== Category Toggle ==============
+function toggleCategory(header) {
+  header.classList.toggle('collapsed');
+  const body = header.nextElementSibling;
+  body.classList.toggle('hidden');
+}
+
+// ============== Undo System ==============
+const _undoStack = [];
+let _undoTimer = null;
+
+function pushUndo(inputText) {
+  _undoStack.push(inputText);
+  if (_undoStack.length > 30) _undoStack.shift();
+  const bar = document.getElementById('undo-bar');
+  bar.classList.add('show');
+  clearTimeout(_undoTimer);
+  _undoTimer = setTimeout(() => bar.classList.remove('show'), 8000);
+}
+
+function undoOp() {
+  if (!_undoStack.length) { showToast('没有可撤销的操作'); return; }
+  document.getElementById('input').value = _undoStack.pop();
+  updateInputStats();
+  document.getElementById('output').value = '';
+  updateOutputStats();
+  document.getElementById('undo-bar').classList.remove('show');
+  showToast('✓ 已撤销');
+}
+
+// ============== File Drag & Drop ==============
+function handleFileDrop(e) {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    pushUndo(document.getElementById('input').value);
+    document.getElementById('input').value = reader.result;
+    updateInputStats();
+    showToast('✓ 已导入 ' + file.name);
+  };
+  reader.readAsText(file);
+}
+
+// ============== Character Frequency ==============
+function toggleFreq() {
+  const panel = document.getElementById('freq-panel');
+  if (panel.style.display === 'none') { panel.style.display = 'block'; updateCharFreq(); }
+  else { panel.style.display = 'none'; }
+}
+
+function updateCharFreq() {
+  const text = document.getElementById('input').value;
+  if (!text) { document.getElementById('freq-panel').innerHTML = '<span style="color:var(--text-muted);font-size:12px">暂无数据</span>'; return; }
+  const freq = {};
+  for (const ch of text) { if (/[\s\n\r]/.test(ch)) continue; freq[ch] = (freq[ch] || 0) + 1; }
+  const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 50);
+  const max = sorted.length ? sorted[0][1] : 1;
+  document.getElementById('freq-panel').innerHTML = sorted.map(([ch, count]) => {
+    const display = ch === ' ' ? '␣' : escapeHtmlStr(ch);
+    const pct = (count / max * 100).toFixed(1);
+    return '<div class="freq-row"><span class="freq-char">' + display + '</span><div class="freq-bar-wrap"><div class="freq-bar" style="width:' + pct + '%"></div></div><span class="freq-count">' + count + '</span></div>';
+  }).join('');
+}
+
+// ============== Stats ==============
+function updateInputStats() { updateStatsForText(document.getElementById('input').value, ''); if (document.getElementById('freq-panel').style.display !== 'none') updateCharFreq(); }
+function updateOutputStats() { updateStatsForText(document.getElementById('output').value, 'out-'); }
+
+function updateStatsForText(text, prefix) {
+  const lines = text ? text.split('\n') : [];
+  document.getElementById('stat-' + prefix + 'lines').textContent = text ? lines.length : 0;
+  document.getElementById('stat-' + prefix + 'chars').textContent = text.length;
+  document.getElementById('stat-' + prefix + 'words').textContent = countWords(text);
+  document.getElementById('stat-' + prefix + 'bytes').textContent = countBytes(text);
+}
+
+// ============== Real-time Match Count ==============
+function updateMatchCount() {
+  const input = getInput();
+  const pattern = document.getElementById('find-input').value;
+  const el = document.getElementById('fr-match-count');
+  if (!input || !pattern) { el.style.display = 'none'; return; }
+  const useRegex = document.getElementById('fr-regex').checked;
+  const caseSensitive = document.getElementById('fr-case').checked;
+  let count = 0;
+  try {
+    if (useRegex) {
+      const re = new RegExp(pattern, caseSensitive ? 'g' : 'gi');
+      const m = input.match(re);
+      count = m ? m.length : 0;
+    } else {
+      const src = caseSensitive ? input : input.toLowerCase();
+      const pat = caseSensitive ? pattern : pattern.toLowerCase();
+      let pos = 0;
+      while ((pos = src.indexOf(pat, pos)) !== -1) { count++; pos += pat.length; }
+    }
+  } catch(e) { el.style.display = 'none'; return; }
+  el.textContent = count + ' 处匹配';
+  el.style.display = count > 0 ? 'inline' : 'none';
+}
+
+// ============== Naming Style Conversion ==============
+function splitWords(str) {
+  return str.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2').replace(/[-_.\/\\]+/g, ' ').trim().split(/\s+/).filter(w => w.length > 0);
+}
+function toCamelCase(str) { return splitWords(str).map((w, i) => i === 0 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(''); }
+function toPascalCase(str) { return splitWords(str).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(''); }
+function toSnakeCase(str) { return splitWords(str).join('_').toLowerCase(); }
+function toKebabCase(str) { return splitWords(str).join('-').toLowerCase(); }
+function toConstantCase(str) { return splitWords(str).join('_').toUpperCase(); }
+function toDotCase(str) { return splitWords(str).join('.').toLowerCase(); }
+function toPathCase(str) { return splitWords(str).join('/').toLowerCase(); }
+function toTitleCase(str) { return str.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '); }
+
+function convertStyle(style) {
+  const input = getInput();
+  if (!input) { showToast('请先输入文本'); return; }
+  const lines = input.split('\n');
+  const styleNames = { camel:'camelCase', pascal:'PascalCase', snake:'snake_case', kebab:'kebab-case', constant:'CONSTANT_CASE', dot:'dot.case', path:'path/case', title:'Title Case' };
+  const fns = { camel: toCamelCase, pascal: toPascalCase, snake: toSnakeCase, kebab: toKebabCase, constant: toConstantCase, dot: toDotCase, path: toPathCase, title: toTitleCase };
+  const result = (fns[style] ? lines.map(fns[style]) : lines).join('\n');
+  setOutput(result);
+  showToast('✓ 已转换为 ' + (styleNames[style] || style) + ' 格式');
+}
+
+// ============== Find & Replace ==============
+function doFind() {
+  const input = getInput();
+  const pattern = document.getElementById('find-input').value;
+  if (!input || !pattern) { showToast('请输入查找内容'); return; }
+  const useRegex = document.getElementById('fr-regex').checked;
+  const caseSensitive = document.getElementById('fr-case').checked;
+  const lines = input.split('\n');
+  let matchCount = 0, matchLines = [];
+
+  lines.forEach((line, i) => {
+    let found = false;
+    if (useRegex) {
+      try { const re = new RegExp(pattern, caseSensitive ? 'g' : 'gi'); const m = line.match(re); if (m) { matchCount += m.length; found = true; } }
+      catch(e) { showToast('正则表达式错误: ' + e.message); return; }
+    } else {
+      let pos = 0;
+      const src = caseSensitive ? line : line.toLowerCase();
+      const pat = caseSensitive ? pattern : pattern.toLowerCase();
+      while ((pos = src.indexOf(pat, pos)) !== -1) { matchCount++; pos += pat.length; found = true; }
+    }
+    if (found) matchLines.push({ num: i + 1, text: line });
+  });
+
+  if (!matchLines.length) { setOutput('未找到匹配'); }
+  else { setOutput(matchLines.map(l => '[行 ' + l.num + '] ' + l.text).join('\n')); }
+  showToast('找到 ' + matchCount + ' 处匹配，分布在 ' + matchLines.length + ' 行');
+}
+
+function doReplace() {
+  const input = getInput();
+  const pattern = document.getElementById('find-input').value;
+  const replacement = document.getElementById('replace-input').value;
+  if (!input || !pattern) { showToast('请输入查找内容'); return; }
+  const useRegex = document.getElementById('fr-regex').checked;
+  const caseSensitive = document.getElementById('fr-case').checked;
+  let result, count = 0;
+
+  if (useRegex) {
+    try {
+      const re = new RegExp(pattern, caseSensitive ? 'g' : 'gi');
+      result = input.replace(re, (match, ...args) => { count++; return replacement.replace(/\$(\d+|&|`|')/g, (_, k) => k === '&' ? match : k === '`' ? input.slice(0, input.indexOf(match)) : k === "'" ? input.slice(input.indexOf(match) + match.length) : (args[parseInt(k) - 1] || '')); });
+    } catch(e) { showToast('正则表达式错误: ' + e.message); return; }
+  } else {
+    const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(escaped, caseSensitive ? 'g' : 'gi');
+    result = input.replace(re, () => { count++; return replacement; });
+  }
+
+  setOutput(result);
+  showToast('✓ 已替换 ' + count + ' 处');
+}
+
+// ============== Pipeline ==============
+const pipelineSteps = [];
+
+function addPipelineStep() {
+  const sel = document.getElementById('pipeline-op-select');
+  pipelineSteps.push(sel.value);
+  renderPipeline();
+}
+
+function removePipelineStep(idx) {
+  pipelineSteps.splice(idx, 1);
+  renderPipeline();
+}
+
+function clearPipeline() {
+  pipelineSteps.length = 0;
+  renderPipeline();
+}
+
+const OP_LABELS = {
+  unique:'去重', sort:'A→Z排序', sortDesc:'Z→A排序', sortNum:'数字排序', sortLen:'长度升序', sortLenDesc:'长度降序',
+  reverse:'反转行', shuffle:'打乱', removeEmpty:'删空行',
+  upper:'大写', lower:'小写', titleCase:'首字母大写', toggleCase:'互换大小写',
+  trim:'去首尾空格', removeTrailing:'去行尾空格', collapseLines:'合并空行', removeDuplicateSpaces:'合并空格'
+};
+
+function renderPipeline() {
+  const el = document.getElementById('pipeline-steps');
+  if (!pipelineSteps.length) { el.innerHTML = '<span style="font-size:11px;color:var(--text-muted)">尚未添加步骤</span>'; return; }
+  el.innerHTML = pipelineSteps.map((op, i) =>
+    '<span class="pipeline-tag">' + (OP_LABELS[op] || op) + ' <span class="remove-pipe" onclick="removePipelineStep(' + i + ')">✕</span></span>' +
+    (i < pipelineSteps.length - 1 ? '<span style="color:var(--text-muted);font-size:11px">→</span>' : '')
+  ).join('');
+}
+
+function runPipeline() {
+  if (!pipelineSteps.length) { showToast('请先添加操作步骤'); return; }
+  const input = getInput();
+  if (!input) { showToast('请先输入文本'); return; }
+  pushUndo(input);
+  let text = input;
+  for (const step of pipelineSteps) {
+    text = executeOp(step, text);
+  }
+  document.getElementById('output').value = text;
+  updateOutputStats();
+  showToast('✓ 流水线执行完成（' + pipelineSteps.length + ' 步）');
+}
+
+// ============== Hash ==============
+async function computeHashes() {
+  const text = getInput();
+  if (!text) { showToast('请先输入文本'); return; }
+  const el = document.getElementById('hash-result');
+  el.innerHTML = '<span style="color:var(--text-muted);font-size:11px">计算中...</span>';
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const algos = ['SHA-1', 'SHA-256', 'SHA-384', 'SHA-512'];
+  const results = [];
+  for (const algo of algos) {
+    const buf = await crypto.subtle.digest(algo, data);
+    const arr = Array.from(new Uint8Array(buf));
+    const hex = arr.map(b => b.toString(16).padStart(2, '0')).join('');
+    results.push({ algo, hex });
+  }
+  el.innerHTML = results.map(r =>
+    '<span class="hash-algo">' + r.algo + '</span><span class="hash-val" onclick="copyToClipboard(\'' + r.hex + '\')" title="点击复制">' + r.hex + '</span>'
+  ).join('');
+  showToast('✓ Hash 计算完成');
+}
+
+// ============== Core Operations ==============
+function getInput() { return document.getElementById('input').value; }
+function setOutput(text) {
+  const inputEl = document.getElementById('input');
+  if (text && text !== inputEl.value) pushUndo(inputEl.value);
+  document.getElementById('output').value = text;
+  updateOutputStats();
+}
+
+function executeOp(type, text) {
+  // Stateless operation helper for pipeline
+  switch(type) {
+    case 'unique': { const lines = text.split('\n'), seen = new Set(); return lines.filter(l => { if (seen.has(l)) return false; seen.add(l); return true; }).join('\n'); }
+    case 'sort': return text.split('\n').sort((a, b) => a.localeCompare(b, 'zh-CN')).join('\n');
+    case 'sortDesc': return text.split('\n').sort((a, b) => b.localeCompare(a, 'zh-CN')).join('\n');
+    case 'sortNum': return text.split('\n').sort((a, b) => (parseFloat(a.trim()) || 0) - (parseFloat(b.trim()) || 0)).join('\n');
+    case 'sortLen': return text.split('\n').sort((a, b) => a.length - b.length).join('\n');
+    case 'sortLenDesc': return text.split('\n').sort((a, b) => b.length - a.length).join('\n');
+    case 'reverse': return text.split('\n').reverse().join('\n');
+    case 'shuffle': { const arr = text.split('\n'); for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr.join('\n'); }
+    case 'removeEmpty': return text.split('\n').filter(l => l.trim()).join('\n');
+    case 'upper': return text.toUpperCase();
+    case 'lower': return text.toLowerCase();
+    case 'titleCase': return text.split('\n').map(l => l.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')).join('\n');
+    case 'toggleCase': return text.split('').map(c => c === c.toUpperCase() ? c.toLowerCase() : c.toUpperCase()).join('');
+    case 'trim': return text.split('\n').map(l => l.trim()).join('\n');
+    case 'removeTrailing': return text.split('\n').map(l => l.replace(/\s+$/, '')).join('\n');
+    case 'collapseLines': return text.replace(/\n{3,}/g, '\n\n');
+    case 'removeDuplicateSpaces': return text.replace(/[^\S\n]{2,}/g, ' ');
+    default: return text;
+  }
+}
+
+function op(type) {
+  const input = getInput();
+  let output, msg = '';
+
+  switch(type) {
+    case 'unique': {
+      const lines = input.split('\n'), seen = new Set(), unique = [];
+      for (const l of lines) { if (!seen.has(l)) { seen.add(l); unique.push(l); } }
+      output = unique.join('\n');
+      msg = '✓ 去重完成，' + lines.length + ' → ' + unique.length + ' 行';
+      break;
+    }
+    case 'sort': output = input.split('\n').sort((a, b) => a.localeCompare(b, 'zh-CN')).join('\n'); msg = '✓ 已按 A→Z 排序'; break;
+    case 'sortDesc': output = input.split('\n').sort((a, b) => b.localeCompare(a, 'zh-CN')).join('\n'); msg = '✓ 已按 Z→A 排序'; break;
+    case 'sortNum':
+      output = input.split('\n').sort((a, b) => (parseFloat(a.trim()) || 0) - (parseFloat(b.trim()) || 0)).join('\n');
+      msg = '✓ 已按数字排序'; break;
+    case 'sortLen':
+      output = input.split('\n').sort((a, b) => a.length - b.length).join('\n');
+      msg = '✓ 已按行长度升序排序'; break;
+    case 'sortLenDesc':
+      output = input.split('\n').sort((a, b) => b.length - a.length).join('\n');
+      msg = '✓ 已按行长度降序排序'; break;
+    case 'randomSort': case 'shuffle': {
+      const arr = input.split('\n');
+      for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+      output = arr.join('\n'); msg = '✓ 已随机打乱'; break;
+    }
+    case 'reverse': output = input.split('\n').reverse().join('\n'); msg = '✓ 已反转行序'; break;
+
+    case 'upper': output = input.toUpperCase(); msg = '✓ 已转换为大写'; break;
+    case 'lower': output = input.toLowerCase(); msg = '✓ 已转换为小写'; break;
+    case 'titleCase':
+      output = input.split('\n').map(l => l.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')).join('\n');
+      msg = '✓ 已首字母大写'; break;
+    case 'sentenceCase':
+      output = input.split('\n').map(l => l.charAt(0).toUpperCase() + l.slice(1).toLowerCase()).join('\n');
+      msg = '✓ 已句首大写'; break;
+    case 'toggleCase':
+      output = input.split('').map(c => c === c.toUpperCase() ? c.toLowerCase() : c.toUpperCase()).join('');
+      msg = '✓ 已大小写互换'; break;
+
+    case 'trim': output = input.split('\n').map(l => l.trim()).join('\n'); msg = '✓ 已去除首尾空格'; break;
+    case 'trimAll': output = input.replace(/\s+/g, ''); msg = '✓ 已去除所有空白'; break;
+    case 'removeEmpty': {
+      const before = input.split('\n').length;
+      output = input.split('\n').filter(l => l.trim()).join('\n');
+      msg = '✓ 删除了 ' + (before - (output ? output.split('\n').length : 0)) + ' 个空行'; break;
+    }
+    case 'removeDuplicateSpaces': output = input.replace(/[^\S\n]{2,}/g, ' '); msg = '✓ 已合并多余空格'; break;
+    case 'collapseLines': output = input.replace(/\n{3,}/g, '\n\n'); msg = '✓ 已合并连续空行'; break;
+    case 'removeTrailing': output = input.split('\n').map(l => l.replace(/\s+$/, '')).join('\n'); msg = '✓ 已去除行尾空格'; break;
+
+    case 'escape': output = JSON.stringify(input).slice(1, -1); msg = '✓ 已转义'; break;
+    case 'unescape': { try { output = JSON.parse('"' + input + '"'); } catch(e) { output = '反转义失败: ' + e.message; } msg = '✓ 已反转义'; break; }
+    case 'urlEncode': output = encodeURIComponent(input); msg = '✓ URL 编码完成'; break;
+    case 'urlDecode': { try { output = decodeURIComponent(input); } catch(e) { output = 'URL 解码失败: ' + e.message; } msg = '✓ URL 解码完成'; break; }
+    case 'htmlEncode': output = escapeHtmlStr(input); msg = '✓ HTML 编码完成'; break;
+    case 'htmlDecode': { const ta = document.createElement('textarea'); ta.innerHTML = input; output = ta.value; msg = '✓ HTML 解码完成'; break; }
+    case 'base64Encode': { try { const u8 = new TextEncoder().encode(input); const bin = Array.from(u8, b => String.fromCharCode(b)).join(''); output = btoa(bin); } catch(e) { output = 'Base64 编码失败'; } msg = '✓ Base64 编码完成'; break; }
+    case 'base64Decode': { try { const bin = atob(input.trim()); const u8 = Uint8Array.from(bin, c => c.charCodeAt(0)); output = new TextDecoder().decode(u8); } catch(e) { output = 'Base64 解码失败'; } msg = '✓ Base64 解码完成'; break; }
+
+    case 'jsonFormat': { try { output = JSON.stringify(JSON.parse(input), null, 2); } catch(e) { output = 'JSON 格式错误: ' + e.message; } msg = '✓ JSON 格式化完成'; break; }
+    case 'jsonMinify': { try { output = JSON.stringify(JSON.parse(input)); } catch(e) { output = 'JSON 格式错误: ' + e.message; } msg = '✓ JSON 压缩完成'; break; }
+    case 'mdTable': {
+      const lines = input.split('\n').filter(l => l.trim());
+      if (!lines.length) { output = ''; break; }
+      const sep = lines[0].includes('\t') ? '\t' : ',';
+      const rows = lines.map(l => l.split(sep).map(c => c.trim()));
+      const colCount = Math.max(...rows.map(r => r.length));
+      const pad = (arr, n) => arr.concat(Array(Math.max(0, n - arr.length)).fill('')).slice(0, n);
+      const header = '| ' + pad(rows[0], colCount).join(' | ') + ' |';
+      const divider = '| ' + pad(rows[0], colCount).map(() => '---').join(' | ') + ' |';
+      const body = rows.slice(1).map(r => '| ' + pad(r, colCount).join(' | ') + ' |').join('\n');
+      output = header + '\n' + divider + '\n' + body; msg = '✓ 已转换为 Markdown 表格'; break;
+    }
+    case 'join': output = input.split('\n').join(' '); msg = '✓ 已合并为一行'; break;
+    case 'split': output = input.split(/[,，]/).map(s => s.trim()).join('\n'); msg = '✓ 已按逗号分行'; break;
+    case 'customSplit': {
+      const customSep = document.getElementById('custom-split-input').value;
+      if (!customSep) { showToast('请输入自定义分隔符'); return; }
+      output = input.split(customSep).map(s => s.trim()).join('\n'); msg = '✓ 已按「' + customSep + '」分行'; break;
+    }
+
+    case 'addLineNum': output = input.split('\n').map((l, i) => (i + 1) + '\t' + l).join('\n'); msg = '✓ 已添加行号'; break;
+    case 'removeLineNum': output = input.split('\n').map(l => l.replace(/^\s*\d+[\s\t.)\]:-]+/, '')).join('\n'); msg = '✓ 已移除行号'; break;
+    case 'keepLineNum': output = input.split('\n').filter(l => /^\s*\d+[\s\t.)\]:-]+/.test(l)).join('\n'); msg = '✓ 已提取行号行'; break;
+    case 'addPrefixSuffix': {
+      const prefix = document.getElementById('prefix-input').value;
+      const suffix = document.getElementById('suffix-input').value;
+      output = input.split('\n').map(l => prefix + l + suffix).join('\n'); msg = '✓ 已添加前后缀'; break;
+    }
+    case 'joinWith': {
+      const sep = document.getElementById('join-sep-input').value;
+      output = input.split('\n').join(sep); msg = '✓ 已合并行'; break;
+    }
+    case 'extractCol': {
+      const sepStr = document.getElementById('col-sep-input').value;
+      const colStr = document.getElementById('col-num-input').value;
+      if (!sepStr || !colStr) { showToast('请填写分隔符和列号'); return; }
+      const sep = sepStr === '\\t' ? '\t' : sepStr;
+      const cols = colStr.split(',').map(s => parseInt(s.trim()) - 1);
+      output = input.split('\n').map(line => {
+        const parts = line.split(sep);
+        return cols.map(c => parts[c] !== undefined ? parts[c] : '').join(sep);
+      }).join('\n');
+      msg = '✓ 已提取第 ' + colStr + ' 列'; break;
+    }
+
+    // New: first/last N lines
+    case 'keepFirstN': {
+      const n = getNLines();
+      const lines = input.split('\n');
+      output = lines.slice(0, n).join('\n');
+      msg = '✓ 保留了前 ' + n + ' 行（共 ' + lines.length + ' 行）'; break;
+    }
+    case 'keepLastN': {
+      const n = getNLines();
+      const lines = input.split('\n');
+      output = lines.slice(-n).join('\n');
+      msg = '✓ 保留了后 ' + n + ' 行（共 ' + lines.length + ' 行）'; break;
+    }
+    case 'removeFirstN': {
+      const n = getNLines();
+      const lines = input.split('\n');
+      output = lines.slice(n).join('\n');
+      msg = '✓ 删除了前 ' + n + ' 行'; break;
+    }
+    case 'removeLastN': {
+      const n = getNLines();
+      const lines = input.split('\n');
+      output = lines.slice(0, -n || undefined).join('\n');
+      msg = '✓ 删除了后 ' + n + ' 行'; break;
+    }
+
+    // New: line filter
+    case 'filterKeep': case 'filterRemove': {
+      const kw = document.getElementById('filter-keyword').value;
+      if (!kw) { showToast('请输入过滤关键词'); return; }
+      const useRegex = document.getElementById('filter-regex').checked;
+      const caseSensitive = document.getElementById('filter-case').checked;
+      const isKeep = type === 'filterKeep';
+      let re;
+      try {
+        re = useRegex ? new RegExp(kw, caseSensitive ? '' : 'i') : null;
+      } catch(e) { showToast('正则表达式错误'); return; }
+      const lines = input.split('\n');
+      const filtered = lines.filter(l => {
+        const src = caseSensitive ? l : l.toLowerCase();
+        const pat = caseSensitive ? kw : kw.toLowerCase();
+        const match = re ? re.test(l) : src.includes(pat);
+        return isKeep ? match : !match;
+      });
+      const removed = lines.length - filtered.length;
+      output = filtered.join('\n');
+      msg = (isKeep ? '✓ 保留了 ' + filtered.length + ' 行' : '✓ 删除了 ' + removed + ' 行') + '（共 ' + lines.length + ' 行）';
+      break;
+    }
+
+    default: output = input; msg = '未知操作';
+  }
+
+  setOutput(output || '');
+  if (msg) showToast(msg);
+}
+
+// ============== Actions ==============
+function clearInput() { document.getElementById('input').value = ''; updateInputStats(); showToast('已清空输入'); }
+// ============== File Import / Export ==============
+function importFile() { document.getElementById('file-input').click(); }
+
+function handleFileImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    pushUndo(document.getElementById('input').value);
+    document.getElementById('input').value = reader.result;
+    updateInputStats();
+    showToast('✓ 已导入 ' + file.name);
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function toggleExportMenu() {
+  const menu = document.getElementById('export-menu');
+  menu.classList.toggle('open');
+}
+
+document.addEventListener('click', (e) => {
+  const dd = document.getElementById('export-dropdown');
+  if (dd && !dd.contains(e.target)) {
+    document.getElementById('export-menu').classList.remove('open');
+  }
+});
+
+function exportFile(ext) {
+  const text = document.getElementById('output').value;
+  if (!text) { showToast('输出为空'); return; }
+  document.getElementById('export-menu').classList.remove('open');
+
+  const mimeMap = { txt: 'text/plain', csv: 'text/csv', md: 'text/markdown', json: 'application/json', log: 'text/plain' };
+  const blob = new Blob([text], { type: (mimeMap[ext] || 'text/plain') + ';charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'output.' + ext;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ 已下载 output.' + ext);
+}
+
+function copyOutput() { const t = document.getElementById('output').value; if (!t) { showToast('输出为空'); return; } copyToClipboard(t); }
+function pasteFromClipboard() {
+  navigator.clipboard.readText().then(text => { document.getElementById('input').value = text; updateInputStats(); showToast('✓ 已粘贴'); }).catch(() => showToast('无法读取剪贴板'));
+}
+function useOutputAsInput() {
+  const t = document.getElementById('output').value;
+  if (!t) { showToast('输出为空'); return; }
+  document.getElementById('input').value = t;
+  document.getElementById('output').value = '';
+  updateInputStats(); updateOutputStats();
+  showToast('✓ 输出已移至输入');
+}
+
+// ============== Keyboard Shortcuts ==============
+document.addEventListener('keydown', (e) => {
+  const isCtrl = e.ctrlKey || e.metaKey;
+  if (isCtrl && e.key === 'Enter') {
+    e.preventDefault();
+    if (document.getElementById('find-input').value) doReplace();
+  }
+  if (isCtrl && e.shiftKey && e.key === 'F') {
+    e.preventDefault();
+    document.getElementById('find-input').focus();
+    document.getElementById('find-input').select();
+  }
+  if (isCtrl && e.key === 'z' && !e.shiftKey && document.activeElement.tagName !== 'TEXTAREA' && document.activeElement.tagName !== 'INPUT') {
+    e.preventDefault();
+    undoOp();
+  }
+});
+
+// ============== Init ==============
+updateInputStats();
+updateOutputStats();
+renderPipeline();
+</script>
+</body>
+</html>

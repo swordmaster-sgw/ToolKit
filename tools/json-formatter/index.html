@@ -1,0 +1,3438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON 格式化 / 压缩</title>
+  <style>
+    /* ===== Design Tokens ===== */
+    :root {
+      --bg-base:       #0d1117;
+      --bg-surface:    #161b27;
+      --bg-elevated:   #1c2133;
+      --bg-overlay:    #222840;
+      --border-subtle: #1e2438;
+      --border-default:#2a3050;
+      --border-strong: #3a4268;
+
+      --text-primary:  #cdd6f4;
+      --text-secondary:#8892b4;
+      --text-muted:    #4a5278;
+      --text-faint:    #2e3455;
+
+      --accent-blue:   #7aa2f7;
+      --accent-purple: #9d7cd8;
+      --accent-cyan:   #7dcfff;
+      --accent-green:  #9ece6a;
+      --accent-yellow: #e0af68;
+      --accent-orange: #ff9e64;
+      --accent-red:    #f7768e;
+      --accent-pink:   #bb9af7;
+
+      --btn-primary-bg:    #3d59a1;
+      --btn-primary-hover: #4a6bba;
+      --btn-success-bg:    #1a6640;
+      --btn-success-hover: #217a4d;
+      --btn-warning-bg:    #8c5d1a;
+      --btn-warning-hover: #a56e20;
+      --btn-danger-bg:     #8c2020;
+      --btn-danger-hover:  #a52828;
+
+      /* fold icon colors — 高饱和，深背景上醒目 */
+      --fold-obj-color:   #60a5fa;   /* object { } — 亮蓝 */
+      --fold-arr-color:   #4ade80;   /* array  [ ] — 亮绿 */
+      --fold-obj-hover:   #93c5fd;
+      --fold-arr-hover:   #86efac;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== Header ===== */
+    .header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .header-icon {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-purple) 100%);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: white;
+      font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+      letter-spacing: -1px;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    .header h1 { font-size: 14px; font-weight: 600; color: var(--text-primary); letter-spacing: 0.2px; }
+    .header p  { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+    .back-btn {
+      margin-left: auto;
+      padding: 4px 12px;
+      background: transparent;
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px;
+      text-decoration: none;
+      transition: all .18s;
+      white-space: nowrap;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .back-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+
+    /* ===== Toolbar ===== */
+    .toolbar {
+      display: flex;
+      gap: 5px;
+      padding: 8px 16px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .btn {
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all .18s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      letter-spacing: 0.1px;
+      white-space: nowrap;
+    }
+    .btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+    .btn-primary { background: var(--btn-primary-bg); color: #c0d4ff; }
+    .btn-primary:hover { background: var(--btn-primary-hover); color: #dae6ff; box-shadow: 0 2px 8px rgba(122,162,247,.25); }
+
+    .btn-secondary { background: var(--bg-overlay); color: var(--text-secondary); border: 1px solid var(--border-default); }
+    .btn-secondary:hover { background: var(--bg-elevated); color: var(--text-primary); border-color: var(--border-strong); }
+
+    .btn-success { background: var(--btn-success-bg); color: #a8dfb8; border: 1px solid #1d7a4a; }
+    .btn-success:hover { background: var(--btn-success-hover); color: #c8f0d4; }
+
+    .btn-warning { background: var(--btn-warning-bg); color: #f0cc88; border: 1px solid #a56e20; }
+    .btn-warning:hover { background: var(--btn-warning-hover); color: #ffe0a0; }
+
+    .btn-danger { background: var(--btn-danger-bg); color: #ffb8b8; border: 1px solid #a52828; }
+    .btn-danger:hover { background: var(--btn-danger-hover); color: #ffd0d0; }
+
+    .btn-view {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border-subtle);
+    }
+    .btn-view:hover { background: var(--bg-elevated); color: var(--text-secondary); border-color: var(--border-default); }
+    .btn-view.active {
+      background: rgba(122,162,247,.15);
+      color: var(--accent-blue);
+      border-color: rgba(122,162,247,.4);
+    }
+    .btn-view.active:hover { background: rgba(122,162,247,.22); }
+
+    select.select {
+      padding: 5px 10px;
+      background: var(--bg-overlay);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      outline: none;
+      transition: border-color .18s;
+    }
+    select.select:focus { border-color: var(--accent-blue); }
+
+    .toolbar-sep { width: 1px; height: 18px; background: var(--border-subtle); margin: 0 3px; }
+
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn:disabled:hover { background: inherit; box-shadow: none; color: inherit; }
+
+    /* ===== 主编辑区 ===== */
+    .editor-area { display: grid; grid-template-columns: 1fr 1fr; flex: 1; min-height: 0; }
+    .panel { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--border-subtle); }
+    .panel:last-child { border-right: none; }
+
+    .panel-header {
+      padding: 6px 14px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .panel-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+    }
+    .panel-actions { display: flex; gap: 5px; align-items: center; }
+    .icon-btn {
+      padding: 3px 9px;
+      background: var(--bg-overlay);
+      border: 1px solid var(--border-default);
+      border-radius: 4px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 11px;
+      transition: all .15s;
+    }
+    .icon-btn:hover { background: var(--bg-elevated); color: var(--text-primary); border-color: var(--border-strong); }
+
+    textarea {
+      flex: 1;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      border: none;
+      padding: 14px 16px;
+      font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+      font-size: 13px;
+      resize: none;
+      outline: none;
+      line-height: 1.75;
+    }
+    textarea::placeholder { color: var(--text-faint); }
+    textarea.error-state { background: #140a0a; border-left: 2px solid var(--accent-red); }
+
+    .output-panel {
+      background: var(--bg-base);
+      border: none;
+      flex: 1;
+      overflow: auto;
+      padding: 14px 16px;
+      font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.75;
+      white-space: pre;
+      min-height: 0;
+    }
+    .output-panel.empty-hint {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-faint);
+      font-size: 13px;
+      white-space: normal;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .status-bar {
+      padding: 5px 16px;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-subtle);
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    .status-bar .error   { color: var(--accent-red); }
+    .status-bar .success { color: var(--accent-green); }
+    .status-bar .info    { color: var(--accent-blue); }
+
+    /* ===== JSON 语法高亮（One Dark Pro inspired） ===== */
+    .jk { color: #7aa2f7; }          /* key     — 蓝 */
+    .js { color: #9ece6a; }          /* string  — 绿 */
+    .jn { color: #ff9e64; }          /* number  — 橙 */
+    .jb { color: #f7768e; }          /* bool    — 红 */
+    .jl { color: #565f89; font-style: italic; } /* null — 暗 */
+    .jp { color: #3b4261; }          /* punct   — 极暗 */
+
+    .drag-over { border: 2px dashed var(--accent-blue) !important; background: rgba(122,162,247,.06) !important; }
+
+    /* ===== 左侧行号边栏 ===== */
+    .fold-gutter {
+      width: 40px;
+      background: var(--bg-base);
+      border-right: 1px solid var(--border-subtle);
+      flex-shrink: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .gutter-line {
+      height: 1.75em;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
+    }
+    .line-number {
+      font-size: 11px;
+      color: var(--text-faint);
+      font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+      user-select: none;
+      line-height: 1.75;
+      transition: color .15s;
+    }
+    .output-line {
+      display: block;
+      min-height: 1.75em;
+      white-space: pre;
+      line-height: 1.75;
+      border-radius: 2px;
+      transition: background .12s;
+    }
+    .output-line:hover { background: rgba(255,255,255,.025); }
+    .output-line.collapsed { display: none; }
+
+    /* ===== 折叠图标（实底圆角方块 + 高饱和箭头） ===== */
+    .inline-fold-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 17px;
+      height: 17px;
+      margin-right: 1px;
+      margin-left: 2px;
+      cursor: pointer;
+      vertical-align: middle;
+      position: relative;
+      top: -1px;
+      flex-shrink: 0;
+      border-radius: 5px;
+      /* 实底深色背景 + 边框，确保在暗色背景上清晰可见 */
+      background: #1e2438;
+      border: 1.5px solid rgba(255,255,255,.1);
+      transition: background .15s, border-color .15s, box-shadow .15s, transform .1s;
+      line-height: 1;
+    }
+    .inline-fold-btn:hover {
+      transform: scale(1.15);
+    }
+    /* 按类型着色 + 边框高亮 */
+    .inline-fold-btn.type-obj {
+      color: var(--fold-obj-color);
+      border-color: rgba(96,165,250,.35);
+    }
+    .inline-fold-btn.type-obj:hover {
+      background: rgba(96,165,250,.15);
+      border-color: rgba(96,165,250,.55);
+      box-shadow: 0 0 8px rgba(96,165,250,.25);
+    }
+    .inline-fold-btn.type-arr {
+      color: var(--fold-arr-color);
+      border-color: rgba(74,222,128,.35);
+    }
+    .inline-fold-btn.type-arr:hover {
+      background: rgba(74,222,128,.15);
+      border-color: rgba(74,222,128,.55);
+      box-shadow: 0 0 8px rgba(74,222,128,.25);
+    }
+    .inline-fold-btn svg {
+      width: 9px;
+      height: 9px;
+      pointer-events: none;
+      display: block;
+      transition: transform .18s cubic-bezier(.4,0,.2,1);
+      /* SVG 继承按钮颜色 */
+      stroke: currentColor;
+    }
+    /* 折叠状态：三角旋转 90° */
+    .inline-fold-btn[data-state="collapsed"] svg {
+      transform: rotate(-90deg);
+    }
+    /* 折叠状态：保持实底背景 + 更强边框 */
+    .inline-fold-btn[data-state="collapsed"] {
+      background: #1e2438;
+      border-color: rgba(255,255,255,.15);
+    }
+    .inline-fold-btn.type-obj[data-state="collapsed"] {
+      background: rgba(96,165,250,.1);
+      border-color: rgba(96,165,250,.4);
+    }
+    .inline-fold-btn.type-arr[data-state="collapsed"] {
+      background: rgba(74,222,128,.1);
+      border-color: rgba(74,222,128,.4);
+    }
+
+    /* 折叠提示 */
+    .fold-hint {
+      color: var(--text-muted);
+      margin-left: 4px;
+      font-style: italic;
+      opacity: 0.7;
+    }
+
+    /* ===== 节点视图容器 ===== */
+    #node-view-wrapper {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      background: #0a0e18;
+      background-image: radial-gradient(circle, var(--border-subtle) 1px, transparent 1px);
+      background-size: 24px 24px;
+      display: none;
+      cursor: grab;
+      user-select: none;
+    }
+    #node-view-wrapper.active { display: block; }
+    #node-view-wrapper:active { cursor: grabbing; }
+
+    /* 缩放控件 */
+    .zoom-controls {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 100;
+    }
+    .zoom-btn {
+      width: 28px; height: 28px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    .zoom-btn:hover { background: var(--bg-overlay); color: var(--text-primary); }
+
+    /* 居中/重置按钮 */
+    .fit-btn {
+      position: absolute;
+      bottom: 16px;
+      right: 50px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+      border-radius: 6px;
+      font-size: 11px;
+      padding: 4px 10px;
+      cursor: pointer;
+      z-index: 100;
+      transition: all .15s;
+    }
+    .fit-btn:hover { background: var(--bg-overlay); color: var(--text-primary); }
+
+    /* 节点视图画布（可拖拽）*/
+    #node-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+
+    /* SVG 连线层 */
+    #node-canvas svg.edge-layer {
+      position: absolute;
+      top: 0; left: 0;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    /* ===== 节点列 ===== */
+    .node-col {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* ===== 单个节点卡片 ===== */
+    .node-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      min-width: 180px;
+      max-width: 280px;
+      overflow: hidden;
+      position: relative;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .node-card:hover {
+      border-color: rgba(122,162,247,.5);
+      box-shadow: 0 0 14px rgba(122,162,247,.15);
+    }
+    .node-card.node-root {
+      border-color: rgba(122,162,247,.4);
+    }
+
+    /* 节点行 */
+    .node-row {
+      display: flex;
+      align-items: center;
+      padding: 5px 10px;
+      min-height: 28px;
+      border-bottom: 1px solid var(--border-subtle);
+      position: relative;
+      transition: background .15s;
+    }
+    .node-row:last-child { border-bottom: none; }
+    .node-row:hover { background: var(--bg-overlay); }
+    .node-row.has-children { cursor: pointer; }
+    .node-row.has-children:hover .nk { color: var(--accent-blue); }
+
+    /* key */
+    .nk {
+      font-family: 'Cascadia Code', Consolas, monospace;
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+      transition: color .15s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 120px;
+    }
+
+    /* 值 */
+    .nv {
+      font-family: 'Cascadia Code', Consolas, monospace;
+      font-size: 11.5px;
+      margin-left: auto;
+      padding-left: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 120px;
+    }
+    .nv.str  { color: var(--accent-green); }
+    .nv.num  { color: var(--accent-orange); }
+    .nv.bool { color: var(--accent-red); }
+    .nv.null { color: var(--text-muted); font-style: italic; }
+    .nv.ref-obj { color: var(--text-secondary); }
+    .nv.ref-arr { color: var(--text-secondary); }
+
+    /* 连接点（小圆圈） */
+    .node-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: rgba(122,162,247,.3);
+      border: 1.5px solid var(--accent-blue);
+      position: absolute;
+      right: -4px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    /* 节点类型标签 */
+    .node-type-badge {
+      display: inline-block;
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: rgba(122,162,247,.1);
+      color: var(--accent-blue);
+      font-family: 'Cascadia Code', Consolas, monospace;
+      margin-left: 4px;
+      flex-shrink: 0;
+    }
+
+    /* 折叠指示器 */
+    .collapse-icon {
+      font-size: 9px;
+      color: var(--text-muted);
+      margin-left: 4px;
+      flex-shrink: 0;
+      transition: transform .2s;
+    }
+
+    /* 搜索高亮 */
+    .node-row.search-match { background: rgba(99,102,241,0.12); }
+    .nk.search-match-key { color: #818cf8; }
+
+    /* 节点视图为空提示 */
+    .node-empty-hint {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-faint);
+      font-size: 13px;
+      pointer-events: none;
+    }
+
+    /* ===== 节点视图工具栏（搜索、重置） ===== */
+    .node-toolbar {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      display: flex;
+      gap: 6px;
+      z-index: 100;
+      align-items: center;
+    }
+    .node-search {
+      padding: 5px 10px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-size: 12px;
+      outline: none;
+      width: 160px;
+      transition: border-color .18s;
+    }
+    .node-search:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 2px rgba(122,162,247,.12); }
+    .node-search::placeholder { color: var(--text-muted); }
+
+    /* ===== 代码生成面板 ===== */
+    .codegen-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 1000;
+      display: none;
+      animation: fadeIn .18s ease;
+    }
+    .codegen-overlay.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+    .codegen-panel {
+      position: fixed;
+      top: 0; right: 0; bottom: 0;
+      width: 580px;
+      max-width: 95vw;
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border-default);
+      z-index: 1001;
+      display: none;
+      flex-direction: column;
+      animation: slideIn .22s cubic-bezier(.22,1,.36,1);
+      box-shadow: -8px 0 30px rgba(0,0,0,.35);
+    }
+    .codegen-panel.active { display: flex; }
+
+    .codegen-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .codegen-header h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .codegen-close {
+      margin-left: auto;
+      width: 28px; height: 28px;
+      background: transparent;
+      border: 1px solid var(--border-default);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    .codegen-close:hover { background: var(--bg-overlay); color: var(--text-primary); border-color: var(--border-strong); }
+
+    .codegen-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+    /* 语言选择标签行 */
+    .codegen-langs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 14px 20px 0;
+      flex-shrink: 0;
+    }
+    .codegen-lang-btn {
+      padding: 5px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border-default);
+      background: var(--bg-base);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .15s;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .codegen-lang-btn:hover { border-color: var(--border-strong); color: var(--text-primary); background: var(--bg-elevated); }
+    .codegen-lang-btn.active {
+      border-color: var(--accent-blue);
+      background: rgba(122,162,247,.12);
+      color: var(--accent-blue);
+    }
+    .codegen-lang-btn .lang-dot {
+      width: 8px; height: 8px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* 生成选项 */
+    .codegen-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      flex-shrink: 0;
+    }
+    .codegen-opt {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .codegen-opt input[type="text"] {
+      width: 100px;
+      padding: 3px 8px;
+      background: var(--bg-base);
+      border: 1px solid var(--border-default);
+      border-radius: 4px;
+      color: var(--text-primary);
+      font-size: 11px;
+      outline: none;
+      font-family: 'Cascadia Code', Consolas, monospace;
+    }
+    .codegen-opt input[type="text"]:focus { border-color: var(--accent-blue); }
+    .codegen-opt input[type="checkbox"] {
+      accent-color: var(--accent-blue);
+    }
+    .codegen-opt select {
+      padding: 3px 6px;
+      background: var(--bg-base);
+      border: 1px solid var(--border-default);
+      border-radius: 4px;
+      color: var(--text-secondary);
+      font-size: 11px;
+      outline: none;
+    }
+
+    /* 代码输出区 */
+    .codegen-output-wrap {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+    }
+    .codegen-output-header {
+      padding: 8px 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .codegen-output-header .file-tag {
+      font-size: 10px;
+      padding: 2px 8px;
+      background: rgba(122,162,247,.1);
+      color: var(--accent-blue);
+      border-radius: 4px;
+      font-family: 'Cascadia Code', monospace;
+    }
+    .codegen-output-header .size-tag {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    .codegen-output-header .copy-btn {
+      margin-left: auto;
+      padding: 3px 12px;
+      background: var(--btn-primary-bg);
+      border: none;
+      border-radius: 4px;
+      color: #c0d4ff;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .codegen-output-header .copy-btn:hover { background: var(--btn-primary-hover); }
+    .codegen-output-header .download-btn {
+      padding: 3px 12px;
+      background: var(--btn-success-bg);
+      border: 1px solid #1d7a4a;
+      border-radius: 4px;
+      color: #a8dfb8;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .codegen-output-header .download-btn:hover { background: var(--btn-success-hover); }
+
+    .codegen-code {
+      flex: 1;
+      margin: 0 20px 14px;
+      padding: 14px 16px;
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      overflow: auto;
+      font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+      font-size: 12.5px;
+      line-height: 1.7;
+      color: var(--text-primary);
+      white-space: pre;
+      tab-size: 2;
+    }
+
+    /* 转换类型标签 */
+    .codegen-cat-tabs {
+      display: flex;
+      gap: 2px;
+      padding: 10px 20px 0;
+      flex-shrink: 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .codegen-cat-tab {
+      padding: 6px 14px;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .codegen-cat-tab:hover { color: var(--text-secondary); }
+    .codegen-cat-tab.active {
+      color: var(--accent-blue);
+      border-bottom-color: var(--accent-blue);
+    }
+
+    @media (max-width: 768px) {
+      .editor-area { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+      textarea { border-right: none; border-bottom: 1px solid var(--border-subtle); }
+      .codegen-panel { width: 100vw; max-width: 100vw; }
+    }
+  </style>
+</head>
+<body>
+<div class="header">
+  <div class="header-icon">{ }</div>
+  <div>
+    <h1>JSON 格式化 / 压缩</h1>
+    <p>格式化、压缩、校验、排序 · 节点图视图 · 支持拖拽文件</p>
+  </div>
+  <a class="back-btn" href="../../index.html">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7.5 2L4 6l3.5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    返回
+  </a>
+</div>
+
+<div class="toolbar">
+  <button class="btn btn-primary" onclick="formatJSON()" title="Ctrl+Enter">
+    <svg viewBox="0 0 14 14" fill="none"><path d="M2 4h10M2 7h7M2 10h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    格式化
+  </button>
+  <button class="btn btn-secondary" onclick="minifyJSON()" title="压缩为单行">
+    <svg viewBox="0 0 14 14" fill="none"><rect x="2" y="4" width="10" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
+    压缩
+  </button>
+  <button class="btn btn-success" onclick="validateJSON()">
+    <svg viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5l3 3 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    校验
+  </button>
+  <button class="btn btn-warning" onclick="sortKeys()">
+    <svg viewBox="0 0 14 14" fill="none"><path d="M4 3v8M4 11l-2-2M4 11l2-2M10 3v8M10 3l-2 2M10 3l2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    排序 Key
+  </button>
+  <div class="toolbar-sep"></div>
+  <select class="select" id="indent-size" onchange="if(currentView==='text') formatJSON()">
+    <option value="2">缩进 2 格</option>
+    <option value="4">缩进 4 格</option>
+    <option value="tab">Tab 缩进</option>
+  </select>
+  <div class="toolbar-sep"></div>
+  <!-- 折叠展开控制 -->
+  <button class="btn btn-secondary" onclick="foldAll()" id="btn-fold-all" style="display:none" title="折叠所有层级">
+    <svg viewBox="0 0 14 14" fill="none"><path d="M4 5l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="3" y1="9" x2="11" y2="9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    折叠
+  </button>
+  <button class="btn btn-secondary" onclick="unfoldAll()" id="btn-unfold-all" style="display:none" title="展开所有层级">
+    <svg viewBox="0 0 14 14" fill="none"><path d="M4 9l3-3 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="3" y1="5" x2="11" y2="5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    展开
+  </button>
+  <div class="toolbar-sep" id="fold-sep" style="display:none"></div>
+  <!-- 视图切换 -->
+  <button class="btn btn-view active" id="btn-view-text" onclick="switchView('text')" title="文本视图">
+    <svg viewBox="0 0 14 14" fill="none"><line x1="2" y1="4" x2="12" y2="4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="2" y1="7" x2="12" y2="7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="2" y1="10" x2="8" y2="10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    文本
+  </button>
+  <button class="btn btn-view" id="btn-view-node" onclick="switchView('node')" title="节点图视图">
+    <svg viewBox="0 0 14 14" fill="none"><circle cx="7" cy="3" r="1.5" stroke="currentColor" stroke-width="1.3"/><circle cx="3" cy="10" r="1.5" stroke="currentColor" stroke-width="1.3"/><circle cx="11" cy="10" r="1.5" stroke="currentColor" stroke-width="1.3"/><line x1="7" y1="4.5" x2="3" y2="8.5" stroke="currentColor" stroke-width="1.2"/><line x1="7" y1="4.5" x2="11" y2="8.5" stroke="currentColor" stroke-width="1.2"/></svg>
+    节点图
+  </button>
+  <div class="toolbar-sep"></div>
+  <button class="btn btn-secondary" onclick="loadSample()">
+    <svg viewBox="0 0 14 14" fill="none"><rect x="2.5" y="1.5" width="9" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/><line x1="5" y1="5" x2="9" y2="5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="5" y1="7.5" x2="9" y2="7.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="5" y1="10" x2="7.5" y2="10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+    示例
+  </button>
+  <button class="btn btn-success" onclick="downloadJSON()" id="download-btn" disabled>
+    <svg viewBox="0 0 14 14" fill="none"><path d="M7 2v7M4.5 6.5L7 9l2.5-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="2.5" y1="12" x2="11.5" y2="12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    下载
+  </button>
+  <button class="btn btn-danger" onclick="clearAll()">
+    <svg viewBox="0 0 14 14" fill="none"><path d="M2.5 4h9M5.5 4V2.5h3V4M5.5 6.5v4M8.5 6.5v4M3.5 4l.5 7.5h6L11 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    清空
+  </button>
+  <div class="toolbar-sep"></div>
+  <!-- 编辑模式 -->
+  <button class="btn btn-view" id="btn-edit-mode" onclick="toggleEditMode()" title="编辑模式（可修改输出）">
+    <svg viewBox="0 0 14 14" fill="none"><path d="M9 2.5l2.5 2.5-7 7H2v-2.5l7-7z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+    编辑
+  </button>
+  <button class="btn btn-secondary" onclick="filterJSON()" id="btn-filter" title="筛选JSON数据" style="display:none">
+    <svg viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="3.5" stroke="currentColor" stroke-width="1.3"/><line x1="8.5" y1="8.5" x2="12" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    筛选
+  </button>
+  <button class="btn btn-secondary" onclick="openCodegen()" id="btn-codegen" title="多语言代码生成" style="display:none">
+    <svg viewBox="0 0 14 14" fill="none"><path d="M4 2l-2 2.5 2 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 7l2 2.5-2 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><line x1="7" y1="2" x2="7" y2="12" stroke="currentColor" stroke-width="1" stroke-dasharray="1.5 1.5"/></svg>
+    代码生成
+  </button>
+</div>
+
+<!-- 主编辑区（文本视图） -->
+<div class="editor-area" id="editor-area">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-label">输入 <span id="in-size" style="color:#4a4f6a;font-weight:400;margin-left:4px"></span></span>
+      <div class="panel-actions">
+        <button class="icon-btn" onclick="copyInput()" id="copy-in-btn">复制</button>
+      </div>
+    </div>
+    <textarea id="input"
+      placeholder="在此粘贴 JSON，或拖拽 .json 文件到此处...&#10;&#10;快捷键：&#10;  Ctrl+Enter  格式化&#10;  Ctrl+Shift+M  压缩"
+      oninput="onInputChange()"
+    ></textarea>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-label">输出 <span id="out-size" style="color:#4a4f6a;font-weight:400;margin-left:4px"></span></span>
+      <div class="panel-actions">
+        <button class="icon-btn" onclick="copyOutput()" id="copy-out-btn">复制</button>
+      </div>
+    </div>
+    <div style="display:flex;flex:1;min-height:0;position:relative">
+      <!-- 左侧折叠边栏 -->
+      <div class="fold-gutter" id="fold-gutter"></div>
+      <!-- 输出内容 -->
+      <div class="output-panel empty-hint" id="output">等待输入...</div>
+      <!-- 编辑模式下的textarea -->
+      <textarea id="output-editor" style="display:none;flex:1;background:#0d1117;color:#e2e8f0;border:none;padding:14px;font-family:'Cascadia Code','Fira Code',Consolas,monospace;font-size:13px;resize:none;outline:none;line-height:1.7;" placeholder="编辑JSON内容..."></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- 节点图视图 -->
+<div id="node-view-wrapper">
+  <!-- 搜索框 -->
+  <div class="node-toolbar">
+    <input class="node-search" id="node-search" placeholder="🔍 搜索 Key…" oninput="nodeSearch(this.value)" />
+    <button class="btn btn-secondary" style="padding:5px 10px;font-size:11px" onclick="expandAll()">全展开</button>
+    <button class="btn btn-secondary" style="padding:5px 10px;font-size:11px" onclick="collapseAll()">全折叠</button>
+  </div>
+  <!-- 画布 -->
+  <div id="node-canvas">
+    <svg class="edge-layer" id="edge-svg"></svg>
+  </div>
+  <!-- 缩放 -->
+  <div class="zoom-controls">
+    <button class="zoom-btn" onclick="zoomIn()" title="放大">+</button>
+    <button class="zoom-btn" onclick="zoomOut()" title="缩小">−</button>
+    <button class="zoom-btn" onclick="resetZoom()" title="1:1" style="font-size:10px">1:1</button>
+  </div>
+  <button class="fit-btn" onclick="fitView()">⛶ 适应</button>
+  <div class="node-empty-hint" id="node-empty-hint">输入 JSON 后切换到节点图视图</div>
+</div>
+
+<div class="status-bar">
+  <span id="status-msg">准备就绪 · 支持拖拽 .json 文件到输入区</span>
+  <span id="status-detail" style="margin-left: auto;"></span>
+</div>
+
+<script>
+/* ===================================================================
+   基础状态
+=================================================================== */
+let lastInput = '';
+let autoTimer;
+let currentView = 'text';
+let parsedData = null; // 当前解析的 JSON 对象
+
+/* ===================================================================
+   视图切换
+=================================================================== */
+function switchView(view) {
+  currentView = view;
+  document.getElementById('btn-view-text').classList.toggle('active', view === 'text');
+  document.getElementById('btn-view-node').classList.toggle('active', view === 'node');
+  document.getElementById('editor-area').style.display = view === 'text' ? 'grid' : 'none';
+  const nw = document.getElementById('node-view-wrapper');
+  nw.classList.toggle('active', view === 'node');
+  if (view === 'node') {
+    if (parsedData !== null) renderNodeView(parsedData);
+    else {
+      document.getElementById('node-empty-hint').style.display = 'flex';
+    }
+  }
+  
+  // 切换到节点视图时，退出编辑模式
+  if (view === 'node' && isEditMode) {
+    toggleEditMode();
+  }
+}
+
+// 编辑模式状态
+let isEditMode = false;
+let lastFormattedOutput = ''; // 保存最后一次格式化的输出
+
+// 切换编辑模式
+function toggleEditMode() {
+  isEditMode = !isEditMode;
+  const btn = document.getElementById('btn-edit-mode');
+  const outputPanel = document.getElementById('output');
+  const outputEditor = document.getElementById('output-editor');
+  const filterBtn = document.getElementById('btn-filter');
+  
+  if (isEditMode) {
+    // 进入编辑模式
+    btn.classList.add('active');
+    btn.innerHTML = '<svg viewBox="0 0 14 14" fill="none" style="width:13px;height:13px;flex-shrink:0"><path d="M2 10.5V12h1.5l6-6-1.5-1.5-6 6zM11.5 3.5a1 1 0 000-1.5L10 .5a1 1 0 00-1.5 0L7 2l2 2 2.5-0.5z" fill="currentColor"/></svg> 保存';
+    
+    // 获取当前输出内容
+    let content = '';
+    if (outputPanel.style.display !== 'none') {
+      // 从可视化输出中提取纯文本
+      content = extractTextFromOutput();
+    } else if (lastFormattedOutput) {
+      content = lastFormattedOutput;
+    }
+    
+    // 切换到编辑器
+    outputPanel.style.display = 'none';
+    outputEditor.style.display = 'block';
+    outputEditor.value = content;
+    
+    // 显示筛选按钮
+    filterBtn.style.display = 'inline-flex';
+    
+    setStatus('编辑模式已开启', 'info');
+  } else {
+    // 退出编辑模式
+    btn.classList.remove('active');
+    btn.innerHTML = '<svg viewBox="0 0 14 14" fill="none" style="width:13px;height:13px;flex-shrink:0"><path d="M9 2.5l2.5 2.5-7 7H2v-2.5l7-7z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg> 编辑';
+    
+    // 切换回可视化输出
+    outputEditor.style.display = 'none';
+    outputPanel.style.display = 'block';
+    
+    // 隐藏筛选按钮
+    filterBtn.style.display = 'none';
+    
+    setStatus('编辑模式已关闭', 'info');
+  }
+}
+
+// 从可视化输出中提取纯文本
+function extractTextFromOutput() {
+  const outputPanel = document.getElementById('output');
+  const lines = outputPanel.querySelectorAll('.output-line');
+  
+  if (lines.length === 0) {
+    // 如果没有行元素，直接返回文本内容
+    return outputPanel.textContent || '';
+  }
+  
+  // 从行元素中提取文本，按原始行号排序
+  const linesArray = Array.from(lines);
+  linesArray.sort((a, b) => {
+    return parseInt(a.dataset.originalLineNum) - parseInt(b.dataset.originalLineNum);
+  });
+  
+  const texts = [];
+  linesArray.forEach(line => {
+    // 移除结束符号（如果有）
+    let text = line.textContent || '';
+    text = text.replace(/\.\.\.\s*[}\]]$/, '').trimEnd();
+    texts.push(text);
+  });
+  
+  return texts.join('\n');
+}
+
+// 筛选JSON数据
+function filterJSON() {
+  const outputEditor = document.getElementById('output-editor');
+  const content = outputEditor.value.trim();
+  
+  if (!content) {
+    setStatus('没有可筛选的内容', 'error');
+    return;
+  }
+  
+  // 显示筛选对话框
+  const keyword = prompt('请输入筛选关键字（支持JSON路径，如 data[0].name）：');
+  if (!keyword) return;
+  
+  try {
+    const data = JSON.parse(content);
+    
+    // 简单的筛选：只保留包含关键字的键
+    const filtered = filterObject(data, keyword);
+    
+    // 更新编辑器内容
+    const formatted = JSON.stringify(filtered, null, getIndent());
+    outputEditor.value = formatted;
+    
+    setStatus(`✅ 已筛选，保留包含 "${keyword}" 的内容`, 'success');
+  } catch (e) {
+    setStatus('JSON语法错误: ' + e.message, 'error');
+  }
+}
+
+// 筛选对象（递归）
+function filterObject(obj, keyword) {
+  if (Array.isArray(obj)) {
+    return obj.map(item => {
+      if (item !== null && typeof item === 'object') {
+        return filterObject(item, keyword);
+      }
+      return item;
+    }).filter(item => {
+      // 保留对象或包含关键字的项
+      if (item !== null && typeof item === 'object') {
+        return Object.keys(item).length > 0;
+      }
+      return String(item).toLowerCase().includes(keyword.toLowerCase());
+    });
+  } else if (obj !== null && typeof obj === 'object') {
+    const result = {};
+    Object.keys(obj).forEach(key => {
+      const value = obj[key];
+      const keyMatch = key.toLowerCase().includes(keyword.toLowerCase());
+      
+      if (keyMatch) {
+        // 键匹配，保留整个值
+        result[key] = value;
+      } else if (value !== null && typeof value === 'object') {
+        // 递归筛选值
+        const filteredValue = filterObject(value, keyword);
+        if ((Array.isArray(filteredValue) && filteredValue.length > 0) || 
+            (!Array.isArray(filteredValue) && Object.keys(filteredValue).length > 0)) {
+          result[key] = filteredValue;
+        }
+      } else if (String(value).toLowerCase().includes(keyword.toLowerCase())) {
+        // 值匹配，保留
+        result[key] = value;
+      }
+    });
+    return result;
+  }
+  
+  return obj;
+}
+
+/* ===================================================================
+   语法高亮
+=================================================================== */
+function syntaxHighlight(json) {
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let out = '', i = 0;
+  while (i < json.length) {
+    if (json[i] === '"') {
+      let j = i + 1;
+      while (j < json.length) {
+        if (json[j] === '\\') { j += 2; continue; }
+        if (json[j] === '"') { j++; break; }
+        j++;
+      }
+      const raw = json.slice(i, j);
+      const escaped = esc(raw);
+      let k = j;
+      while (k < json.length && ' \n\r\t'.includes(json[k])) k++;
+      if (json[k] === ':') out += `<span class="jk">${escaped}</span>`;
+      else out += `<span class="js">${escaped}</span>`;
+      i = j; continue;
+    }
+    const numMatch = json.slice(i).match(/^-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/);
+    if (numMatch) { out += `<span class="jn">${numMatch[0]}</span>`; i += numMatch[0].length; continue; }
+    if (json.slice(i,i+4)==='true')  { out += `<span class="jb">true</span>`;  i+=4; continue; }
+    if (json.slice(i,i+5)==='false') { out += `<span class="jb">false</span>`; i+=5; continue; }
+    if (json.slice(i,i+4)==='null')  { out += `<span class="jl">null</span>`;  i+=4; continue; }
+    out += esc(json[i]); i++;
+  }
+  return out;
+}
+
+function getIndent() {
+  const v = document.getElementById('indent-size').value;
+  return v === 'tab' ? '\t' : parseInt(v);
+}
+function setStatus(msg, type='') { const el=document.getElementById('status-msg'); el.textContent=msg; el.className=type; }
+function setDetail(text) { document.getElementById('status-detail').textContent=text; }
+function setInSize(n) { document.getElementById('in-size').textContent = n>0?`(${n.toLocaleString()} 字符)`:''; }
+function setOutSize(n) { document.getElementById('out-size').textContent = n>0?`(${n.toLocaleString()} 字符)`:''; }
+function showOutput(html, isHtml=true) {
+  const el=document.getElementById('output');
+  const gutter=document.getElementById('fold-gutter');
+  el.classList.remove('empty-hint');
+  
+  if (isHtml && lastFormattedOutput) {
+    // JSON格式化输出，支持折叠
+    const lines = lastFormattedOutput.split('\n');
+    
+    // 清空并重建
+    el.innerHTML='';
+    gutter.innerHTML='';
+    
+    // 先计算所有可折叠区域（用于行内嵌入图标）
+    const foldRangeMap = {}; // startLine -> range
+    if (parsedData !== null) {
+      const ranges = calcLineRanges(parsedData, 0, 0, '');
+      ranges.forEach(range => {
+        if (range.endLine > range.startLine) {
+          // 同一行可能有多个区域（不常见），取最后一个
+          foldRangeMap[range.startLine] = range;
+        }
+      });
+    }
+    
+    let outputLineIndex = 0;
+    
+    lines.forEach((line, idx) => {
+      // 行号边栏（纯数字）
+      if (line.trim()) {
+        const gutterLine = document.createElement('div');
+        gutterLine.className = 'gutter-line';
+        const lineNumEl = document.createElement('span');
+        lineNumEl.className = 'line-number';
+        lineNumEl.textContent = outputLineIndex + 1;
+        gutterLine.appendChild(lineNumEl);
+        gutter.appendChild(gutterLine);
+      }
+      
+      if (line.trim()) {
+        const lineEl = document.createElement('div');
+        lineEl.className = 'output-line';
+        lineEl.dataset.lineNum = outputLineIndex;
+        lineEl.dataset.originalLineNum = idx;
+        
+        // 检查此行是否是可折叠区域的起始行
+        const range = foldRangeMap[idx];
+        if (range) {
+          // 需要在 { 或 [ 前嵌入折叠图标
+          lineEl.innerHTML = buildLineWithFoldBtn(line, range);
+          // 绑定折叠点击事件
+          lineEl._foldRange = range;
+        } else {
+          lineEl.innerHTML = syntaxHighlight(line);
+        }
+        
+        el.appendChild(lineEl);
+        outputLineIndex++;
+      }
+    });
+    
+    // 为所有内嵌折叠按钮绑定事件
+    if (parsedData !== null && Object.keys(foldRangeMap).length > 0) {
+      el.querySelectorAll('.output-line').forEach(lineEl => {
+        if (lineEl._foldRange) {
+          const btn = lineEl.querySelector('.inline-fold-btn');
+          if (btn) {
+            bindInlineFoldBtn(btn, lineEl._foldRange);
+          }
+        }
+      });
+      
+      document.getElementById('btn-fold-all').style.display='inline-flex';
+      document.getElementById('btn-unfold-all').style.display='inline-flex';
+      document.getElementById('fold-sep').style.display='inline-block';
+    }
+    
+  } else {
+    // 普通文本输出（错误信息、校验结果等）
+    if (isHtml) el.innerHTML=html; else el.textContent=html;
+    gutter.innerHTML='';
+  }
+}
+
+// 构建含折叠按钮的行HTML（在 { 或 [ 前插入按钮）
+function buildLineWithFoldBtn(line, range) {
+  // 找到行中第一个 { 或 [ 的位置
+  const trimmed = line.trimStart();
+  const indent = line.length - trimmed.length;
+  const indentStr = line.slice(0, indent);
+  
+  // 确定折叠符号
+  const openChar = range.type === 'array' ? '[' : '{';
+  const closeChar = range.type === 'array' ? ']' : '}';
+  
+  // SVG 图标（展开状态：向下三角）
+  // type class：object 蓝色，array 绿色
+  const typeClass = range.type === 'array' ? 'type-arr' : 'type-obj';
+  const btnHTML = `<span class="inline-fold-btn ${typeClass}" data-start="${range.startLine}" data-end="${range.endLine}" data-type="${range.type}" data-state="expanded" title="折叠（点击折叠）">${makeFoldSVG(false, range.type)}</span>`;
+  
+  // 用语法高亮处理整行，再在开括号前插入按钮
+  const highlighted = syntaxHighlight(line);
+  
+  // 在高亮后的HTML中，找到第一个 { 或 [ 并在其前方插入按钮
+  // 由于高亮后是span包裹的，我们用特殊处理：找到第一个原始括号
+  // 策略：找开括号在原始字符串中的位置，然后计算在高亮HTML中插入点
+  
+  // JSON.stringify 格式中，{ 或 [ 总在行的末尾（或就是整行）
+  // 用 lastIndexOf 更安全，避免误匹配 key 字符串中的括号
+  const bracketIdx = line.lastIndexOf(openChar);
+  if (bracketIdx === -1) {
+    // 未找到括号，直接返回高亮内容（兜底）
+    return highlighted;
+  }
+  
+  // 原始行按括号位置分割，分别高亮再拼接插入按钮
+  const before = line.slice(0, bracketIdx);
+  const after = line.slice(bracketIdx);
+  
+  return syntaxHighlight(before) + btnHTML + syntaxHighlight(after);
+}
+
+// 生成折叠/展开 SVG 图标（三角箭头，用 currentColor 继承父元素颜色）
+function makeFoldSVG(collapsed, type) {
+  // 三角始终向下，通过CSS的 data-state="collapsed" 旋转 -90°
+  // SVG 不硬编码颜色，使用 currentColor 继承 .inline-fold-btn 的 color
+  return `<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><path d="M2 3.5L5 6.5L8 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+// 绑定行内折叠按钮的点击事件
+function bindInlineFoldBtn(btn, range) {
+  // 移除旧监听（防重复绑定）
+  const newBtn = btn.cloneNode(true);
+  btn.parentNode.replaceChild(newBtn, btn);
+  btn = newBtn;
+  
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isCollapsed = btn.dataset.state === 'collapsed';
+    const startLine = parseInt(btn.dataset.start);
+    const endLine = parseInt(btn.dataset.end);
+    const rangeType = btn.dataset.type;
+    
+    const allLines = document.querySelectorAll('.output-line');
+    const startLineEl = btn.closest('.output-line');
+    
+    if (!isCollapsed) {
+      // ── 折叠：隐藏 (startLine, endLine) 之间的行 ──
+      allLines.forEach(line => {
+        const origNum = parseInt(line.dataset.originalLineNum);
+        if (origNum > startLine && origNum < endLine) {
+          line.classList.add('collapsed');
+        }
+      });
+      
+      // 更新按钮图标为 ⊕（折叠后图标旋转由CSS完成，只需更新state）
+      btn.innerHTML = makeFoldSVG(true, rangeType);
+      btn.dataset.state = 'collapsed';
+      btn.title = '点击展开';
+      
+      // 在行尾追加折叠提示
+      if (startLineEl && !startLineEl.querySelector('.fold-hint')) {
+        const endSymbol = rangeType === 'array' ? ']' : '}';
+        const hint = document.createElement('span');
+        hint.className = 'fold-hint';
+        hint.textContent = `… ${endSymbol}`;
+        startLineEl.appendChild(hint);
+      }
+    } else {
+      // ── 展开：显示所有行 ──
+      allLines.forEach(line => {
+        const origNum = parseInt(line.dataset.originalLineNum);
+        if (origNum > startLine && origNum < endLine) {
+          line.classList.remove('collapsed');
+        }
+      });
+      
+      // 更新按钮图标为 ⊖（展开状态）
+      btn.innerHTML = makeFoldSVG(false, rangeType);
+      btn.dataset.state = 'expanded';
+      btn.title = '点击折叠';
+      
+      // 移除折叠提示
+      if (startLineEl) {
+        const hint = startLineEl.querySelector('.fold-hint');
+        if (hint) hint.remove();
+      }
+    }
+    
+    // 同步行号边栏可见性
+    syncGutterVisibility();
+  });
+}
+
+// 同步行号边栏与内容行的可见性
+function syncGutterVisibility() {
+  const gutter = document.getElementById('fold-gutter');
+  const contentLines = document.querySelectorAll('.output-line');
+  const gutterLines = gutter.querySelectorAll('.gutter-line');
+  
+  let gutterIdx = 0;
+  contentLines.forEach(line => {
+    if (gutterLines[gutterIdx]) {
+      gutterLines[gutterIdx].style.display = line.classList.contains('collapsed') ? 'none' : '';
+      gutterIdx++;
+    }
+  });
+}
+
+// 全部折叠（从内层到外层，先折叠最深的）
+function foldAll() {
+  const btns = Array.from(document.querySelectorAll('.inline-fold-btn[data-state="expanded"]'));
+  // startLine 越大的往往越深，先折叠内层
+  btns.sort((a, b) => parseInt(b.dataset.start) - parseInt(a.dataset.start));
+  btns.forEach(btn => {
+    const lineEl = btn.closest('.output-line');
+    if (lineEl && !lineEl.classList.contains('collapsed')) {
+      btn.click();
+    }
+  });
+}
+
+// 全部展开
+function unfoldAll() {
+  // 展开时需要从外层到内层（避免内层按钮已被替换）
+  // 先收集所有折叠的按钮，再逐个展开
+  const collapsed = Array.from(document.querySelectorAll('.inline-fold-btn[data-state="collapsed"]'));
+  // 按startLine从小到大排序（外层先展开）
+  collapsed.sort((a, b) => parseInt(a.dataset.start) - parseInt(b.dataset.start));
+  collapsed.forEach(btn => btn.click());
+}
+function setOutputEmpty(msg='等待输入...') {
+  const outputPanel = document.getElementById('output');
+  const outputEditor = document.getElementById('output-editor');
+  
+  if (isEditMode) {
+    // 编辑模式下，清空编辑器
+    outputEditor.value = '';
+  } else {
+    // 正常模式，清空输出面板
+    outputPanel.classList.add('empty-hint');
+    outputPanel.textContent = msg;
+  }
+  
+  setOutSize(0);
+}
+function parseErrorPosition(errMsg) {
+  const pos = errMsg.match(/position (\d+)/i) || errMsg.match(/at (\d+)/i);
+  return pos ? parseInt(pos[1]) : null;
+}
+
+/* ===================================================================
+   格式化 / 压缩 / 校验 / 排序
+=================================================================== */
+function formatJSON() {
+  // 根据当前模式选择输入源
+  let inputSource = '';
+  let errorElement = null;
+  
+  if (isEditMode) {
+    // 编辑模式下，从输出编辑器读取
+    inputSource = document.getElementById('output-editor').value.trim();
+    errorElement = document.getElementById('output-editor');
+  } else {
+    // 正常模式下，从输入区读取
+    inputSource = document.getElementById('input').value.trim();
+    errorElement = document.getElementById('input');
+  }
+  
+  if (errorElement) {
+    errorElement.classList.remove('error-state');
+  }
+  
+  if (!inputSource) { 
+    parsedData=null; 
+    setOutputEmpty(); 
+    setStatus('准备就绪'); 
+    setDetail(''); 
+    return; 
+  }
+  
+  try {
+    parsedData = JSON.parse(inputSource);
+    const formatted = JSON.stringify(parsedData, null, getIndent());
+    lastFormattedOutput = formatted; // 保存格式化后的输出
+    
+    // 如果在编辑模式，更新编辑器内容
+    if (isEditMode) {
+      document.getElementById('output-editor').value = formatted;
+      setStatus('✅ 格式化成功', 'success');
+    } else {
+      // 正常模式，显示可视化输出
+      showOutput(syntaxHighlight(formatted));
+      setOutSize(formatted.length);
+      setStatus('✅ 格式化成功', 'success');
+      const stats = countStats(parsedData);
+      setDetail(`${stats.keys} 个键 · ${stats.values} 个值 · 深度 ${stats.depth}`);
+    }
+    
+    if (currentView === 'node') renderNodeView(parsedData);
+    
+    // 启用下载按钮和 TS 按钮
+    document.getElementById('download-btn').disabled = false;
+    document.getElementById('btn-codegen').style.display = 'inline-flex';
+  } catch(e) {
+    parsedData = null;
+    if (errorElement) {
+      errorElement.classList.add('error-state');
+    }
+    const pos = parseErrorPosition(e.message);
+    const hint = pos!==null?`（位置 ${pos}）`:'';
+    
+    if (isEditMode) {
+      // 编辑模式下，显示错误信息
+      setStatus('JSON 语法错误'+hint,'error');
+    } else {
+      // 正常模式，显示错误在输出区
+      showOutput(`<span style="color:#ef4444">❌ JSON 语法错误${hint}\n\n${e.message}</span>`);
+      setOutSize(0);
+      setStatus('JSON 语法错误'+hint,'error');
+      setDetail('');
+    }
+    
+    // 禁用下载按钮
+    document.getElementById('download-btn').disabled = true;
+    document.getElementById('btn-codegen').style.display = 'none';
+  }
+}
+
+// 计算节点占用的行范围（深度优先遍历）
+// 注意：JSON.stringify 中逗号跟在 } 或 ] 同一行，不单独占行
+function calcLineRanges(obj, indent = 0, startLine = 0, path = '') {
+  const ranges = [];
+  let currentLine = startLine;
+  
+  if (Array.isArray(obj)) {
+    // 数组开始
+    const arrayStart = currentLine;
+    currentLine++; // 跳过 [ 行
+    
+    obj.forEach((item, index) => {
+      if (item !== null && typeof item === 'object') {
+        // 对象或子数组
+        const childRanges = calcLineRanges(item, indent + 1, currentLine, `${path}[${index}]`);
+        ranges.push(...childRanges);
+        // 子结束行（} 或 ]）后移到下一行；逗号在同一行，不额外++
+        currentLine = (childRanges[childRanges.length - 1]?.endLine ?? currentLine - 1) + 1;
+      } else {
+        // 简单值（逗号在同行）
+        currentLine++;
+      }
+    });
+    
+    // 数组结束
+    const arrayEnd = currentLine; // ] 所在的行
+    currentLine++; // 跳过 ] 行
+    
+    ranges.push({
+      startLine: arrayStart,
+      endLine: arrayEnd,
+      path: path || 'root',
+      type: 'array'
+    });
+    
+  } else if (obj !== null && typeof obj === 'object') {
+    // 对象开始
+    const objectStart = currentLine;
+    currentLine++; // 跳过 { 行
+    
+    const keys = Object.keys(obj);
+    keys.forEach((key, index) => {
+      const value = obj[key];
+      
+      if (value !== null && typeof value === 'object') {
+        // 嵌套对象或数组（"key": { 在同一行作为嵌套的 startLine）
+        const childRanges = calcLineRanges(value, indent + 1, currentLine, path ? `${path}.${key}` : key);
+        ranges.push(...childRanges);
+        // 子结束行（} 或 ]）后移到下一行；逗号在同一行，不额外++
+        currentLine = (childRanges[childRanges.length - 1]?.endLine ?? currentLine - 1) + 1;
+      } else {
+        // 简单值（key: value 在同一行，逗号在同行）
+        currentLine++;
+      }
+    });
+    
+    // 对象结束
+    const objectEnd = currentLine; // } 所在的行
+    currentLine++; // 跳过 } 行
+    
+    ranges.push({
+      startLine: objectStart,
+      endLine: objectEnd,
+      path: path || 'root',
+      type: 'object'
+    });
+  }
+  
+  return ranges;
+}
+
+function minifyJSON() {
+  // 根据当前模式选择输入源
+  const inputSource = isEditMode ? 
+    document.getElementById('output-editor').value.trim() : 
+    document.getElementById('input').value.trim();
+    
+  if (!inputSource) { setStatus('请先输入 JSON','error'); return; }
+  try {
+    const parsed=JSON.parse(inputSource);
+    const minified=JSON.stringify(parsed);
+    
+    if (isEditMode) {
+      document.getElementById('output-editor').value = minified;
+    } else {
+      showOutput(minified,false);
+      setOutSize(minified.length);
+    }
+    
+    const saved=inputSource.length-minified.length;
+    setStatus('✅ 压缩成功','success');
+    setDetail(`节省 ${saved.toLocaleString()} 个字符 (${Math.round(saved/inputSource.length*100)}%)`);
+  } catch(e) { setStatus('JSON 语法错误: '+e.message,'error'); }
+}
+
+function validateJSON() {
+  // 根据当前模式选择输入源
+  const inputSource = isEditMode ? 
+    document.getElementById('output-editor').value.trim() : 
+    document.getElementById('input').value.trim();
+    
+  if (!inputSource) { setStatus('请先输入 JSON','error'); return; }
+  
+  const errorElement = isEditMode ? 
+    document.getElementById('output-editor') : 
+    document.getElementById('input');
+    
+  try {
+    const parsed=JSON.parse(inputSource);
+    if (errorElement) errorElement.classList.remove('error-state');
+    const stats=countStats(parsed);
+    setStatus('✅ JSON 合法','success');
+    setDetail(`${stats.keys} 个键 · ${stats.values} 个值 · 最大深度 ${stats.depth}`);
+    
+    if (!isEditMode) {
+      showOutput(`<span style="color:#22c55e">✅ JSON 语法合法\n\n类型：${Array.isArray(parsed)?'数组':typeof parsed==='object'?'对象':typeof parsed}\n键数：${stats.keys}\n值数：${stats.values}\n最大深度：${stats.depth}</span>`);
+    }
+  } catch(e) {
+    if (errorElement) errorElement.classList.add('error-state');
+    const pos=parseErrorPosition(e.message);
+    const hint=pos!==null?`（位置 ${pos}）`:'';
+    setStatus('❌ JSON 语法错误'+hint,'error');
+    
+    if (!isEditMode) {
+      showOutput(`<span style="color:#ef4444">❌ JSON 语法错误${hint}\n\n${e.message}</span>`);
+    }
+  }
+}
+
+function sortKeys() {
+  // 根据当前模式选择输入源
+  const inputSource = isEditMode ? 
+    document.getElementById('output-editor').value.trim() : 
+    document.getElementById('input').value.trim();
+    
+  if (!inputSource) { setStatus('请先输入 JSON','error'); return; }
+  try {
+    const parsed=JSON.parse(inputSource);
+    const sorted=sortObjKeys(parsed);
+    const formatted=JSON.stringify(sorted,null,getIndent());
+    
+    if (isEditMode) {
+      document.getElementById('output-editor').value = formatted;
+    } else {
+      document.getElementById('input').value = formatted;
+      showOutput(syntaxHighlight(formatted));
+      setOutSize(formatted.length);
+      setInSize(formatted.length);
+    }
+    
+    setStatus('✅ Key 已按字母顺序排序','success');
+  } catch(e) { setStatus('JSON 语法错误: '+e.message,'error'); }
+}
+function sortObjKeys(obj) {
+  if (Array.isArray(obj)) return obj.map(sortObjKeys);
+  if (obj!==null&&typeof obj==='object') return Object.keys(obj).sort().reduce((acc,k)=>{ acc[k]=sortObjKeys(obj[k]); return acc; },{});
+  return obj;
+}
+function countStats(v,depth=0) {
+  let keys=0,values=0,maxD=depth;
+  if (Array.isArray(v)) {
+    v.forEach(item=>{ const s=countStats(item,depth+1); values+=s.values+1; keys+=s.keys; maxD=Math.max(maxD,s.depth); });
+  } else if (v!==null&&typeof v==='object') {
+    Object.entries(v).forEach(([,val])=>{ keys++; const s=countStats(val,depth+1); values+=s.values; keys+=s.keys; maxD=Math.max(maxD,s.depth); });
+  } else values++;
+  return {keys,values,depth:maxD};
+}
+function clearAll() {
+  // 如果在编辑模式，先退出
+  if (isEditMode) {
+    toggleEditMode();
+  }
+  
+  document.getElementById('input').value='';
+  document.getElementById('input').classList.remove('error-state');
+  document.getElementById('output-editor').value='';
+  parsedData=null;
+  lastFormattedOutput='';
+  setOutputEmpty();
+  setStatus('已清空');
+  setDetail('');
+  setInSize(0);
+  clearNodeView();
+  
+  // 清空折叠边栏
+  document.getElementById('fold-gutter').innerHTML='';
+  // 隐藏折叠控制按钮
+  document.getElementById('btn-fold-all').style.display='none';
+  document.getElementById('btn-unfold-all').style.display='none';
+  document.getElementById('fold-sep').style.display='none';
+  // 隐藏筛选按钮
+  document.getElementById('btn-filter').style.display='none';
+  // 隐藏 TS 按钮
+  document.getElementById('btn-codegen').style.display='none';
+}
+function loadSample() {
+  const sample = {
+    "code": 200,
+    "message": "success",
+    "data": {
+      "userId": "10086",
+      "userName": "曹大大",
+      "profile": {
+        "age": 28,
+        "middleName": null,
+        "tags": ["Java","PostgreSQL",null]
+      },
+      "orders": [
+        {"orderId":"ORD_001","amount":"100.50","count":1,"oldStatus":1,"newStatus":"PAID","createTime":1678888888000},
+        {"orderId":"ORD_002","amount":200,"count":"2","oldStatus":null,"newStatus":"UNPAID","createTime":"2023-03-15 12:00:00"}
+      ],
+      "config": {"enableLog":true,"threshold":0.5}
+    },
+    "traceId": "abc-123-xyz"
+  };
+  
+  // 如果在编辑模式，直接加载到编辑器
+  if (isEditMode) {
+    document.getElementById('output-editor').value = JSON.stringify(sample, null, 2);
+    formatJSON();
+  } else {
+    document.getElementById('input').value = JSON.stringify(sample);
+    formatJSON();
+  }
+}
+
+/* ===================================================================
+   JSON 多语言代码生成器
+   支持 4 个类别 × 6+ 语言：类型定义、数据结构、数据转换、Schema
+=================================================================== */
+
+// ========== 全局状态 ==========
+let cgState = {
+  cat: 'type',        // type | struct | data | schema
+  lang: 'typescript', // 当前语言
+  rootName: 'Root',
+  indent: 2,
+  useOptional: true,
+  addComments: true,
+  code: '',           // 当前生成代码
+  fileName: ''        // 当前文件名
+};
+
+// ========== 工具函数 ==========
+function capitalize(s) {
+  return s.replace(/[-_\s](.)/g, (_, c) => c.toUpperCase()).replace(/^(.)/, (_, c) => c.toUpperCase());
+}
+function camelCase(s) {
+  return s.replace(/[-_\s](.)/g, (_, c) => c.toUpperCase());
+}
+function snakeCase(s) {
+  return s.replace(/[A-Z]/g, c => '_' + c.toLowerCase()).replace(/^_/, '');
+}
+function kebabCase(s) {
+  return s.replace(/[A-Z]/g, c => '-' + c.toLowerCase()).replace(/^-/, '');
+}
+function pascalCase(s) {
+  return capitalize(s);
+}
+
+// ========== 类型推断引擎 ==========
+function inferTypeInfo(arr, key) {
+  if (!arr || arr.length === 0) return { type: 'unknown', comment: '' };
+  const types = new Set();
+  let sample = null;
+  for (const item of arr) {
+    const v = item[key];
+    if (v === undefined) continue;
+    if (v === null) { types.add('null'); continue; }
+    if (Array.isArray(v)) { types.add('array'); sample = v; continue; }
+    types.add(typeof v);
+    if (!sample) sample = v;
+  }
+  if (types.has('object')) types.delete('object'); // handled separately
+  return { types: [...types], sample, hasArray: arr.some(i => Array.isArray(i[key])) };
+}
+
+// ========== 面板控制 ==========
+function openCodegen() {
+  document.getElementById('codegen-overlay').classList.add('active');
+  document.getElementById('codegen-panel').classList.add('active');
+  renderCodegenUI();
+  generateCodeForCurrent();
+}
+function closeCodegen() {
+  document.getElementById('codegen-overlay').classList.remove('active');
+  document.getElementById('codegen-panel').classList.remove('active');
+}
+function switchCodegenCat(cat, btn) {
+  cgState.cat = cat;
+  document.querySelectorAll('.codegen-cat-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderCodegenUI();
+  generateCodeForCurrent();
+}
+
+// ========== 语言定义 ==========
+const LANGS = {
+  typescript: { name: 'TypeScript', ext: '.ts', color: '#3178c6' },
+  go:         { name: 'Go',         ext: '.go', color: '#00add8' },
+  python:     { name: 'Python',     ext: '.py', color: '#3776ab' },
+  java:       { name: 'Java',       ext: '.java', color: '#ed8b00' },
+  rust:       { name: 'Rust',       ext: '.rs', color: '#dea584' },
+  kotlin:     { name: 'Kotlin',     ext: '.kt', color: '#7f52ff' },
+  csharp:     { name: 'C#',         ext: '.cs', color: '#239120' },
+  php:        { name: 'PHP',        ext: '.php', color: '#777bb4' },
+  dart:       { name: 'Dart',       ext: '.dart', color: '#0175c2' },
+  swift:      { name: 'Swift',      ext: '.swift', color: '#f05138' },
+};
+
+// ========== 类别定义 ==========
+const CATS = {
+  type:   { langs: ['typescript','go','python','java','kotlin','rust','csharp','php','dart','swift'], label: '类型定义' },
+  struct: { langs: ['typescript','go','python','java','kotlin','rust','csharp','php','dart','swift'], label: '数据结构' },
+  data:   { langs: ['typescript','go','python','java','rust'], label: '数据转换' },
+  schema: { langs: ['typescript','python','go','java'], label: 'Schema' },
+};
+
+// ========== 选项定义 ==========
+const OPTIONS = {
+  type: [
+    { key: 'rootName', label: '类型名', type: 'text', default: 'Root' },
+    { key: 'useOptional', label: '可选字段(?)', type: 'checkbox', default: true },
+    { key: 'addComments', label: '注释', type: 'checkbox', default: true },
+  ],
+  struct: [
+    { key: 'rootName', label: '类名', type: 'text', default: 'Root' },
+    { key: 'addComments', label: '注释', type: 'checkbox', default: true },
+    { key: 'useBuilder', label: 'Builder模式', type: 'checkbox', default: false },
+  ],
+  data: [
+    { key: 'rootName', label: '变量名', type: 'text', default: 'data' },
+  ],
+  schema: [
+    { key: 'rootName', label: 'Schema名', type: 'text', default: 'Root' },
+  ],
+};
+
+// ========== 渲染 UI ==========
+function renderCodegenUI() {
+  const catDef = CATS[cgState.cat];
+  // 语言按钮
+  const langBox = document.getElementById('codegen-langs');
+  langBox.innerHTML = catDef.langs.map(l => {
+    const L = LANGS[l];
+    const active = cgState.lang === l ? ' active' : '';
+    return `<button class="codegen-lang-btn${active}" onclick="selectLang('${l}',this)">
+      <span class="lang-dot" style="background:${L.color}"></span>${L.name}
+    </button>`;
+  }).join('');
+  if (!catDef.langs.includes(cgState.lang)) cgState.lang = catDef.langs[0];
+
+  // 选项
+  const optBox = document.getElementById('codegen-options');
+  const opts = OPTIONS[cgState.cat] || [];
+  optBox.innerHTML = opts.map(o => {
+    if (o.type === 'text') {
+      return `<div class="codegen-opt">
+        <span>${o.label}</span>
+        <input type="text" value="${cgState[o.key] || o.default}" onchange="cgState['${o.key}']=this.value;generateCodeForCurrent()">
+      </div>`;
+    }
+    return `<div class="codegen-opt">
+      <input type="checkbox" ${cgState[o.key] ? 'checked' : ''} onchange="cgState['${o.key}']=this.checked;generateCodeForCurrent()">
+      <span>${o.label}</span>
+    </div>`;
+  }).join('');
+}
+
+function selectLang(lang, btn) {
+  cgState.lang = lang;
+  document.querySelectorAll('.codegen-lang-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  generateCodeForCurrent();
+}
+
+// ========== 获取当前 JSON 数据 ==========
+function getCurrentJSON() {
+  const source = isEditMode
+    ? document.getElementById('output-editor').value.trim()
+    : document.getElementById('input').value.trim();
+  if (!source) return null;
+  try { return JSON.parse(source); } catch(e) { return null; }
+}
+
+// ========== 主生成入口 ==========
+function generateCodeForCurrent() {
+  const data = getCurrentJSON();
+  if (!data) {
+    document.getElementById('codegen-code').textContent = '请先输入有效的 JSON 数据';
+    document.getElementById('codegen-file-tag').textContent = '—';
+    document.getElementById('codegen-size-tag').textContent = '';
+    return;
+  }
+  let code = '';
+  const gen = codeGenerators[cgState.cat]?.[cgState.lang];
+  if (gen) {
+    code = gen(data, cgState);
+  } else {
+    code = `// ${cgState.cat} → ${cgState.lang} 暂未支持`;
+  }
+  cgState.code = code;
+  const L = LANGS[cgState.lang];
+  cgState.fileName = snakeCase(cgState.rootName) + L.ext;
+  document.getElementById('codegen-code').textContent = code;
+  document.getElementById('codegen-file-tag').textContent = cgState.fileName;
+  document.getElementById('codegen-size-tag').textContent = `${code.length} chars · ${code.split('\n').length} lines`;
+}
+
+function copyCodegen() {
+  if (!cgState.code) return;
+  const btn = document.getElementById('codegen-copy-btn');
+  navigator.clipboard.writeText(cgState.code).then(() => {
+    btn.textContent = '✓ 已复制';
+    setTimeout(() => btn.textContent = '复制代码', 1500);
+  }).catch(() => {});
+}
+
+function downloadCodegen() {
+  if (!cgState.code) return;
+  const blob = new Blob([cgState.code], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = cgState.fileName;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ========== 代码生成器 ==========
+const codeGenerators = { type: {}, struct: {}, data: {}, schema: {} };
+
+// ==================== 类型定义生成器 ====================
+
+// --- 共享：类型推断 ---
+function inferType(value, keyHint, rootName, visited, depth, arr) {
+  if (value === null || value === undefined) return { native: 'null', def: null };
+  if (typeof value === 'string') {
+    const ts = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?/.test(value) ? 'string' : /^https?:\/\//i.test(value) ? 'string' : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? 'string' : 'string';
+    return { native: 'string', comment: /^\d{4}-\d{2}-\d{2}/.test(value) ? 'date-like' : /^https?:\/\//i.test(value) ? 'url' : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? 'email' : '' };
+  }
+  if (typeof value === 'number') return { native: Number.isInteger(value) ? 'integer' : 'number', comment: Number.isInteger(value) ? '' : '' };
+  if (typeof value === 'boolean') return { native: 'boolean' };
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return { native: 'array_empty' };
+    const elemInfo = mergeArrayElementTypes(value, keyHint, rootName, visited, depth);
+    return { native: 'array', elemType: elemInfo };
+  }
+
+  if (typeof value === 'object') {
+    const typeName = pascalCase(keyHint || 'Nested');
+    if (visited.has(typeName)) return { native: 'ref', refName: typeName };
+    visited.add(typeName);
+    return { native: 'object', refName: typeName, fields: extractFields(value, typeName, rootName, visited, depth) };
+  }
+  return { native: 'any' };
+}
+
+function mergeArrayElementTypes(arr, keyHint, rootName, visited, depth) {
+  if (arr.length === 0) return { native: 'any' };
+  // 如果是对象数组，合并所有对象的字段
+  const allObj = arr.filter(x => x && typeof x === 'object' && !Array.isArray(x));
+  if (allObj.length > 0) {
+    const merged = {};
+    const fieldTypes = {}; // key -> Set of types
+    for (const obj of allObj) {
+      for (const [k, v] of Object.entries(obj)) {
+        merged[k] = merged[k] !== undefined ? merged[k] : v;
+        const ti = inferType(v, k, rootName, new Set(visited), depth + 1, allObj);
+        if (!fieldTypes[k]) fieldTypes[k] = [];
+        fieldTypes[k].push(ti.native);
+      }
+    }
+    const typeName = pascalCase((keyHint || rootName).replace(/s$/, '') + 'Item');
+    if (!visited.has(typeName)) {
+      visited.add(typeName);
+      const fields = extractFieldsFromMerged(merged, fieldTypes, allObj, typeName, rootName, visited, depth + 1);
+      return { native: 'object', refName: typeName, fields };
+    }
+    return { native: 'ref', refName: typeName };
+  }
+  // 简单数组
+  const types = new Set();
+  for (const item of arr) {
+    if (item === null) { types.add('null'); continue; }
+    types.add(typeof item);
+  }
+  if (types.size === 1 && !types.has('null')) {
+    const t = [...types][0];
+    if (t === 'object') {
+      const sample = arr.find(x => x && typeof x === 'object');
+      return inferType(sample, keyHint, rootName, new Set(visited), depth + 1);
+    }
+    return { native: t };
+  }
+  return { native: 'union', types: [...types] };
+}
+
+function extractFields(obj, typeName, rootName, visited, depth) {
+  const fields = [];
+  for (const [key, value] of Object.entries(obj)) {
+    const info = inferType(value, key, rootName, new Set(visited), depth + 1);
+    fields.push({ key, value, info, optional: value === null });
+  }
+  return fields;
+}
+
+function extractFieldsFromMerged(merged, fieldTypes, allObj, typeName, rootName, visited, depth) {
+  const fields = [];
+  for (const [key, value] of Object.entries(merged)) {
+    const info = inferType(value, key, rootName, new Set(visited), depth + 1);
+    // 检查是否有 null 值
+    const hasNull = allObj.some(o => o[key] === null || o[key] === undefined);
+    fields.push({ key, value, info, optional: hasNull });
+  }
+  return fields;
+}
+
+// --- TypeScript ---
+codeGenerators.type.typescript = function(data, state) {
+  const allTypes = []; // 收集所有 interface/type 定义
+  const visited = new Set();
+
+  // 递归收集所有需要定义为独立类型的嵌套结构
+  function collectTypes(value, typeName, parentVisited) {
+    if (value === null || value === undefined) return null;
+    const tn = pascalCase(typeName || 'Nested');
+    const myVisited = new Set(parentVisited);
+
+    if (Array.isArray(value)) {
+      if (value.length === 0) return null;
+      const allObj = value.filter(x => x && typeof x === 'object' && !Array.isArray(x));
+      if (allObj.length > 0) {
+        const merged = {};
+        for (const obj of allObj) {
+          for (const [k, v] of Object.entries(obj)) {
+            if (merged[k] === undefined) merged[k] = v;
+          }
+        }
+        // 数组元素类型名 = 单数形式（去掉末尾s）
+        let itemName = tn;
+        if (itemName.endsWith('s') && !itemName.endsWith('ss')) {
+          itemName = itemName.slice(0, -1);
+        } else if (!itemName.endsWith('Item')) {
+          itemName = tn + 'Item';
+        }
+        if (!myVisited.has(itemName)) {
+          myVisited.add(itemName);
+          const fields = buildFieldsFromMerged(merged, allObj, itemName, myVisited);
+          allTypes.push({ kind: 'interface', name: itemName, fields });
+        }
+        return { native: 'ref', refName: itemName };
+      }
+      const elemType = collectTypes(value[0], typeName + 'Item', myVisited);
+      if (elemType) return { native: 'array', elemType };
+      return { native: 'array', elemType: { native: typeof value[0] } };
+    }
+
+    if (typeof value === 'object') {
+      if (myVisited.has(tn)) return { native: 'ref', refName: tn };
+      myVisited.add(tn);
+      const fields = [];
+      for (const [key, val] of Object.entries(value)) {
+        const fieldType = resolveFieldType(val, key, myVisited);
+        fields.push({ key, optional: val === null || val === undefined, typeInfo: fieldType });
+      }
+      allTypes.push({ kind: 'interface', name: tn, fields });
+      return { native: 'ref', refName: tn };
+    }
+
+    return null; // 基本类型不需要单独定义
+  }
+
+  // 解析字段类型，必要时递归收集嵌套类型
+  function resolveFieldType(value, keyHint, parentVisited) {
+    if (value === null || value === undefined) return { native: 'null' };
+    if (typeof value === 'string') return { native: 'string' };
+    if (typeof value === 'boolean') return { native: 'boolean' };
+    if (typeof value === 'number') return { native: Number.isInteger(value) ? 'integer' : 'number' };
+
+    if (Array.isArray(value)) {
+      if (value.length === 0) return { native: 'array', elemType: { native: 'any' } };
+      const allObj = value.filter(x => x && typeof x === 'object' && !Array.isArray(x));
+      if (allObj.length > 0) {
+        // 对象数组：收集元素类型
+        const merged = {};
+        for (const obj of allObj) {
+          for (const [k, v] of Object.entries(obj)) {
+            if (merged[k] === undefined) merged[k] = v;
+          }
+        }
+        const itemName = pascalCase(keyHint);
+        let elemTypeName = itemName;
+        if (elemTypeName.endsWith('s') && !elemTypeName.endsWith('ss')) {
+          elemTypeName = elemTypeName.slice(0, -1);
+        } else if (!elemTypeName.endsWith('Item')) {
+          elemTypeName = elemTypeName + 'Item';
+        }
+        const myVisited = new Set(parentVisited);
+        if (!myVisited.has(elemTypeName)) {
+          myVisited.add(elemTypeName);
+          const fields = buildFieldsFromMerged(merged, allObj, elemTypeName, myVisited);
+          allTypes.push({ kind: 'interface', name: elemTypeName, fields });
+        }
+        return { native: 'array', elemType: { native: 'ref', refName: elemTypeName } };
+      }
+      // 简单类型数组
+      const elemNative = typeof value[0];
+      return { native: 'array', elemType: { native: elemNative === 'object' ? 'any' : elemNative } };
+    }
+
+    if (typeof value === 'object') {
+      const tn = pascalCase(keyHint);
+      const myVisited = new Set(parentVisited);
+      if (myVisited.has(tn)) return { native: 'ref', refName: tn };
+      myVisited.add(tn);
+      const fields = [];
+      for (const [key, val] of Object.entries(value)) {
+        const fieldType = resolveFieldType(val, key, myVisited);
+        fields.push({ key, optional: val === null || val === undefined, typeInfo: fieldType });
+      }
+      allTypes.push({ kind: 'interface', name: tn, fields });
+      return { native: 'ref', refName: tn };
+    }
+
+    return { native: 'any' };
+  }
+
+  // 从合并的对象构建字段列表
+  function buildFieldsFromMerged(merged, allObj, typeName, parentVisited) {
+    const fields = [];
+    for (const [key, val] of Object.entries(merged)) {
+      const hasNull = allObj.some(o => o[key] === null || o[key] === undefined);
+      const fieldType = resolveFieldType(val, key, parentVisited);
+      fields.push({ key, optional: hasNull || val === null, typeInfo: fieldType });
+    }
+    return fields;
+  }
+
+  // 类型信息转 TypeScript 类型字符串
+  function toTSType(typeInfo) {
+    switch (typeInfo.native) {
+      case 'string': return 'string';
+      case 'integer': return 'number';
+      case 'number': return 'number';
+      case 'boolean': return 'boolean';
+      case 'null': return 'null';
+      case 'ref': return typeInfo.refName;
+      case 'array':
+        if (typeInfo.elemType) {
+          const et = toTSType(typeInfo.elemType);
+          return et + '[]';
+        }
+        return 'any[]';
+      case 'union': return (typeInfo.types || []).join(' | ');
+      default: return 'any';
+    }
+  }
+
+  // 生成 interface 代码
+  function renderInterface(typeDef) {
+    const lines = [`export interface ${typeDef.name} {`];
+    for (const f of typeDef.fields) {
+      const opt = (state.useOptional && f.optional) ? '?' : '';
+      const tsType = toTSType(f.typeInfo);
+      lines.push(`  ${f.key}${opt}: ${tsType};`);
+    }
+    lines.push('}');
+    return lines.join('\n');
+  }
+
+  // --- 入口：从根数据开始收集 ---
+  if (Array.isArray(data)) {
+    if (data.length > 0 && data[0] && typeof data[0] === 'object' && !Array.isArray(data[0])) {
+      // 根是对象数组
+      const allObj = data.filter(x => x && typeof x === 'object' && !Array.isArray(x));
+      const merged = {};
+      for (const obj of allObj) {
+        for (const [k, v] of Object.entries(obj)) {
+          if (merged[k] === undefined) merged[k] = v;
+        }
+      }
+      const rootBase = pascalCase(state.rootName);
+      let itemName = rootBase;
+      if (itemName.endsWith('s') && !itemName.endsWith('ss')) {
+        itemName = itemName.slice(0, -1);
+      } else if (!itemName.endsWith('Item')) {
+        itemName = itemName + 'Item';
+      }
+      if (!visited.has(itemName)) {
+        visited.add(itemName);
+        const fields = buildFieldsFromMerged(merged, allObj, itemName, visited);
+        allTypes.push({ kind: 'interface', name: itemName, fields });
+      }
+      // 添加根类型别名
+      allTypes.unshift({ kind: 'alias', name: pascalCase(state.rootName), code: `export type ${pascalCase(state.rootName)} = ${itemName}[];` });
+    } else {
+      const et = data.length > 0 ? typeof data[0] : 'any';
+      allTypes.push({ kind: 'alias', name: pascalCase(state.rootName), code: `export type ${pascalCase(state.rootName)} = ${et}[];` });
+    }
+  } else if (data !== null && typeof data === 'object') {
+    const rootName = pascalCase(state.rootName);
+    if (!visited.has(rootName)) {
+      visited.add(rootName);
+      const fields = [];
+      for (const [key, val] of Object.entries(data)) {
+        const fieldType = resolveFieldType(val, key, visited);
+        fields.push({ key, optional: val === null || val === undefined, typeInfo: fieldType });
+      }
+      allTypes.push({ kind: 'interface', name: rootName, fields });
+    }
+  } else {
+    const t = typeof data;
+    allTypes.push({ kind: 'alias', name: pascalCase(state.rootName), code: `export type ${pascalCase(state.rootName)} = ${t};` });
+  }
+
+  return allTypes.map(td => {
+    if (td.kind === 'alias') return td.code;
+    return renderInterface(td);
+  }).join('\n\n');
+};
+
+// --- Go ---
+codeGenerators.type.go = function(data, state) {
+  const visited = new Set();
+  const structs = [];
+
+  function goType(value, keyHint) {
+    if (value === null) return 'interface{}';
+    if (typeof value === 'string') return 'string';
+    if (typeof value === 'number') return Number.isInteger(value) ? 'int' : 'float64';
+    if (typeof value === 'boolean') return 'bool';
+    if (Array.isArray(value)) {
+      if (value.length === 0) return '[]interface{}';
+      const et = goType(value[0], keyHint);
+      return '[]' + et;
+    }
+    if (typeof value === 'object') {
+      const name = pascalCase(keyHint || 'Item');
+      if (!visited.has(name)) {
+        visited.add(name);
+        buildGoStruct(name, value);
+      }
+      return name;
+    }
+    return 'interface{}';
+  }
+
+  function buildGoStruct(name, obj) {
+    const lines = [`type ${name} struct {`];
+    for (const [key, value] of Object.entries(obj)) {
+      const jsonTag = key;
+      const gtype = goType(value, key);
+      const optional = value === null ? 'omitempty' : '';
+      const tag = `\`json:"${jsonTag}${optional ? ',omitempty' : ''}"\``;
+      lines.push(`  ${pascalCase(key)} ${gtype} ${tag}`);
+    }
+    lines.push('}');
+    structs.push(lines.join('\n'));
+  }
+
+  if (Array.isArray(data) && data.length > 0 && data[0] && typeof data[0] === 'object') {
+    buildGoStruct(pascalCase(state.rootName) + 'Item', data[0]);
+    structs.unshift(`// ${pascalCase(state.rootName)} is an alias for []${pascalCase(state.rootName)}Item\ntype ${pascalCase(state.rootName)} []${pascalCase(state.rootName)}Item`);
+  } else if (data !== null && typeof data === 'object') {
+    buildGoStruct(pascalCase(state.rootName), data);
+  } else {
+    const t = goType(data, state.rootName);
+    structs.push(`type ${pascalCase(state.rootName)} = ${t}`);
+  }
+
+  return structs.join('\n\n');
+};
+
+// --- Python ---
+codeGenerators.type.python = function(data, state) {
+  const classes = [];
+
+  function pyType(value, keyHint) {
+    if (value === null) return 'None';
+    if (typeof value === 'string') return 'str';
+    if (typeof value === 'number') return Number.isInteger(value) ? 'int' : 'float';
+    if (typeof value === 'boolean') return 'bool';
+    if (Array.isArray(value)) {
+      if (value.length === 0) return 'list';
+      const et = pyType(value[0], keyHint);
+      return `List[${et}]`;
+    }
+    if (typeof value === 'object') {
+      const name = pascalCase(keyHint || 'Item');
+      if (!classes.find(c => c.name === name)) {
+        buildPyClass(name, value);
+      }
+      return name;
+    }
+    return 'Any';
+  }
+
+  function buildPyClass(name, obj) {
+    const lines = [`class ${pascalCase(name)}(BaseModel):`, `    """Auto-generated from JSON"""`];
+    for (const [key, value] of Object.entries(obj)) {
+      const t = pyType(value, key);
+      const optional = value === null ? ' | None' : '';
+      lines.push(`    ${key}: ${t}${optional}`);
+    }
+    classes.push({ name, code: lines.join('\n') });
+  }
+
+  const header = 'from pydantic import BaseModel\nfrom typing import List, Optional, Any\n\n';
+  if (Array.isArray(data) && data.length > 0 && data[0] && typeof data[0] === 'object') {
+    buildPyClass(pascalCase(state.rootName).replace(/s$/, '') + 'Item', data[0]);
+    classes.push({ name: state.rootName, code: `${pascalCase(state.rootName)} = List[${pascalCase(state.rootName).replace(/s$/, '') + 'Item'}]` });
+  } else if (data !== null && typeof data === 'object') {
+    buildPyClass(pascalCase(state.rootName), data);
+  }
+
+  return header + classes.map(c => c.code).join('\n\n');
+};
+
+// --- Java ---
+codeGenerators.type.java = function(data, state) {
+  const classes = [];
+
+  function javaType(value, keyHint) {
+    if (value === null) return 'Object';
+    if (typeof value === 'string') return 'String';
+    if (typeof value === 'number') return Number.isInteger(value) ? 'Integer' : 'Double';
+    if (typeof value === 'boolean') return 'Boolean';
+    if (Array.isArray(value)) {
+      if (value.length === 0) return 'List<Object>';
+      const et = javaType(value[0], keyHint);
+      return `List<${et}>`;
+    }
+    if (typeof value === 'object') {
+      const name = pascalCase(keyHint || 'Item');
+      if (!classes.find(c => c.name === name)) {
+        buildJavaClass(name, value);
+      }
+      return name;
+    }
+    return 'Object';
+  }
+
+  function buildJavaClass(name, obj) {
+    const lines = [];
+    lines.push(`public class ${pascalCase(name)} {`);
+    lines.push('');
+    for (const [key, value] of Object.entries(obj)) {
+      const t = javaType(value, key);
+      lines.push(`    private ${t} ${camelCase(key)};`);
+    }
+    lines.push('');
+    // Getters & Setters
+    for (const [key, value] of Object.entries(obj)) {
+      const t = javaType(value, key);
+      const pk = pascalCase(key);
+      const ck = camelCase(key);
+      lines.push(`    public ${t} get${pk}() { return this.${ck}; }`);
+      lines.push(`    public void set${pk}(${t} ${ck}) { this.${ck} = ${ck}; }`);
+    }
+    lines.push('}');
+    classes.push({ name, code: lines.join('\n') });
+  }
+
+  const header = 'import java.util.List;\n\n';
+  if (Array.isArray(data) && data.length > 0 && data[0] && typeof data[0] === 'object') {
+    buildJavaClass(pascalCase(state.rootName).replace(/s$/, '') + 'Item', data[0]);
+  } else if (data !== null && typeof data === 'object') {
+    buildJavaClass(pascalCase(state.rootName), data);
+  }
+
+  return header + classes.map(c => c.code).join('\n\n');
+};
+
+// --- Kotlin ---
+codeGenerators.type.kotlin = function(data, state) {
+  const classes = [];
+
+  function ktType(value, keyHint) {
+    if (value === null) return 'Any?';
+    if (typeof value === 'string') return 'String';
+    if (typeof value === 'number') return Number.isInteger(value) ? 'Int' : 'Double';
+    if (typeof value === 'boolean') return 'Boolean';
+    if (Array.isArray(value)) {
+      if (value.length === 0) return 'List<Any>';
+      const et = ktType(value[0], keyHint).replace('?', '');
+      return `List<${et}>`;
+    }
+    if (typeof value === 'object') {
+      const name = pascalCase(keyHint || 'Item');
+      if (!classes.find(c => c.name === name)) {
+        buildKtDataClass(name, value);
+      }
+      return name;
+    }
+    return 'Any';
+  }
+
+  function buildKtDataClass(name, obj) {
+    const lines = [`data class ${pascalCase(name)} (`];
+    const entries = Object.entries(obj).map(([key, value]) => {
+      const t = ktType(value, key);
+      return `    val ${camelCase(key)}: ${t}`;
+    });
+    lines.push(entries.join(',\n'));
+    lines.push(')');
+    classes.push({ name, code: lines.join('\n') });
+  }
+
+  if (Array.isArray(data) && data.length > 0 && data[0] && typeof data[0] === 'object') {
+    buildKtDataClass(pascalCase(state.rootName).replace(/s$/, '') + 'Item', data[0]);
+  } else if (data !== null && typeof data === 'object') {
+    buildKtDataClass(pascalCase(state.rootName), data);
+  }
+
+  return classes.map(c => c.code).join('\n\n');
+};
+
+// --- Rust ---
+codeGenerators.type.rust = function(data, state) {
+  const structs = [];
+
+  function rsType(value, keyHint) {
+    if (value === null) return 'Option<serde_json::Value>';
+    if (typeof value === 'string') return 'String';
+    if (typeof value === 'number') return Number.isInteger(value) ? 'i64' : 'f64';
+    if (typeof value === 'boolean') return 'bool';
+    if (Array.isArray(value)) {
+      if (value.length === 0) return 'Vec<serde_json::Value>';
+      const et = rsType(value[0], keyHint);
+      return `Vec<${et}>`;
+    }
+    if (typeof value === 'object') {
+      const name = pascalCase(keyHint || 'Item');
+      if (!structs.find(s => s.name === name)) {
+        buildRsStruct(name, value);
+      }
+      return name;
+    }
+    return 'serde_json::Value';
+  }
+
+  function buildRsStruct(name, obj) {
+    const lines = [`#[derive(Debug, Clone, Serialize, Deserialize)]`];
+    lines.push(`pub struct ${pascalCase(name)} {`);
+    for (const [key, value] of Object.entries(obj)) {
+      const t = rsType(value, key);
+      lines.push(`    #[serde(rename = "${key}")]`);
+      lines.push(`    pub ${snakeCase(key)}: ${t},`);
+    }
+    lines.push('}');
+    structs.push({ name, code: lines.join('\n') });
+  }
+
+  const header = 'use serde::{Serialize, Deserialize};\nuse serde_json::Value;\n\n';
+  if (Array.isArray(data) && data.length > 0 && data[0] && typeof data[0] === 'object') {
+    buildRsStruct(pascalCase(state.rootName).replace(/s$/, '') + 'Item', data[0]);
+  } else if (data !== null && typeof data === 'object') {
+    buildRsStruct(pascalCase(state.rootName), data);
+  }
+
+  return header + structs.map(s => s.code).join('\n\n');
+};
+
+// --- C# ---
+codeGenerators.type.csharp = function(data, state) {
+  const classes = [];
+
+  function csType(value, keyHint) {
+    if (value === null) return 'object';
+    if (typeof value === 'string') return 'string';
+    if (typeof value === 'number') return Number.isInteger(value) ? 'int' : 'double';
+    if (typeof value === 'boolean') return 'bool';
+    if (Array.isArray(value)) {
+      if (value.length === 0) return 'List<object>';
+      const et = csType(value[0], keyHint);
+      return `List<${et}>`;
+    }
+    if (typeof value === 'object') {
+      const name = pascalCase(keyHint || 'Item');
+      if (!classes.find(c => c.name === name)) {
+        buildCsClass(name, value);
+      }
+      return name;
+    }
+    return 'object';
+  }
+
+  function buildCsClass(name, obj) {
+    const lines = [`public class ${pascalCase(name)}`];
+    lines.push('{');
+    for (const [key, value] of Object.entries(obj)) {
+      const t = csType(value, key);
+      lines.push(`    [JsonPropertyName("${key}")]`);
+      lines.push(`    public ${t} ${pascalCase(key)} { get; set; }`);
+      lines.push('');
+    }
+    lines.push('}');
+    classes.push({ name, code: lines.join('\n') });
+  }
+
+  const header = 'using System.Collections.Generic;\nusing System.Text.Json.Serialization;\n\n';
+  if (Array.isArray(data) && data.length > 0 && data[0] && typeof data[0] === 'object') {
+    buildCsClass(pascalCase(state.rootName).replace(/s$/, '') + 'Item', data[0]);
+  } else if (data !== null && typeof data === 'object') {
+    buildCsClass(pascalCase(state.rootName), data);
+  }
+
+  return header + classes.map(c => c.code).join('\n\n');
+};
+
+// --- PHP ---
+codeGenerators.type.php = function(data, state) {
+  const classes = [];
+
+  function phpType(value, keyHint) {
+    if (value === null) return '?mixed';
+    if (typeof value === 'string') return 'string';
+    if (typeof value === 'number') return Number.isInteger(value) ? 'int' : 'float';
+    if (typeof value === 'boolean') return 'bool';
+    if (Array.isArray(value)) {
+      if (value.length === 0) return 'array';
+      const et = phpType(value[0], keyHint);
+      return `array<${et}>`;
+    }
+    if (typeof value === 'object') {
+      const name = pascalCase(keyHint || 'Item');
+      if (!classes.find(c => c.name === name)) {
+        buildPhpClass(name, value);
+      }
+      return name;
+    }
+    return 'mixed';
+  }
+
+  function buildPhpClass(name, obj) {
+    const lines = [`class ${pascalCase(name)}`];
+    lines.push('{');
+    for (const [key, value] of Object.entries(obj)) {
+      const t = phpType(value, key);
+      lines.push(`    /** @var ${t} */`);
+      lines.push(`    public ${camelCase(key)};`);
+      lines.push('');
+    }
+    lines.push('}');
+    classes.push({ name, code: lines.join('\n') });
+  }
+
+  const header = '<?php\n\ndeclare(strict_types=1);\n\n';
+  if (Array.isArray(data) && data.length > 0 && data[0] && typeof data[0] === 'object') {
+    buildPhpClass(pascalCase(state.rootName).replace(/s$/, '') + 'Item', data[0]);
+  } else if (data !== null && typeof data === 'object') {
+    buildPhpClass(pascalCase(state.rootName), data);
+  }
+
+  return header + classes.map(c => c.code).join('\n\n');
+};
+
+// --- Dart ---
+codeGenerators.type.dart = function(data, state) {
+  const classes = [];
+
+  function dartType(value, keyHint) {
+    if (value === null) return 'dynamic';
+    if (typeof value === 'string') return 'String';
+    if (typeof value === 'number') return Number.isInteger(value) ? 'int' : 'double';
+    if (typeof value === 'boolean') return 'bool';
+    if (Array.isArray(value)) {
+      if (value.length === 0) return 'List<dynamic>';
+      const et = dartType(value[0], keyHint);
+      return `List<${et}>`;
+    }
+    if (typeof value === 'object') {
+      const name = pascalCase(keyHint || 'Item');
+      if (!classes.find(c => c.name === name)) {
+        buildDartClass(name, value);
+      }
+      return name;
+    }
+    return 'dynamic';
+  }
+
+  function buildDartClass(name, obj) {
+    const lines = [`class ${pascalCase(name)} {`];
+    for (const [key, value] of Object.entries(obj)) {
+      const t = dartType(value, key);
+      lines.push(`  ${t} ${camelCase(key)};`);
+    }
+    lines.push('');
+    lines.push(`  ${pascalCase(name)}({`);
+    for (const [key, value] of Object.entries(obj)) {
+      lines.push(`    required this.${camelCase(key)},`);
+    }
+    lines.push(`  });`);
+    lines.push('');
+    lines.push(`  factory ${pascalCase(name)}.fromJson(Map<String, dynamic> json) => ${pascalCase(name)}(`);
+    for (const [key, value] of Object.entries(obj)) {
+      const t = dartType(value, key);
+      if (t.includes('List<')) {
+        lines.push(`    ${camelCase(key)}: (json['${key}'] as List).map((e) => ${t.replace('List<','').replace('>','')}.fromJson(e)).toList(),`);
+      } else {
+        lines.push(`    ${camelCase(key)}: json['${key}'],`);
+      }
+    }
+    lines.push(`  );`);
+    lines.push('}');
+    classes.push({ name, code: lines.join('\n') });
+  }
+
+  if (Array.isArray(data) && data.length > 0 && data[0] && typeof data[0] === 'object') {
+    buildDartClass(pascalCase(state.rootName).replace(/s$/, '') + 'Item', data[0]);
+  } else if (data !== null && typeof data === 'object') {
+    buildDartClass(pascalCase(state.rootName), data);
+  }
+
+  return classes.map(c => c.code).join('\n\n');
+};
+
+// --- Swift ---
+codeGenerators.type.swift = function(data, state) {
+  const structs = [];
+
+  function swiftType(value, keyHint) {
+    if (value === null) return 'Any?';
+    if (typeof value === 'string') return 'String';
+    if (typeof value === 'number') return Number.isInteger(value) ? 'Int' : 'Double';
+    if (typeof value === 'boolean') return 'Bool';
+    if (Array.isArray(value)) {
+      if (value.length === 0) return '[Any]';
+      const et = swiftType(value[0], keyHint).replace('?', '');
+      return `[${et}]`;
+    }
+    if (typeof value === 'object') {
+      const name = pascalCase(keyHint || 'Item');
+      if (!structs.find(s => s.name === name)) {
+        buildSwiftStruct(name, value);
+      }
+      return name;
+    }
+    return 'Any';
+  }
+
+  function buildSwiftStruct(name, obj) {
+    const lines = [`struct ${pascalCase(name)}: Codable {`];
+    for (const [key, value] of Object.entries(obj)) {
+      const t = swiftType(value, key);
+      let codingKey = camelCase(key) === key ? '' : `\n        case ${camelCase(key)} = "${key}"`;
+      if (codingKey) {
+        lines.push(`    let ${camelCase(key)}: ${t}`);
+      } else {
+        lines.push(`    let ${camelCase(key)}: ${t}`);
+      }
+    }
+    if (Object.keys(obj).some(k => camelCase(k) !== k)) {
+      lines.push('');
+      lines.push('    private enum CodingKeys: String, CodingKey {');
+      for (const [key] of Object.entries(obj)) {
+        if (camelCase(key) !== key) {
+          lines.push(`        case ${camelCase(key)} = "${key}"`);
+        } else {
+          lines.push(`        case ${camelCase(key)}`);
+        }
+      }
+      lines.push('    }');
+    }
+    lines.push('}');
+    structs.push({ name, code: lines.join('\n') });
+  }
+
+  let header = 'import Foundation\n\n';
+  if (Array.isArray(data) && data.length > 0 && data[0] && typeof data[0] === 'object') {
+    buildSwiftStruct(pascalCase(state.rootName).replace(/s$/, '') + 'Item', data[0]);
+  } else if (data !== null && typeof data === 'object') {
+    buildSwiftStruct(pascalCase(state.rootName), data);
+  }
+
+  return header + structs.map(s => s.code).join('\n\n');
+};
+
+// ==================== 数据结构生成器（Class/Struct 带 fromJson/toJson） ====================
+
+function makeStructGenerators() {
+  // TypeScript
+  codeGenerators.struct.typescript = function(data, state) {
+    const root = pascalCase(state.rootName);
+    const typeCode = codeGenerators.type.typescript(data, {...state, useOptional: true});
+    let clsCode = '';
+    if (Array.isArray(data) && data.length > 0 && data[0] && typeof data[0] === 'object') {
+      const item = pascalCase(state.rootName).replace(/s$/, '') + 'Item';
+      clsCode = `${typeCode}\n\nexport function create${root}(json: any): ${item}[] {\n  return json.map((item: any) => plainToClass(${item}, item));\n}\n\nfunction plainToClass<T>(cls: new (...args: any[]) => T, data: any): T {\n  const instance = new (cls as any)();\n  for (const key of Object.keys(data)) {\n    if (key in instance) instance[key] = data[key];\n  }\n  return instance;\n}`;
+    } else if (data !== null && typeof data === 'object') {
+      clsCode = `${typeCode}\n\nexport function create${root}(json: any): ${root} {\n  const instance = new ${root}() as any;\n  for (const key of Object.keys(json)) {\n    if (key in instance) instance[key] = json[key];\n  }\n  return instance;\n}\n\nexport function ${root}ToJson(instance: ${root}): any {\n  return { ...instance };\n}`;
+    } else {
+      clsCode = typeCode;
+    }
+    return clsCode;
+  };
+
+  // Go - with MarshalJSON
+  codeGenerators.struct.go = function(data, state) {
+    const typeCode = codeGenerators.type.go(data, state);
+    const name = pascalCase(state.rootName);
+    return typeCode + `\n\n// Unmarshal${name} parses JSON bytes into ${name}\nfunc Unmarshal${name}(data []byte) (*${name}, error) {\n  var v ${name}\n  err := json.Unmarshal(data, &v)\n  return &v, err\n}\n\n// Marshal${name} serializes ${name} to JSON\nfunc (v *${name}) MarshalJSON() ([]byte, error) {\n  return json.Marshal(v)\n}`;
+  };
+
+  // Python - with from_json/to_json
+  codeGenerators.struct.python = function(data, state) {
+    const typeCode = codeGenerators.type.python(data, state);
+    return typeCode + `\n\n# Usage:\n# obj = ${pascalCase(state.rootName)}.parse_raw(json_string)\n# json_str = obj.json()`;
+  };
+
+  // Java - with Jackson annotations
+  codeGenerators.struct.java = function(data, state) {
+    const typeCode = codeGenerators.type.java(data, state);
+    const lines = ['import com.fasterxml.jackson.annotation.*;', 'import com.fasterxml.jackson.databind.*;', 'import java.io.*;\n'];
+    const name = pascalCase(state.rootName);
+    lines.push(typeCode);
+    lines.push(`\npublic class ${name}Mapper {\n    private static final ObjectMapper mapper = new ObjectMapper();\n\n    public static ${name} fromJson(String json) throws IOException {\n        return mapper.readValue(json, ${name}.class);\n    }\n\n    public static String toJson(${name} obj) throws IOException {\n        return mapper.writeValueAsString(obj);\n    }\n}`);
+    return lines.join('\n');
+  };
+
+  // Kotlin
+  codeGenerators.struct.kotlin = function(data, state) {
+    const typeCode = codeGenerators.type.kotlin(data, state);
+    const name = pascalCase(state.rootName);
+    return typeCode + `\n\n// Usage:\n// val obj = Json.decodeFromString<${name}>(jsonString)\n// val json = Json.encodeToString(obj)`;
+  };
+
+  // Rust
+  codeGenerators.struct.rust = function(data, state) {
+    const typeCode = codeGenerators.type.rust(data, state);
+    const name = pascalCase(state.rootName);
+    return typeCode + `\n\n// Usage:\n// let obj: ${name} = serde_json::from_str(&json_str)?;\n// let json_str = serde_json::to_string(&obj)?;`;
+  };
+
+  // C#
+  codeGenerators.struct.csharp = function(data, state) {
+    const typeCode = codeGenerators.type.csharp(data, state);
+    const name = pascalCase(state.rootName);
+    return typeCode + `\n\npublic static class ${name}Extensions\n{\n    private static readonly JsonSerializerOptions _opts = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };\n\n    public static string ToJson(this ${name} obj) => JsonSerializer.Serialize(obj, _opts);\n\n    public static ${name} FromJson(string json) => JsonSerializer.Deserialize<${name}>(json, _opts);\n}`;
+  };
+
+  // PHP
+  codeGenerators.struct.php = function(data, state) {
+    const typeCode = codeGenerators.type.php(data, state);
+    const name = pascalCase(state.rootName);
+    return typeCode + `\n\nfunction jsonTo${name}(string $json): ${name} {\n    $data = json_decode($json, true);\n    $obj = new ${name}();\n    foreach ($data as $key => $value) {\n        $obj->$key = $value;\n    }\n    return $obj;\n}\n\nfunction ${camelCase(name)}ToJson(${name} $obj): string {\n    return json_encode($obj, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);\n}`;
+  };
+
+  // Dart
+  codeGenerators.struct.dart = function(data, state) {
+    const typeCode = codeGenerators.type.dart(data, state);
+    const name = pascalCase(state.rootName);
+    return typeCode + `\n\n// Usage:\n// final obj = ${name}.fromJson(jsonDecode(jsonString) as Map<String, dynamic>);\n// final json = jsonEncode(obj.toJson());`;
+  };
+
+  // Swift
+  codeGenerators.struct.swift = function(data, state) {
+    const typeCode = codeGenerators.type.swift(data, state);
+    const name = pascalCase(state.rootName);
+    return typeCode + `\n\n// Usage:\n// let obj = try JSONDecoder().decode(${name}.self, from: jsonData)\n// let data = try JSONEncoder().encode(obj)`;
+  };
+}
+makeStructGenerators();
+
+// ==================== 数据转换生成器（JSON → 代码字面量/变量声明） ====================
+
+// TypeScript
+codeGenerators.data.typescript = function(data, state) {
+  const name = camelCase(state.rootName);
+  const jsonStr = JSON.stringify(data, null, 2);
+  return `const ${name} = ${jsonStr} as const;\n\nexport default ${name};`;
+};
+
+// Go
+codeGenerators.data.go = function(data, state) {
+  const jsonStr = JSON.stringify(data, null, 2);
+  const escaped = jsonStr.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+  return `package main\n\nvar ${camelCase(state.rootName)}JSON = \`{}\`\n\n// or use json.Unmarshal:\n// var data interface{}\n// json.Unmarshal([]byte(${camelCase(state.rootName)}JSON), &data)`.replace('{}', jsonStr);
+};
+
+// Python
+codeGenerators.data.python = function(data, state) {
+  const jsonStr = JSON.stringify(data, null, 2);
+  const escaped = jsonStr.replace(/\\/g, '\\\\');
+  return `import json\n\n# JSON string\n${camelCase(state.rootName)}_json = '''${escaped}'''\n\n# Parse to dict\n${camelCase(state.rootName)} = json.loads(${camelCase(state.rootName)}_json)\n\n# Access fields:\n# ${camelCase(state.rootName)}["key"]`;
+};
+
+// Java
+codeGenerators.data.java = function(data, state) {
+  const jsonStr = JSON.stringify(data, null, 2);
+  const escaped = jsonStr.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return `import com.fasterxml.jackson.databind.ObjectMapper;\n\npublic class Main {\n    public static final String JSON = "${escaped.replace(/\n/g, '\\n')}";\n\n    public static void main(String[] args) throws Exception {\n        ObjectMapper mapper = new ObjectMapper();\n        Object data = mapper.readValue(JSON, Object.class);\n        System.out.println(data);\n    }\n}`;
+};
+
+// Rust
+codeGenerators.data.rust = function(data, state) {
+  const jsonStr = JSON.stringify(data, null, 2);
+  const escaped = jsonStr.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+  return `use serde_json::{json, Value};\n\nfn main() {\n    let data: Value = serde_json::from_str(r#"${jsonStr}"#).unwrap();\n    println!("{:#?}", data);\n}`;
+};
+
+// ==================== Schema 生成器 ====================
+
+// TypeScript - Zod schema
+codeGenerators.schema.typescript = function(data, state) {
+  const root = pascalCase(state.rootName);
+
+  function zodType(value, keyHint) {
+    if (value === null) return 'z.null()';
+    if (typeof value === 'string') return 'z.string()';
+    if (typeof value === 'number') return Number.isInteger(value) ? 'z.number().int()' : 'z.number()';
+    if (typeof value === 'boolean') return 'z.boolean()';
+    if (Array.isArray(value)) {
+      if (value.length === 0) return 'z.array(z.any())';
+      return `z.array(${zodType(value[0], keyHint)})`;
+    }
+    if (typeof value === 'object') {
+      const lines = ['z.object({'];
+      for (const [key, val] of Object.entries(value)) {
+        const opt = val === null ? '.optional()' : '';
+        lines.push(`  ${key}: ${zodType(val, key)}${opt},`);
+      }
+      lines.push('})');
+      return lines.join('\n');
+    }
+    return 'z.any()';
+  }
+
+  let body;
+  if (Array.isArray(data) && data.length > 0 && data[0] && typeof data[0] === 'object') {
+    body = `z.array(${zodType(data[0], state.rootName)})`;
+  } else if (data !== null && typeof data === 'object') {
+    body = zodType(data, state.rootName);
+  } else {
+    body = zodType(data, state.rootName);
+  }
+
+  return `import { z } from 'zod';\n\nexport const ${camelCase(state.rootName)}Schema = ${body};\n\nexport type ${root} = z.infer<typeof ${camelCase(state.rootName)}Schema>;`;
+};
+
+// Python - Pydantic model
+codeGenerators.schema.python = function(data, state) {
+  return codeGenerators.type.python(data, state) + `\n\n# Pydantic BaseModel includes validation\n# ${pascalCase(state.rootName)}(**json_data)`;
+};
+
+// Go - go-playground/validator struct
+codeGenerators.schema.go = function(data, state) {
+  const code = codeGenerators.type.go(data, state);
+  return code + `\n\n// Add validation tags: https://github.com/go-playground/validator\n// Example: \`validate:"required,min=1,max=100"\``;
+};
+
+// Java - JSON Schema (draft-07)
+function generateJsonSchema(data, state, rootName) {
+  if (data === null) return { type: 'null' };
+  if (typeof data === 'string') return { type: 'string' };
+  if (typeof data === 'number') return { type: Number.isInteger(data) ? 'integer' : 'number' };
+  if (typeof data === 'boolean') return { type: 'boolean' };
+
+  if (Array.isArray(data)) {
+    if (data.length === 0) return { type: 'array', items: {} };
+    return { type: 'array', items: generateJsonSchema(data[0], state, rootName) };
+  }
+
+  if (typeof data === 'object') {
+    const props = {};
+    const required = [];
+    for (const [key, value] of Object.entries(data)) {
+      props[key] = generateJsonSchema(value, state, key);
+      if (value !== null) required.push(key);
+    }
+    return { type: 'object', properties: props, ...(required.length > 0 ? { required } : {}) };
+  }
+
+  return {};
+}
+
+codeGenerators.schema.java = function(data, state) {
+  const schema = {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    $id: `https://example.com/schemas/${snakeCase(state.rootName)}.json`,
+    title: pascalCase(state.rootName),
+    description: `Auto-generated schema from JSON`,
+    ...generateJsonSchema(data, state, state.rootName)
+  };
+  return JSON.stringify(schema, null, 2) + '\n\n// Generated JSON Schema (Draft 2020-12)\n// Can be used with: https://github.com/networknt/json-schema-validator';
+};
+function copyInput() { const v=document.getElementById('input').value; if(!v){setStatus('输入内容为空','error');return;} copy(v,document.getElementById('copy-in-btn')); }
+function copyOutput() { const el=document.getElementById('output'); const v=el.textContent; if(!v||el.classList.contains('empty-hint')){setStatus('输出内容为空','error');return;} copy(v,document.getElementById('copy-out-btn')); }
+function copy(text,btn) {
+  navigator.clipboard.writeText(text).then(()=>{
+    const orig=btn.textContent; btn.textContent='✓ 已复制'; btn.style.color='#22c55e';
+    setTimeout(()=>{ btn.textContent=orig; btn.style.color=''; },1500);
+    setStatus('已复制到剪贴板','success');
+  }).catch(()=>{
+    const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); setStatus('已复制','success');
+  });
+}
+function downloadJSON() {
+  if (!parsedData) {
+    setStatus('没有可下载的内容','error');
+    return;
+  }
+  
+  try {
+    // 获取当前格式化的JSON字符串
+    const indent = getIndent();
+    const jsonStr = JSON.stringify(parsedData, null, indent);
+    
+    // 创建Blob对象
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    
+    // 创建下载链接
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    
+    // 生成文件名（带时间戳）
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+    a.download = `formatted-json-${timestamp}.json`;
+    
+    // 触发下载
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    // 清理
+    URL.revokeObjectURL(url);
+    
+    setStatus('✅ JSON文件已下载', 'success');
+  } catch (e) {
+    setStatus('下载失败: ' + e.message, 'error');
+  }
+}
+function onInputChange() {
+  // 只在非编辑模式下监听输入区变化
+  if (!isEditMode) {
+    const v=document.getElementById('input').value;
+    setInSize(v.length);
+    clearTimeout(autoTimer);
+    autoTimer=setTimeout(()=>{ if(v.trim()) formatJSON(); else { parsedData=null; setOutputEmpty(); clearNodeView(); }},400);
+  }
+}
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey||e.metaKey){
+    if(e.key==='Enter'){ e.preventDefault(); formatJSON(); }
+    if(e.shiftKey&&e.key==='M'){ e.preventDefault(); minifyJSON(); }
+  }
+  
+  // 编辑模式快捷键
+  if (isEditMode && e.ctrlKey) {
+    if (e.key === 's') {
+      e.preventDefault();
+      toggleEditMode(); // Ctrl+S 保存并退出编辑模式
+    }
+    if (e.key === 'f') {
+      e.preventDefault();
+      filterJSON(); // Ctrl+F 筛选
+    }
+  }
+});
+const textarea=document.getElementById('input');
+['dragenter','dragover'].forEach(ev=>{ textarea.addEventListener(ev,e=>{ e.preventDefault(); textarea.classList.add('drag-over'); }); });
+['dragleave','drop'].forEach(ev=>{ textarea.addEventListener(ev,e=>{ textarea.classList.remove('drag-over'); }); });
+textarea.addEventListener('drop',e=>{
+  e.preventDefault();
+  const file=e.dataTransfer.files[0]; if(!file)return;
+  if(file.size>5*1024*1024){ setStatus('文件过大（最大 5MB）','error'); return; }
+  const reader=new FileReader();
+  reader.onload=ev=>{ textarea.value=ev.target.result; onInputChange(); setStatus(`已加载文件: ${file.name}`,'success'); };
+  reader.onerror=()=>setStatus('文件读取失败','error');
+  reader.readAsText(file,'utf-8');
+});
+
+/* ===================================================================
+   ██████  节点图视图  ██████
+=================================================================== */
+const COL_GAP = 60;   // 列间距
+const ROW_GAP = 10;   // 同列节点间距
+const COL_START_X = 20;
+const COL_START_Y = 20;
+const CARD_WIDTH = 220;
+
+let nodeViewScale = 1;
+let nodeViewOffsetX = 0;
+let nodeViewOffsetY = 0;
+let isDragging = false;
+let dragStartX = 0, dragStartY = 0;
+
+// nodeId -> { cardEl, dotX, dotY (绝对坐标), rows: [{key, value, childNodeId}] }
+let nodeMap = {}; // id -> node info
+let nodeIdCounter = 0;
+let collapsedNodes = new Set(); // 折叠的节点 id
+
+function clearNodeView() {
+  const canvas = document.getElementById('node-canvas');
+  // 保留 SVG
+  const svgEl = document.getElementById('edge-svg');
+  canvas.innerHTML = '';
+  canvas.appendChild(svgEl);
+  svgEl.innerHTML = '';
+  nodeMap = {};
+  nodeIdCounter = 0;
+  collapsedNodes.clear();
+  document.getElementById('node-empty-hint').style.display = 'flex';
+}
+
+/* ── 主入口：渲染节点视图 ── */
+function renderNodeView(data) {
+  document.getElementById('node-empty-hint').style.display = 'none';
+  clearNodeView();
+
+  // 构建节点树
+  const tree = buildTree(null, data, 0);
+
+  // 按列布局
+  const cols = []; // cols[depth] = [nodeId, ...]
+  flattenTree(tree, 0, cols);
+
+  // 放置节点
+  layoutNodes(cols);
+
+  // 绘制连线
+  drawEdges();
+}
+
+/* ── 构建树结构 ── */
+// 返回 nodeId
+function buildTree(key, value, depth) {
+  const id = nodeIdCounter++;
+  const isObj = value !== null && typeof value === 'object' && !Array.isArray(value);
+  const isArr = Array.isArray(value);
+
+  const rows = [];
+
+  if (isObj) {
+    Object.entries(value).forEach(([k, v]) => {
+      const hasChildren = v !== null && typeof v === 'object';
+      let childId = null;
+      if (hasChildren) childId = buildTree(k, v, depth + 1);
+      rows.push({ key: k, value: v, childId, hasChildren });
+    });
+  } else if (isArr) {
+    value.forEach((v, i) => {
+      const hasChildren = v !== null && typeof v === 'object';
+      let childId = null;
+      if (hasChildren) childId = buildTree(String(i), v, depth + 1);
+      rows.push({ key: String(i), value: v, childId, hasChildren });
+    });
+  }
+
+  nodeMap[id] = { id, key, value, depth, rows, cardEl: null, dotConnectors: {} };
+  return id;
+}
+
+/* ── 按列归纳所有节点（BFS，只收集可见节点） ── */
+function flattenTree(nodeId, depth, cols) {
+  if (!cols[depth]) cols[depth] = [];
+  cols[depth].push(nodeId);
+
+  if (collapsedNodes.has(nodeId)) return; // 折叠则不展开子节点
+
+  const node = nodeMap[nodeId];
+  node.rows.forEach(row => {
+    if (row.childId !== null) flattenTree(row.childId, depth + 1, cols);
+  });
+}
+
+/* ── 布局节点 ── */
+function layoutNodes(cols) {
+  const canvas = document.getElementById('node-canvas');
+
+  // 先计算每列宽度（统一 CARD_WIDTH）
+  let x = COL_START_X;
+  cols.forEach((colNodes, colIdx) => {
+    let y = COL_START_Y;
+    colNodes.forEach(nodeId => {
+      const node = nodeMap[nodeId];
+      const card = createNodeCard(node);
+      card.style.left = x + 'px';
+      card.style.top = y + 'px';
+      canvas.appendChild(card);
+      node.cardEl = card;
+      node.x = x;
+      node.y = y;
+      node.w = CARD_WIDTH;
+      node.h = card.offsetHeight || estimateCardHeight(node);
+      y += node.h + ROW_GAP;
+    });
+    x += CARD_WIDTH + COL_GAP;
+  });
+
+  // 更新 SVG 尺寸
+  const totalW = x;
+  const totalH = Math.max(...Object.values(nodeMap).filter(n=>n.cardEl).map(n=>n.y+n.h)) + 40;
+  const svg = document.getElementById('edge-svg');
+  svg.setAttribute('width', totalW);
+  svg.setAttribute('height', totalH);
+  canvas.style.width = totalW + 'px';
+  canvas.style.height = totalH + 'px';
+}
+
+function estimateCardHeight(node) {
+  return 28 + node.rows.length * 28;
+}
+
+/* ── 创建节点卡片 DOM ── */
+function createNodeCard(node) {
+  const card = document.createElement('div');
+  card.className = 'node-card' + (node.depth === 0 ? ' node-root' : '');
+  card.style.position = 'absolute';
+  card.style.width = CARD_WIDTH + 'px';
+
+  const isArr = Array.isArray(node.value);
+  const isCollapsed = collapsedNodes.has(node.id);
+
+  node.rows.forEach((row, rowIdx) => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'node-row' + (row.hasChildren ? ' has-children' : '');
+    rowEl.dataset.nodeId = node.id;
+    rowEl.dataset.rowIdx = rowIdx;
+
+    const keyEl = document.createElement('span');
+    keyEl.className = 'nk';
+    keyEl.textContent = isArr ? `[${row.key}]` : row.key;
+    rowEl.appendChild(keyEl);
+
+    if (row.hasChildren) {
+      // 显示类型标记 + 折叠图标
+      const badge = document.createElement('span');
+      badge.className = 'node-type-badge';
+      const childNode = nodeMap[row.childId];
+      const childIsArr = Array.isArray(childNode.value);
+      const childLen = childIsArr ? childNode.value.length : Object.keys(childNode.value).length;
+      badge.textContent = childIsArr ? `[${childLen}]` : `{${childLen}}`;
+      rowEl.appendChild(badge);
+
+      const colIcon = document.createElement('span');
+      colIcon.className = 'collapse-icon';
+      colIcon.textContent = isCollapsed ? '▶' : '—';
+      rowEl.appendChild(colIcon);
+
+      // 连接点
+      const dot = document.createElement('div');
+      dot.className = 'node-dot';
+      rowEl.appendChild(dot);
+
+      rowEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleCollapse(row.childId);
+      });
+
+      node.dotConnectors[rowIdx] = dot;
+    } else {
+      // 叶子值
+      const valEl = document.createElement('span');
+      valEl.className = 'nv ' + getValueClass(row.value);
+      valEl.textContent = formatLeafValue(row.value);
+      rowEl.appendChild(valEl);
+    }
+
+    card.appendChild(rowEl);
+  });
+
+  // 若是折叠状态在底部显示 ...
+  if (isCollapsed) {
+    const colHint = document.createElement('div');
+    colHint.style.cssText = 'padding:4px 10px;font-size:10px;color:#4a4f6a;text-align:center;cursor:pointer;';
+    colHint.textContent = '···';
+    card.appendChild(colHint);
+  }
+
+  return card;
+}
+
+function getValueClass(v) {
+  if (v === null) return 'null';
+  if (typeof v === 'boolean') return 'bool';
+  if (typeof v === 'number') return 'num';
+  if (typeof v === 'string') return 'str';
+  if (Array.isArray(v)) return 'ref-arr';
+  return 'ref-obj';
+}
+
+function formatLeafValue(v) {
+  if (v === null) return 'null';
+  if (typeof v === 'string') {
+    const s = v.length > 20 ? v.slice(0, 20) + '…' : v;
+    return s;
+  }
+  return String(v);
+}
+
+/* ── 折叠/展开 ── */
+function toggleCollapse(nodeId) {
+  if (collapsedNodes.has(nodeId)) collapsedNodes.delete(nodeId);
+  else collapsedNodes.add(nodeId);
+  renderNodeView(parsedData);
+}
+
+function expandAll() { collapsedNodes.clear(); if (parsedData) renderNodeView(parsedData); }
+function collapseAll() {
+  // 折叠所有非根节点
+  Object.keys(nodeMap).forEach(id => { if (parseInt(id) !== 0) collapsedNodes.add(parseInt(id)); });
+  if (parsedData) { collapsedNodes.clear(); /* rebuild map */ renderNodeView(parsedData); }
+  // 折叠所有 depth>0
+  // 先 render 获取 nodeMap，再折叠
+  clearNodeView();
+  buildTree(null, parsedData, 0);
+  Object.values(nodeMap).forEach(n => { if (n.depth > 0) collapsedNodes.add(n.id); });
+  renderNodeView(parsedData);
+}
+
+/* ── 绘制连线 ── */
+function drawEdges() {
+  const svg = document.getElementById('edge-svg');
+  svg.innerHTML = '';
+
+  Object.values(nodeMap).forEach(node => {
+    if (!node.cardEl) return;
+    node.rows.forEach((row, rowIdx) => {
+      if (!row.hasChildren || !row.childId) return;
+      if (collapsedNodes.has(row.childId)) return; // 折叠了不画线
+
+      const dot = node.dotConnectors[rowIdx];
+      if (!dot) return;
+      const childNode = nodeMap[row.childId];
+      if (!childNode || !childNode.cardEl) return;
+
+      // 计算连接点坐标
+      const dotRect = dot.getBoundingClientRect();
+      const canvasRect = document.getElementById('node-canvas').getBoundingClientRect();
+      const wrapRect = document.getElementById('node-view-wrapper').getBoundingClientRect();
+
+      // 用节点布局坐标计算（不依赖 getBoundingClientRect，避免缩放干扰）
+      const rowH = 28;
+      const cardPaddingTop = 0;
+      const srcX = node.x + node.w;
+      const srcY = node.y + cardPaddingTop + rowIdx * rowH + rowH / 2;
+
+      const dstX = childNode.x;
+      const dstY = childNode.y + childNode.h / 2;
+
+      drawBezier(svg, srcX, srcY, dstX, dstY);
+    });
+  });
+}
+
+function drawBezier(svg, x1, y1, x2, y2) {
+  const cp1x = x1 + (x2 - x1) * 0.5;
+  const cp1y = y1;
+  const cp2x = x2 - (x2 - x1) * 0.5;
+  const cp2y = y2;
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', `M${x1},${y1} C${cp1x},${cp1y} ${cp2x},${cp2y} ${x2},${y2}`);
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', '#3a3f6a');
+  path.setAttribute('stroke-width', '1.5');
+  path.setAttribute('stroke-linecap', 'round');
+  svg.appendChild(path);
+
+  // 终点小圆圈（入射点）
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  circle.setAttribute('cx', x2);
+  circle.setAttribute('cy', y2);
+  circle.setAttribute('r', '3.5');
+  circle.setAttribute('fill', '#3a3f6a');
+  circle.setAttribute('stroke', '#6366f1');
+  circle.setAttribute('stroke-width', '1');
+  svg.appendChild(circle);
+}
+
+/* ── 搜索 ── */
+function nodeSearch(query) {
+  const q = query.trim().toLowerCase();
+  document.querySelectorAll('.node-row').forEach(row => {
+    row.classList.remove('search-match');
+    row.querySelector('.nk') && row.querySelector('.nk').classList.remove('search-match-key');
+  });
+  if (!q) return;
+  document.querySelectorAll('.node-row').forEach(row => {
+    const keyEl = row.querySelector('.nk');
+    if (keyEl && keyEl.textContent.toLowerCase().includes(q)) {
+      row.classList.add('search-match');
+      keyEl.classList.add('search-match-key');
+    }
+  });
+}
+
+/* ===================================================================
+   节点视图：缩放 & 平移
+=================================================================== */
+function applyTransform() {
+  const canvas = document.getElementById('node-canvas');
+  canvas.style.transform = `translate(${nodeViewOffsetX}px,${nodeViewOffsetY}px) scale(${nodeViewScale})`;
+}
+
+function zoomIn()  { nodeViewScale = Math.min(nodeViewScale * 1.2, 4); applyTransform(); }
+function zoomOut() { nodeViewScale = Math.max(nodeViewScale / 1.2, 0.2); applyTransform(); }
+function resetZoom() { nodeViewScale = 1; nodeViewOffsetX = 0; nodeViewOffsetY = 0; applyTransform(); }
+
+function fitView() {
+  const wrapper = document.getElementById('node-view-wrapper');
+  const canvas = document.getElementById('node-canvas');
+  const cw = wrapper.clientWidth, ch = wrapper.clientHeight;
+  const nw = parseFloat(canvas.style.width) || 800;
+  const nh = parseFloat(canvas.style.height) || 600;
+  const scale = Math.min(cw / (nw + 40), ch / (nh + 40), 1.5);
+  nodeViewScale = scale;
+  nodeViewOffsetX = (cw - nw * scale) / 2;
+  nodeViewOffsetY = (ch - nh * scale) / 2;
+  applyTransform();
+}
+
+// 拖拽画布
+const wrapper = document.getElementById('node-view-wrapper');
+wrapper.addEventListener('mousedown', e => {
+  if (e.target.closest('.node-card') || e.target.closest('.zoom-controls') || e.target.closest('.fit-btn') || e.target.closest('.node-toolbar')) return;
+  isDragging = true;
+  dragStartX = e.clientX - nodeViewOffsetX;
+  dragStartY = e.clientY - nodeViewOffsetY;
+  wrapper.style.cursor = 'grabbing';
+});
+window.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  nodeViewOffsetX = e.clientX - dragStartX;
+  nodeViewOffsetY = e.clientY - dragStartY;
+  applyTransform();
+});
+window.addEventListener('mouseup', () => { isDragging=false; wrapper.style.cursor='grab'; });
+
+// 滚轮缩放
+wrapper.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.1 : 0.9;
+  const rect = wrapper.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  // 以鼠标为中心缩放
+  nodeViewOffsetX = mx - (mx - nodeViewOffsetX) * factor;
+  nodeViewOffsetY = my - (my - nodeViewOffsetY) * factor;
+  nodeViewScale = Math.min(Math.max(nodeViewScale * factor, 0.15), 5);
+  applyTransform();
+}, { passive: false });
+
+// 触控支持
+let lastTouchDist = null;
+wrapper.addEventListener('touchstart', e => {
+  if (e.touches.length === 2) {
+    lastTouchDist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+  } else if (e.touches.length === 1) {
+    isDragging = true;
+    dragStartX = e.touches[0].clientX - nodeViewOffsetX;
+    dragStartY = e.touches[0].clientY - nodeViewOffsetY;
+  }
+}, {passive:true});
+wrapper.addEventListener('touchmove', e => {
+  if (e.touches.length === 2 && lastTouchDist !== null) {
+    const dist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    nodeViewScale = Math.min(Math.max(nodeViewScale * dist/lastTouchDist, 0.15), 5);
+    lastTouchDist = dist;
+    applyTransform();
+  } else if (e.touches.length === 1 && isDragging) {
+    nodeViewOffsetX = e.touches[0].clientX - dragStartX;
+    nodeViewOffsetY = e.touches[0].clientY - dragStartY;
+    applyTransform();
+  }
+}, {passive:true});
+wrapper.addEventListener('touchend', () => { isDragging=false; lastTouchDist=null; });
+
+/* ===================================================================
+   初始化
+=================================================================== */
+setOutputEmpty();
+</script>
+
+<!-- 代码生成面板 -->
+<div class="codegen-overlay" id="codegen-overlay" onclick="closeCodegen()"></div>
+<div class="codegen-panel" id="codegen-panel">
+  <div class="codegen-header">
+    <svg width="18" height="18" viewBox="0 0 14 14" fill="none"><path d="M4 2l-2 2.5 2 2.5" stroke="var(--accent-blue)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 7l2 2.5-2 2.5" stroke="var(--accent-blue)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><line x1="7" y1="2" x2="7" y2="12" stroke="var(--accent-blue)" stroke-width="1" stroke-dasharray="1.5 1.5"/></svg>
+    <h2>JSON 代码生成器</h2>
+    <button class="codegen-close" onclick="closeCodegen()">&times;</button>
+  </div>
+  <div class="codegen-body">
+    <!-- 类别 tabs -->
+    <div class="codegen-cat-tabs">
+      <button class="codegen-cat-tab active" onclick="switchCodegenCat('type',this)">类型定义</button>
+      <button class="codegen-cat-tab" onclick="switchCodegenCat('struct',this)">数据结构</button>
+      <button class="codegen-cat-tab" onclick="switchCodegenCat('data',this)">数据转换</button>
+      <button class="codegen-cat-tab" onclick="switchCodegenCat('schema',this)">Schema</button>
+    </div>
+    <!-- 语言选择 -->
+    <div class="codegen-langs" id="codegen-langs"></div>
+    <!-- 选项 -->
+    <div class="codegen-options" id="codegen-options"></div>
+    <!-- 代码输出 -->
+    <div class="codegen-output-wrap">
+      <div class="codegen-output-header">
+        <span class="file-tag" id="codegen-file-tag">output.ts</span>
+        <span class="size-tag" id="codegen-size-tag"></span>
+        <button class="download-btn" onclick="downloadCodegen()">↓ 下载</button>
+        <button class="copy-btn" id="codegen-copy-btn" onclick="copyCodegen()">复制代码</button>
+      </div>
+      <div class="codegen-code" id="codegen-code">点击语言标签生成代码...</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>架构决策记录本 - ToolKit</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .main-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            height: calc(100vh - 150px);
+        }
+        
+        .sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+        }
+        
+        .content {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+        }
+        
+        .sidebar h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        
+        .adr-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .adr-item {
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+        
+        .adr-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .adr-item.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .adr-number {
+            font-weight: bold;
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 4px;
+        }
+        
+        .adr-title {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .adr-status {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .adr-status.proposed { color: #ff9800; }
+        .adr-status.accepted { color: #4caf50; }
+        .adr-status.deprecated { color: #f44336; }
+        .adr-status.superseded { color: #9c27b0; }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 1px solid #667eea;
+        }
+        
+        .btn-secondary:hover {
+            background: #f8f9ff;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .adr-viewer {
+            display: none;
+        }
+        
+        .adr-viewer.active {
+            display: block;
+        }
+        
+        .adr-header {
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .adr-number-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .adr-viewer h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .adr-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .adr-section {
+            margin-bottom: 25px;
+        }
+        
+        .adr-section h3 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .adr-section p,
+        .adr-section li {
+            line-height: 1.7;
+            color: #555;
+        }
+        
+        .adr-section ul,
+        .adr-section ol {
+            padding-left: 20px;
+            margin: 10px 0;
+        }
+        
+        .adr-section li {
+            margin-bottom: 8px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-proposed {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .status-accepted {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .status-deprecated {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+        
+        .status-superseded {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+        
+        .dependency-graph {
+            height: 300px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fafafa;
+            color: #999;
+        }
+        
+        .review-reminder {
+            background: linear-gradient(135deg, #fff9c4 0%, #fff59d 100%);
+            border: 1px solid #ffd54f;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .review-reminder-icon {
+            font-size: 24px;
+        }
+        
+        .review-reminder-content h4 {
+            font-size: 16px;
+            margin-bottom: 4px;
+            color: #f57f17;
+        }
+        
+        .review-reminder-content p {
+            font-size: 14px;
+            color: #666;
+            margin: 0;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h3 {
+            font-size: 20px;
+            color: #2c3e50;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            background: #4caf50;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateX(400px);
+            transition: transform 0.3s;
+            z-index: 1001;
+        }
+        
+        .toast.show {
+            transform: translateX(0);
+        }
+        
+        @media (max-width: 768px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+                height: auto;
+            }
+            
+            .sidebar {
+                max-height: 300px;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏛️ 架构决策记录本 (ADR)</h1>
+            <p>记录架构决策，沉淀团队知识，智能复盘评估</p>
+        </div>
+        
+        <div class="main-layout">
+            <!-- 侧边栏 -->
+            <div class="sidebar">
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="adr.createNewADR()">
+                        ➕ 新建ADR
+                    </button>
+                </div>
+                
+                <h2>📋 决策列表</h2>
+                <div class="adr-list" id="adrList">
+                    <!-- ADR列表将在这里显示 -->
+                </div>
+            </div>
+            
+            <!-- 内容区 -->
+            <div class="content">
+                <!-- 空状态 -->
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-icon">🏛️</div>
+                    <div style="font-size: 18px; color: #666; margin-bottom: 10px;">欢迎使用架构决策记录本</div>
+                    <div style="font-size: 14px; color: #999;">点击左侧"新建ADR"开始记录你的第一个架构决策</div>
+                </div>
+                
+                <!-- ADR查看器 -->
+                <div class="adr-viewer" id="adrViewer">
+                    <div class="adr-header">
+                        <div class="adr-number-badge" id="adrNumber">ADR-001</div>
+                        <h2 id="adrTitle">使用微服务架构替代单体应用</h2>
+                        <div class="adr-meta">
+                            <span id="adrDate">📅 2026-04-01</span>
+                            <span id="adrStatusBadge" class="status-badge status-accepted">已接受</span>
+                            <span id="adrAuthor">👤 张三</span>
+                        </div>
+                    </div>
+                    
+                    <div class="adr-section">
+                        <h3>📋 背景</h3>
+                        <div id="adrContext">
+                            <p>随着业务快速发展，单体应用面临以下挑战：</p>
+                            <ul>
+                                <li>代码库膨胀，维护成本增加</li>
+                                <li>团队规模扩大，协作效率下降</li>
+                                <li>技术栈升级困难，影响创新</li>
+                                <li>部署风险高，发布周期长</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="adr-section">
+                        <h3>💡 决策</h3>
+                        <div id="adrDecision">
+                            <p>将单体应用逐步拆分为微服务架构，按业务领域划分服务边界：</p>
+                            <ol>
+                                <li>用户服务：负责用户管理、认证授权</li>
+                                <li>订单服务：处理订单生命周期</li>
+                                <li>商品服务：管理商品目录和库存</li>
+                                <li>支付服务：处理支付和结算</li>
+                            </ol>
+                        </div>
+                    </div>
+                    
+                    <div class="adr-section">
+                        <h3>📊 状态</h3>
+                        <p id="adrStatusText">该决策已被团队接受，正在实施中。预计分3个阶段完成迁移。</p>
+                    </div>
+                    
+                    <div class="adr-section">
+                        <h3>🔄 后果</h3>
+                        <div id="adrConsequences">
+                            <p><strong>积极后果:</strong></p>
+                            <ul>
+                                <li>团队可以独立开发和部署服务</li>
+                                <li>技术栈可以根据服务特点灵活选择</li>
+                                <li>系统扩展性大幅提升</li>
+                                <li>故障隔离，单点故障影响范围缩小</li>
+                            </ul>
+                            <p style="margin-top: 15px;"><strong>消极后果:</strong></p>
+                            <ul>
+                                <li>分布式系统复杂性增加</li>
+                                <li>需要引入服务治理和监控体系</li>
+                                <li>数据一致性保障成本提高</li>
+                                <li>团队需要学习新的技术栈</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="adr-section">
+                        <h3>🔗 相关决策</h3>
+                        <div class="dependency-graph" id="dependencyGraph">
+                            <div style="text-align: center;">
+                                <div style="font-size: 48px; margin-bottom: 10px;">🔗</div>
+                                <div style="color: #666;">依赖关系图谱</div>
+                                <div style="font-size: 12px; color: #999; margin-top: 5px;">显示ADR之间的依赖关系</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="review-reminder" id="reviewReminder">
+                        <div class="review-reminder-icon">⏰</div>
+                        <div class="review-reminder-content">
+                            <h4>复盘提醒</h4>
+                            <p>该决策将在 <strong id="reviewDate">2026-07-01</strong> 到达3个月复盘期，请评估决策效果</p>
+                        </div>
+                    </div>
+                    
+                    <div class="actions">
+                        <button class="btn btn-primary" onclick="adr.editCurrentADR()">
+                            ✏️ 编辑
+                        </button>
+                        <button class="btn btn-secondary" onclick="adr.exportADR()">
+                            📄 导出Markdown
+                        </button>
+                        <button class="btn btn-secondary" onclick="adr.linkToPR()">
+                            🔗 关联PR
+                        </button>
+                        <button class="btn btn-secondary" onclick="adr.markAsReviewed()">
+                            ✅ 标记已复盘
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 新建/编辑ADR模态框 -->
+    <div class="modal" id="adrModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">新建架构决策记录</h3>
+                <button class="close-btn" onclick="adr.closeModal()">&times;</button>
+            </div>
+            
+            <form id="adrForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>编号</label>
+                        <input type="text" id="adrNumberInput" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>状态</label>
+                        <select id="adrStatusInput">
+                            <option value="proposed">提议</option>
+                            <option value="accepted">已接受</option>
+                            <option value="deprecated">已废弃</option>
+                            <option value="superseded">已替代</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>标题 *</label>
+                        <input type="text" id="adrTitleInput" required placeholder="简明扼要的决策标题">
+                    </div>
+                    <div class="form-group">
+                        <label>作者</label>
+                        <input type="text" id="adrAuthorInput" placeholder="决策提出者">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>日期</label>
+                    <input type="date" id="adrDateInput">
+                </div>
+                
+                <div class="form-group">
+                    <label>背景 *</label>
+                    <textarea id="adrContextInput" required placeholder="描述决策的背景和动机&#10;例如：&#10;- 当前面临的问题&#10;- 业务需求驱动&#10;- 技术债务压力"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>决策 *</label>
+                    <textarea id="adrDecisionInput" required placeholder="清晰描述具体的架构决策&#10;例如：&#10;- 采用什么技术/方案&#10;- 为什么这样选择&#10;- 实施范围"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>状态说明</label>
+                    <textarea id="adrStatusTextInput" placeholder="描述决策的当前状态和实施进展"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>后果 *</label>
+                    <textarea id="adrConsequencesInput" required placeholder="分析决策的后果&#10;例如：&#10;积极后果：&#10;- 提升性能&#10;- 降低成本&#10;&#10;消极后果：&#10;- 增加复杂度&#10;- 学习成本"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>相关决策</label>
+                    <select id="adrDependenciesInput" multiple style="height: 100px;">
+                        <option value="">选择相关的ADR（可多选）</option>
+                    </select>
+                </div>
+                
+                <div class="actions">
+                    <button type="submit" class="btn btn-primary">💾 保存</button>
+                    <button type="button" class="btn btn-secondary" onclick="adr.closeModal()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        class ADRNotebook {
+            constructor() {
+                this.adrs = JSON.parse(localStorage.getItem('adrs') || '[]');
+                this.currentADR = null;
+                this.init();
+            }
+            
+            init() {
+                this.loadSampleData();
+                this.renderADRList();
+                this.checkReviewReminders();
+                
+                // 绑定表单提交
+                document.getElementById('adrForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.saveADR();
+                });
+            }
+            
+            loadSampleData() {
+                if (this.adrs.length > 0) return;
+                
+                const sampleADRs = [
+                    {
+                        id: 'adr-001',
+                        number: 'ADR-001',
+                        title: '使用微服务架构替代单体应用',
+                        status: 'accepted',
+                        date: '2026-04-01',
+                        author: '张三',
+                        context: '随着业务快速发展，单体应用面临以下挑战：\n\n- 代码库膨胀，维护成本增加\n- 团队规模扩大，协作效率下降\n- 技术栈升级困难，影响创新\n- 部署风险高，发布周期长',
+                        decision: '将单体应用逐步拆分为微服务架构，按业务领域划分服务边界：\n\n1. 用户服务：负责用户管理、认证授权\n2. 订单服务：处理订单生命周期\n3. 商品服务：管理商品目录和库存\n4. 支付服务：处理支付和结算',
+                        statusText: '该决策已被团队接受，正在实施中。预计分3个阶段完成迁移。',
+                        consequences: '积极后果:\n- 团队可以独立开发和部署服务\n- 技术栈可以根据服务特点灵活选择\n- 系统扩展性大幅提升\n- 故障隔离，单点故障影响范围缩小\n\n消极后果:\n- 分布式系统复杂性增加\n- 需要引入服务治理和监控体系\n- 数据一致性保障成本提高\n- 团队需要学习新的技术栈',
+                        dependencies: [],
+                        reviewed: false,
+                        reviewDate: '2026-07-01'
+                    },
+                    {
+                        id: 'adr-002',
+                        number: 'ADR-002',
+                        title: '采用React作为前端框架',
+                        status: 'accepted',
+                        date: '2026-03-15',
+                        author: '李四',
+                        context: '需要选择适合团队的前端技术栈：\n\n- 团队成员对现代前端框架熟悉程度不同\n- 项目需要良好的组件化和状态管理\n- 社区生态和第三方库支持重要',
+                        decision: '采用React 18作为前端框架，配合以下技术：\n\n- 状态管理：Redux Toolkit\n- 路由：React Router v6\n- UI组件：Ant Design\n- 构建工具：Vite',
+                        statusText: '已完成技术选型，团队正在培训中。第一个试点项目预计4月底上线。',
+                        consequences: '积极后果:\n- 组件化开发提高复用性\n- 虚拟DOM提升性能\n- 丰富的生态系统\n- 大型社区支持\n\n消极后果:\n- 学习曲线较陡\n- 需要额外的状态管理方案\n- 构建配置相对复杂',
+                        dependencies: [],
+                        reviewed: false,
+                        reviewDate: '2026-06-15'
+                    },
+                    {
+                        id: 'adr-003',
+                        number: 'ADR-003',
+                        title: '使用PostgreSQL替代MySQL',
+                        status: 'proposed',
+                        date: '2026-04-02',
+                        author: '王五',
+                        context: '评估数据库选型：\n\n- 需要更好的JSON支持\n- 复杂查询性能要求高\n- 数据一致性要求严格',
+                        decision: '采用PostgreSQL 14作为主力数据库：\n\n- 利用JSONB类型存储灵活数据\n- 使用CTE优化复杂查询\n- 配置主从复制保证可用性',
+                        statusText: '处于提议阶段，待技术委员会评审。',
+                        consequences: '积极后果:\n- 强大的JSON支持能力\n- 复杂查询性能优秀\n- 数据一致性好\n- 扩展性强\n\n消极后果:\n- 团队需要学习成本\n- 迁移工作量大\n- 运维复杂度增加',
+                        dependencies: ['adr-001'],
+                        reviewed: false,
+                        reviewDate: '2026-07-02'
+                    }
+                ];
+                
+                this.adrs = sampleADRs;
+                this.saveToStorage();
+            }
+            
+            renderADRList() {
+                const listContainer = document.getElementById('adrList');
+                
+                if (this.adrs.length === 0) {
+                    listContainer.innerHTML = `
+                        <div class="empty-state" style="padding: 20px;">
+                            <div class="empty-icon" style="font-size: 32px;">📄</div>
+                            <div style="font-size: 14px;">暂无ADR记录</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const adrHtml = this.adrs.map(adr => {
+                    const statusText = {
+                        proposed: '提议',
+                        accepted: '已接受',
+                        deprecated: '已废弃',
+                        superseded: '已替代'
+                    }[adr.status];
+                    
+                    return `
+                        <div class="adr-item ${this.currentADR && this.currentADR.id === adr.id ? 'active' : ''}" 
+                             onclick="adr.selectADR('${adr.id}')">
+                            <div class="adr-number">${adr.number}</div>
+                            <div class="adr-title">${adr.title}</div>
+                            <div class="adr-status ${adr.status}">${statusText}</div>
+                        </div>
+                    `;
+                }).join('');
+                
+                listContainer.innerHTML = adrHtml;
+            }
+            
+            createNewADR() {
+                const nextNumber = this.adrs.length > 0 ? 
+                    `ADR-${String(Math.max(...this.adrs.map(a => parseInt(a.number.split('-')[1]))) + 1).padStart(3, '0')}` :
+                    'ADR-001';
+                
+                document.getElementById('modalTitle').textContent = '新建架构决策记录';
+                document.getElementById('adrNumberInput').value = nextNumber;
+                document.getElementById('adrDateInput').value = new Date().toISOString().split('T')[0];
+                document.getElementById('adrAuthorInput').value = '';
+                document.getElementById('adrTitleInput').value = '';
+                document.getElementById('adrContextInput').value = '';
+                document.getElementById('adrDecisionInput').value = '';
+                document.getElementById('adrStatusTextInput').value = '';
+                document.getElementById('adrConsequencesInput').value = '';
+                
+                // 填充相关决策选项
+                this.renderDependencyOptions();
+                
+                document.getElementById('adrModal').classList.add('show');
+                this.editingADR = null;
+            }
+            
+            editCurrentADR() {
+                if (!this.currentADR) return;
+                
+                document.getElementById('modalTitle').textContent = '编辑架构决策记录';
+                document.getElementById('adrNumberInput').value = this.currentADR.number;
+                document.getElementById('adrStatusInput').value = this.currentADR.status;
+                document.getElementById('adrTitleInput').value = this.currentADR.title;
+                document.getElementById('adrDateInput').value = this.currentADR.date;
+                document.getElementById('adrAuthorInput').value = this.currentADR.author;
+                document.getElementById('adrContextInput').value = this.currentADR.context;
+                document.getElementById('adrDecisionInput').value = this.currentADR.decision;
+                document.getElementById('adrStatusTextInput').value = this.currentADR.statusText;
+                document.getElementById('adrConsequencesInput').value = this.currentADR.consequences;
+                
+                this.renderDependencyOptions();
+                
+                // 选中已依赖的决策
+                const dependencySelect = document.getElementById('adrDependenciesInput');
+                Array.from(dependencySelect.options).forEach(option => {
+                    option.selected = this.currentADR.dependencies.includes(option.value);
+                });
+                
+                document.getElementById('adrModal').classList.add('show');
+                this.editingADR = this.currentADR;
+            }
+            
+            renderDependencyOptions() {
+                const dependencySelect = document.getElementById('adrDependenciesInput');
+                const options = this.adrs
+                    .filter(adr => !this.editingADR || adr.id !== this.editingADR.id)
+                    .map(adr => `<option value="${adr.id}">${adr.number} - ${adr.title}</option>`)
+                    .join('');
+                
+                dependencySelect.innerHTML = `<option value="">选择相关的ADR（可多选）</option>` + options;
+            }
+            
+            saveADR() {
+                const formData = {
+                    number: document.getElementById('adrNumberInput').value,
+                    title: document.getElementById('adrTitleInput').value,
+                    status: document.getElementById('adrStatusInput').value,
+                    date: document.getElementById('adrDateInput').value,
+                    author: document.getElementById('adrAuthorInput').value,
+                    context: document.getElementById('adrContextInput').value,
+                    decision: document.getElementById('adrDecisionInput').value,
+                    statusText: document.getElementById('adrStatusTextInput').value,
+                    consequences: document.getElementById('adrConsequencesInput').value,
+                    dependencies: Array.from(document.getElementById('adrDependenciesInput').selectedOptions).map(o => o.value).filter(v => v)
+                };
+                
+                if (this.editingADR) {
+                    // 编辑模式
+                    Object.assign(this.editingADR, formData);
+                    this.showToast('ADR已更新', 'success');
+                } else {
+                    // 新建模式
+                    const newADR = {
+                        id: 'adr-' + Date.now(),
+                        ...formData,
+                        reviewed: false,
+                        reviewDate: this.calculateReviewDate(formData.date)
+                    };
+                    
+                    this.adrs.unshift(newADR);
+                    this.showToast('ADR已创建', 'success');
+                }
+                
+                this.saveToStorage();
+                this.renderADRList();
+                this.closeModal();
+                
+                if (this.editingADR) {
+                    this.selectADR(this.editingADR.id);
+                }
+            }
+            
+            calculateReviewDate(decisionDate) {
+                const date = new Date(decisionDate);
+                date.setMonth(date.getMonth() + 3); // 3个月后复盘
+                return date.toISOString().split('T')[0];
+            }
+            
+            closeModal() {
+                document.getElementById('adrModal').classList.remove('show');
+                this.editingADR = null;
+            }
+            
+            selectADR(id) {
+                this.currentADR = this.adrs.find(adr => adr.id === id);
+                this.renderADRList();
+                this.renderCurrentADR();
+            }
+            
+            renderCurrentADR() {
+                if (!this.currentADR) return;
+                
+                document.getElementById('emptyState').style.display = 'none';
+                document.getElementById('adrViewer').classList.add('active');
+                
+                // 填充ADR内容
+                document.getElementById('adrNumber').textContent = this.currentADR.number;
+                document.getElementById('adrTitle').textContent = this.currentADR.title;
+                document.getElementById('adrDate').textContent = '📅 ' + this.currentADR.date;
+                document.getElementById('adrAuthor').textContent = '👤 ' + (this.currentADR.author || '未指定');
+                
+                // 状态徽章
+                const statusBadge = document.getElementById('adrStatusBadge');
+                const statusClass = `status-${this.currentADR.status}`;
+                const statusText = {
+                    proposed: '提议',
+                    accepted: '已接受',
+                    deprecated: '已废弃',
+                    superseded: '已替代'
+                }[this.currentADR.status];
+                
+                statusBadge.className = `status-badge ${statusClass}`;
+                statusBadge.textContent = statusText;
+                
+                // 其他字段
+                document.getElementById('adrStatusText').textContent = this.currentADR.statusText || '暂无状态说明';
+                document.getElementById('adrContext').innerHTML = this.formatText(this.currentADR.context);
+                document.getElementById('adrDecision').innerHTML = this.formatText(this.currentADR.decision);
+                document.getElementById('adrConsequences').innerHTML = this.formatText(this.currentADR.consequences);
+                
+                // 复盘提醒
+                const reviewReminder = document.getElementById('reviewReminder');
+                const reviewDate = new Date(this.currentADR.reviewDate);
+                const today = new Date();
+                
+                if (reviewDate <= today && !this.currentADR.reviewed) {
+                    reviewReminder.style.display = 'flex';
+                    document.getElementById('reviewDate').textContent = this.currentADR.reviewDate;
+                } else {
+                    reviewReminder.style.display = 'none';
+                }
+            }
+            
+            formatText(text) {
+                if (!text) return '<p style="color: #999;">暂无内容</p>';
+                
+                // 简单的文本格式化（处理换行和列表）
+                let html = text
+                    .replace(/\n\n/g, '</p><p>')
+                    .replace(/\n/g, '<br>');
+                
+                // 处理列表
+                html = html.replace(/^-\s+(.+)$/gm, '<li>$1</li>');
+                html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+                
+                // 包裹段落
+                if (!html.startsWith('<li>') && !html.startsWith('<p>')) {
+                    html = '<p>' + html + '</p>';
+                }
+                
+                return html;
+            }
+            
+            exportADR() {
+                if (!this.currentADR) return;
+                
+                const markdown = this.generateADRMardown(this.currentADR);
+                navigator.clipboard.writeText(markdown).then(() => {
+                    this.showToast('ADR已复制到剪贴板', 'success');
+                }).catch(() => {
+                    this.showToast('复制失败，请手动复制', 'error');
+                });
+            }
+            
+            generateADRMardown(adr) {
+                return `# ${adr.number}: ${adr.title}
+
+**日期**: ${adr.date}  
+**状态**: ${adr.status}  
+**作者**: ${adr.author || '未指定'}
+
+## 📋 背景
+
+${adr.context}
+
+## 💡 决策
+
+${adr.decision}
+
+## 📊 状态
+
+${adr.statusText}
+
+## 🔄 后果
+
+${adr.consequences}
+
+## 🔗 相关决策
+
+${adr.dependencies.length > 0 ? adr.dependencies.map(depId => {
+    const depADR = this.adrs.find(a => a.id === depId);
+    return `- ${depADR ? `${depADR.number} - ${depADR.title}` : '未知决策'}`;
+}).join('\n') : '无'}
+
+---
+
+*由ToolKit ADR笔记本生成* - ${new Date().toLocaleString('zh-CN')}
+`;
+            }
+            
+            linkToPR() {
+                const prUrl = prompt('请输入PR链接（GitHub/GitLab）:');
+                if (prUrl) {
+                    this.currentADR.prUrl = prUrl;
+                    this.saveToStorage();
+                    this.showToast('PR链接已关联', 'success');
+                }
+            }
+            
+            markAsReviewed() {
+                if (!this.currentADR) return;
+                
+                const reviewResult = prompt('请输入复盘结果:\n\n1. 决策是否正确有效？\n2. 实施过程中遇到什么问题？\n3. 是否需要调整或废弃？');
+                
+                if (reviewResult) {
+                    this.currentADR.reviewed = true;
+                    this.currentADR.reviewResult = reviewResult;
+                    this.currentADR.reviewDate = new Date().toISOString().split('T')[0];
+                    
+                    this.saveToStorage();
+                    this.renderCurrentADR();
+                    this.showToast('复盘已完成', 'success');
+                }
+            }
+            
+            checkReviewReminders() {
+                const today = new Date();
+                const dueForReview = this.adrs.filter(adr => {
+                    const reviewDate = new Date(adr.reviewDate);
+                    return reviewDate <= today && !adr.reviewed;
+                });
+                
+                if (dueForReview.length > 0) {
+                    console.log(`${dueForReview.length}个ADR需要复盘`);
+                }
+            }
+            
+            saveToStorage() {
+                localStorage.setItem('adrs', JSON.stringify(this.adrs));
+            }
+            
+            showToast(message, type = 'success') {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.className = 'toast show';
+                
+                const colors = {
+                    success: '#4caf50',
+                    error: '#f44336',
+                    warning: '#ff9800',
+                    info: '#2196f3'
+                };
+                toast.style.background = colors[type] || colors.success;
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+        }
+        
+        // 初始化
+        const adr = new ADRNotebook();
+    </script>
+</body>
+</html>

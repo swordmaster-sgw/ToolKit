@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>正则表达式测试器 - 在线正则生成、匹配、可视化</title>
+  <meta name="description" content="免费在线正则表达式工具。AI智能生成正则、实时匹配高亮、正则解释、常用正则大全、交互式教程，支持JavaScript/Python/Java/Go/Rust/PHP代码生成。">
+  <style>
+    :root {
+      --bg-base: #0d1117; --bg-surface: #161b27; --bg-elevated: #1c2133; --bg-overlay: #222840;
+      --border-default: #2a3050; --border-subtle: #1e2438;
+      --text-primary: #cdd6f4; --text-secondary: #8892b4; --text-muted: #4a5278;
+      --accent: #6366f1; --accent-light: #818cf8; --accent-green: #4ade80;
+      --accent-orange: #ff9e64; --accent-red: #f7768e; --accent-yellow: #ffd700;
+      --accent-cyan: #7dcfff; --accent-purple: #c084fc; --accent-pink: #f472b6;
+      --radius: 10px; --radius-sm: 6px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-base); color: var(--text-primary); min-height: 100vh; }
+    .header { background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle); padding: 10px 20px; display: flex; align-items: center; gap: 12px; }
+    .header-icon { font-size: 20px; }
+    .header h1 { font-size: 15px; font-weight: 600; }
+    .header p { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+    .back-btn { margin-left: auto; padding: 5px 12px; background: transparent; border: 1px solid var(--border-default); color: var(--text-muted); border-radius: var(--radius-sm); cursor: pointer; font-size: 12px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* 主导航 tabs */
+    .main-nav { background: var(--bg-elevated); border-bottom: 1px solid var(--border-default); padding: 0 20px; display: flex; gap: 0; overflow-x: auto; }
+    .main-nav-btn { padding: 12px 18px; border: none; background: transparent; color: var(--text-muted); font-size: 13px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; white-space: nowrap; }
+    .main-nav-btn:hover { color: var(--text-secondary); }
+    .main-nav-btn.active { color: var(--accent-light); border-bottom-color: var(--accent); }
+
+    .page { display: none; max-width: 1200px; margin: 0 auto; width: 100%; padding: 16px 20px; }
+    .page.active { display: block; }
+    .section { background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+    .section-title { padding: 8px 14px; background: var(--bg-elevated); font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border-default); display: flex; align-items: center; gap: 6px; }
+
+    /* ====== 生成器页面 ====== */
+    .gen-form { padding: 16px; }
+    .gen-desc { padding: 0 16px 10px; font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+    .gen-input-row { display: flex; gap: 10px; margin-bottom: 14px; }
+    .gen-textarea { width: 100%; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px; color: var(--text-primary); font-size: 14px; outline: none; resize: vertical; min-height: 70px; font-family: inherit; }
+    .gen-textarea:focus { border-color: var(--accent); }
+    .gen-textarea::placeholder { color: var(--text-muted); }
+    .gen-options { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; padding: 0 16px; }
+    .gen-opt { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--bg-overlay); border-radius: var(--radius-sm); font-size: 12px; color: var(--text-secondary); cursor: pointer; transition: all .15s; border: 1px solid transparent; }
+    .gen-opt:hover { border-color: var(--border-default); }
+    .gen-opt.active { border-color: var(--accent); color: var(--accent-light); background: rgba(99,102,241,.08); }
+    .gen-opt input[type="checkbox"] { accent-color: var(--accent); }
+    .gen-btn { padding: 10px 28px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; transition: all .2s; }
+    .gen-btn:hover { background: var(--accent-light); transform: translateY(-1px); }
+    .gen-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .gen-result { padding: 14px 16px; display: none; }
+    .gen-result.show { display: block; }
+    .gen-result-regex { font-family: 'Cascadia Code', Consolas, monospace; font-size: 16px; color: var(--accent-yellow); background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 10px; word-break: break-all; display: flex; align-items: center; gap: 10px; }
+    .gen-result-regex code { flex: 1; }
+    .gen-actions { display: flex; gap: 8px; margin-bottom: 12px; }
+    .gen-action-btn { padding: 6px 14px; background: var(--bg-overlay); border: 1px solid var(--border-default); color: var(--text-secondary); border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; transition: all .15s; }
+    .gen-action-btn:hover { border-color: var(--accent); color: var(--accent-light); }
+    .gen-match-preview { background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; max-height: 150px; overflow-y: auto; }
+    .gen-match-preview mark { background: rgba(255,215,0,.25); border-bottom: 2px solid var(--accent-yellow); color: inherit; border-radius: 2px; padding: 0 1px; }
+    .gen-explain-box { margin-top: 10px; padding: 10px 14px; background: var(--bg-elevated); border-radius: var(--radius-sm); font-size: 12px; color: var(--text-secondary); line-height: 1.8; }
+    .gen-explain-box b { color: var(--accent-yellow); font-family: monospace; }
+    .gen-code-item { background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: 6px; cursor: pointer; transition: all .15s; overflow: hidden; }
+    .gen-code-item:hover { border-color: var(--accent); background: var(--bg-elevated); }
+    .gen-code-item:active { transform: scale(.995); }
+    .gen-code-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px 4px; font-size: 12px; color: var(--text-secondary); font-weight: 600; }
+    .gen-code-pre { margin: 0; padding: 4px 14px 10px; font-size: 12px; font-family: 'Cascadia Code', Consolas, monospace; color: var(--accent-green); white-space: pre; overflow-x: auto; line-height: 1.6; }
+    .gen-natural-hint { padding: 8px 16px 16px; }
+    .gen-natural-input { width: 100%; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 10px 14px; color: var(--text-primary); font-size: 14px; outline: none; font-family: inherit; }
+    .gen-natural-input:focus { border-color: var(--accent); }
+    .gen-natural-examples { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .gen-example-btn { padding: 4px 10px; background: var(--bg-overlay); border: 1px solid var(--border-default); border-radius: 20px; color: var(--text-muted); font-size: 11px; cursor: pointer; transition: all .15s; }
+    .gen-example-btn:hover { border-color: var(--accent); color: var(--accent-light); }
+
+    /* ====== 测试器页面 ====== */
+    .regex-row { display: flex; align-items: center; gap: 8px; padding: 10px 14px; flex-wrap: wrap; }
+    .regex-slash { font-size: 20px; color: var(--accent); font-weight: 700; font-family: monospace; user-select: none; }
+    .regex-input { flex: 1; min-width: 200px; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 8px 12px; color: var(--text-primary); font-family: 'Cascadia Code', Consolas, monospace; font-size: 14px; outline: none; transition: border-color .2s; }
+    .regex-input:focus { border-color: var(--accent); }
+    .flags-input { width: 70px; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 8px 10px; color: var(--text-primary); font-family: monospace; font-size: 14px; outline: none; }
+    .flags-hint { font-size: 10px; color: var(--text-muted); }
+    .tabs { display: flex; gap: 2px; padding: 6px 14px 0; background: var(--bg-elevated); }
+    .tab { padding: 6px 14px; border: none; background: transparent; color: var(--text-muted); font-size: 12px; font-weight: 500; cursor: pointer; border-radius: var(--radius-sm) var(--radius-sm) 0 0; transition: all .15s; }
+    .tab.active { background: var(--bg-surface); color: var(--accent-light); }
+    .tab-content { display: none; padding: 10px 14px; }
+    .tab-content.active { display: block; }
+    .replace-row { display: flex; align-items: center; gap: 8px; padding: 0 14px 10px; }
+    .replace-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+    .replace-input { flex: 1; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 7px 12px; color: var(--text-primary); font-family: monospace; font-size: 13px; outline: none; }
+    .replace-input:focus { border-color: var(--accent); }
+    .replace-output textarea { width: 100%; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 10px; color: var(--accent-green); font-family: 'Cascadia Code', monospace; font-size: 13px; resize: vertical; outline: none; min-height: 60px; }
+    .lang-select { padding: 5px 10px; background: var(--bg-overlay); color: var(--text-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; outline: none; }
+    .code-block { background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px; font-family: 'Cascadia Code', monospace; font-size: 12px; line-height: 1.6; color: var(--text-secondary); overflow-x: auto; white-space: pre; max-height: 300px; overflow-y: auto; }
+    .test-area { position: relative; }
+    .test-textarea { width: 100%; background: var(--bg-base); color: var(--text-primary); border: none; padding: 14px 16px; font-family: 'Cascadia Code', Consolas, monospace; font-size: 13px; resize: vertical; outline: none; min-height: 150px; line-height: 1.6; caret-color: var(--accent-light); }
+    .test-textarea::selection { background: rgba(99,102,241,.25); }
+    .highlight-layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; padding: 14px 16px; font-family: 'Cascadia Code', Consolas, monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; overflow: hidden; z-index: 1; color: transparent; -webkit-text-fill-color: transparent; }
+    .highlight-layer mark { background: rgba(255,215,0,.3); border-bottom: 2px solid var(--accent-yellow); color: transparent !important; border-radius: 2px; text-shadow: none !important; -webkit-text-fill-color: transparent !important; }
+    .result-row { padding: 8px 14px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .result-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-green { background: rgba(34,197,94,.12); color: var(--accent-green); border: 1px solid rgba(34,197,94,.25); }
+    .badge-red { background: rgba(248,113,113,.12); color: var(--accent-red); border: 1px solid rgba(248,113,113,.25); }
+    .badge-blue { background: rgba(59,130,246,.12); color: #60a5fa; border: 1px solid rgba(59,130,246,.25); }
+    .badge-yellow { background: rgba(255,215,0,.12); color: var(--accent-yellow); border: 1px solid rgba(255,215,0,.25); }
+    .matches-list { padding: 0 14px 10px; max-height: 240px; overflow-y: auto; }
+    .match-item { display: flex; gap: 8px; align-items: baseline; font-size: 12px; padding: 5px 0; border-bottom: 1px solid var(--border-subtle); }
+    .match-item:last-child { border-bottom: none; }
+    .match-idx { color: var(--accent); font-weight: 700; min-width: 24px; font-size: 11px; }
+    .match-val { font-family: monospace; color: var(--accent-cyan); background: rgba(125,207,255,.08); padding: 1px 6px; border-radius: 3px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .match-pos { color: var(--text-muted); font-size: 11px; }
+    .match-groups { color: var(--accent-yellow); font-family: monospace; font-size: 11px; }
+    .match-named { color: var(--accent-light); font-size: 11px; }
+    .explain-item { display: flex; gap: 12px; align-items: flex-start; padding: 6px 0; border-bottom: 1px solid var(--border-subtle); }
+    .explain-item:last-child { border-bottom: none; }
+    .explain-token { font-family: monospace; font-size: 13px; color: var(--accent-yellow); background: rgba(255,215,0,.08); padding: 2px 8px; border-radius: 4px; white-space: nowrap; min-width: 40px; text-align: center; }
+    .explain-desc { font-size: 12px; color: var(--text-secondary); }
+    .copy-btn { padding: 3px 10px; background: var(--border-default); border: none; border-radius: 4px; color: var(--text-muted); cursor: pointer; font-size: 11px; transition: all .15s; }
+    .copy-btn:hover { background: var(--accent); color: #fff; }
+    .preset-btn { padding: 4px 10px; background: var(--border-default); border: none; border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 11px; cursor: pointer; transition: all .15s; }
+    .preset-btn:hover { background: var(--accent); color: #fff; }
+    .preset-btn.active { background: var(--accent); color: #fff; }
+
+    /* ====== 正则大全页面 ====== */
+    .cheatsheet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; padding: 14px; }
+    .cheat-card { background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); overflow: hidden; transition: all .15s; }
+    .cheat-card:hover { border-color: var(--border-default); }
+    .cheat-card-header { padding: 10px 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+    .cheat-card-icon { font-size: 16px; width: 28px; text-align: center; }
+    .cheat-card-title { font-size: 13px; font-weight: 600; flex: 1; }
+    .cheat-card-toggle { color: var(--text-muted); font-size: 11px; transition: transform .2s; }
+    .cheat-card.open .cheat-card-toggle { transform: rotate(90deg); }
+    .cheat-card-body { display: none; padding: 0 12px 12px; }
+    .cheat-card.open .cheat-card-body { display: block; }
+    .cheat-item { display: flex; gap: 10px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border-subtle); font-size: 12px; }
+    .cheat-item:last-child { border-bottom: none; }
+    .cheat-item-name { color: var(--text-secondary); min-width: 80px; }
+    .cheat-item-regex { font-family: 'Cascadia Code', monospace; color: var(--accent-cyan); background: rgba(125,207,255,.06); padding: 2px 8px; border-radius: 3px; flex: 1; font-size: 11px; cursor: pointer; word-break: break-all; }
+    .cheat-item-regex:hover { background: rgba(125,207,255,.12); }
+    .cheat-item-copy { color: var(--text-muted); font-size: 11px; cursor: pointer; padding: 2px 6px; border-radius: 3px; }
+    .cheat-item-copy:hover { color: var(--accent); }
+    .cheat-search { padding: 10px 14px; }
+    .cheat-search input { width: 100%; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 8px 12px; color: var(--text-primary); font-size: 13px; outline: none; }
+    .cheat-search input:focus { border-color: var(--accent); }
+
+    /* ====== 交互式教程 ====== */
+    .tutorial-progress { padding: 10px 16px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-muted); }
+    .tutorial-progress-bar { flex: 1; height: 4px; background: var(--bg-overlay); border-radius: 2px; overflow: hidden; }
+    .tutorial-progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .3s; }
+    .tutorial-content { padding: 16px; }
+    .tutorial-chapter-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .tutorial-chapter-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+    .tutorial-text { font-size: 14px; color: var(--text-secondary); line-height: 1.8; margin-bottom: 16px; }
+    .tutorial-text code { font-family: 'Cascadia Code', monospace; background: var(--bg-overlay); padding: 2px 8px; border-radius: 4px; color: var(--accent-cyan); font-size: 13px; }
+    .tutorial-try { background: var(--bg-elevated); border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 14px; }
+    .tutorial-try-title { font-size: 12px; font-weight: 600; color: var(--accent-light); margin-bottom: 10px; }
+    .tutorial-mini-editor { margin-bottom: 8px; }
+    .tutorial-mini-input { width: 100%; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 6px 10px; color: var(--accent-yellow); font-family: 'Cascadia Code', monospace; font-size: 13px; outline: none; }
+    .tutorial-mini-input:focus { border-color: var(--accent); }
+    .tutorial-mini-preview { background: var(--bg-base); border-radius: 4px; padding: 8px 10px; font-family: 'Cascadia Code', monospace; font-size: 13px; min-height: 36px; color: var(--text-secondary); }
+    .tutorial-mini-preview mark { background: rgba(255,215,0,.25); border-bottom: 2px solid var(--accent-yellow); color: inherit; border-radius: 2px; }
+    .tutorial-nav { display: flex; justify-content: space-between; }
+    .tutorial-nav-btn { padding: 8px 20px; background: var(--bg-overlay); border: 1px solid var(--border-default); color: var(--text-secondary); border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; transition: all .15s; }
+    .tutorial-nav-btn:hover { border-color: var(--accent); color: var(--accent-light); }
+    .tutorial-nav-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .tutorial-nav-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* toast */
+    .toast { position: fixed; bottom: 24px; right: 24px; padding: 10px 20px; border-radius: 8px; font-size: 13px; z-index: 999; background: rgba(34,197,94,.15); border: 1px solid rgba(34,197,94,.3); color: #22c55e; transform: translateY(10px); opacity: 0; transition: all .3s; pointer-events: none; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    @media (max-width: 768px) {
+      .regex-row { gap: 6px; }
+      .flags-hint { display: none; }
+      .page { padding: 12px; }
+      .cheatsheet-grid { grid-template-columns: 1fr; }
+      .gen-input-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+<div class="header">
+  <div class="header-icon">🔍</div>
+  <div>
+    <h1>正则表达式测试器</h1>
+    <p>AI生成 · 实时匹配 · 正则大全 · 交互式教程</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<!-- 主导航 -->
+<div class="main-nav">
+  <button class="main-nav-btn active" onclick="switchPage('generate')">🤖 正则生成</button>
+  <button class="main-nav-btn" onclick="switchPage('test')">🎯 匹配测试</button>
+  <button class="main-nav-btn" onclick="switchPage('cheatsheet')">📚 正则大全</button>
+  <button class="main-nav-btn" onclick="switchPage('tutorial')">📖 交互教程</button>
+</div>
+
+<!-- ========== 页面1：正则生成器 ========== -->
+<div class="page active" id="page-generate">
+  <!-- 自然语言输入 -->
+  <div class="section">
+    <div class="section-title">💬 自然语言描述</div>
+    <div class="gen-natural-hint">
+      <input class="gen-natural-input" id="natural-input" placeholder="用自然语言描述你要匹配的内容，如：匹配手机号、提取邮箱、验证密码强度..." onkeydown="if(event.key==='Enter')generateFromNatural()">
+      <div class="gen-natural-examples">
+        <button class="gen-example-btn" onclick="setNaturalExample(this)">匹配手机号</button>
+        <button class="gen-example-btn" onclick="setNaturalExample(this)">提取所有邮箱</button>
+        <button class="gen-example-btn" onclick="setNaturalExample(this)">验证密码至少8位含大小写数字</button>
+        <button class="gen-example-btn" onclick="setNaturalExample(this)">匹配IPv4地址</button>
+        <button class="gen-example-btn" onclick="setNaturalExample(this)">匹配URL链接</button>
+        <button class="gen-example-btn" onclick="setNaturalExample(this)">提取HTML标签</button>
+        <button class="gen-example-btn" onclick="setNaturalExample(this)">匹配身份证号</button>
+        <button class="gen-example-btn" onclick="setNaturalExample(this)">匹配金额</button>
+        <button class="gen-example-btn" onclick="setNaturalExample(this)">驼峰转下划线</button>
+        <button class="gen-example-btn" onclick="setNaturalExample(this)">去除多余空行</button>
+        <button class="gen-example-btn" onclick="setNaturalExample(this)">匹配中文</button>
+        <button class="gen-example-btn" onclick="setNaturalExample(this)">匹配日期YYYY-MM-DD</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 基于示例的生成 -->
+  <div class="section">
+    <div class="section-title">🎯 基于示例文本生成</div>
+    <div class="gen-desc">输入包含你要匹配内容的示例文本，工具将自动识别模式并生成正则表达式。也可以同时勾选下方的辅助选项来精确控制。</div>
+    <div class="gen-form">
+      <textarea class="gen-textarea" id="sample-text" placeholder="粘贴包含你要匹配内容的示例文本，每行一个示例...&#10;&#10;例如：&#10;13800138000&#10;admin@example.com&#10;2024-01-15"></textarea>
+    </div>
+    <div class="gen-options" id="gen-options">
+      <label class="gen-opt" onclick="toggleGenOpt(this)" data-opt="start"><input type="checkbox"> ^ 行首</label>
+      <label class="gen-opt" onclick="toggleGenOpt(this)" data-opt="end"><input type="checkbox"> $ 行尾</label>
+      <label class="gen-opt" onclick="toggleGenOpt(this)" data-opt="ignoreCase"><input type="checkbox"> 忽略大小写</label>
+      <label class="gen-opt" onclick="toggleGenOpt(this)" data-opt="multiline"><input type="checkbox"> 多行模式</label>
+      <label class="gen-opt" onclick="toggleGenOpt(this)" data-opt="capture"><input type="checkbox"> 捕获组</label>
+      <label class="gen-opt" onclick="toggleGenOpt(this)" data-opt="named"><input type="checkbox"> 命名组</label>
+      <label class="gen-opt" onclick="toggleGenOpt(this)" data-opt="nonEmpty"><input type="checkbox"> 非空匹配</label>
+      <label class="gen-opt" onclick="toggleGenOpt(this)" data-opt="wordBoundary"><input type="checkbox"> 词边界</label>
+    </div>
+    <div style="padding:0 16px 16px;display:flex;gap:10px;align-items:center">
+      <button class="gen-btn" onclick="generateFromSample()">✨ 生成正则</button>
+      <span id="gen-status" style="font-size:12px;color:var(--text-muted)"></span>
+    </div>
+  </div>
+
+  <!-- 生成结果 -->
+  <div class="section" id="gen-result-section" style="display:none">
+    <div class="section-title">✅ 生成结果</div>
+    <div class="gen-result show">
+      <div class="gen-result-regex">
+        <span style="color:var(--text-muted)">/</span>
+        <code id="gen-regex-text"></code>
+        <span style="color:var(--text-muted)">/</span>
+        <span id="gen-regex-flags" style="color:var(--accent-green);margin-right:10px"></span>
+      </div>
+      <div class="gen-actions">
+        <button class="gen-action-btn" onclick="copyGenRegex()">📋 复制正则</button>
+        <button class="gen-action-btn" onclick="useInTester()">🎯 在测试器中使用</button>
+        <button class="gen-action-btn" onclick="refineRegex()">🔄 优化变体</button>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">匹配预览：</div>
+      <div class="gen-match-preview" id="gen-preview"></div>
+      <div class="gen-explain-box" id="gen-explain"></div>
+      <!-- 各语言代码片段 -->
+      <div id="gen-code-section" style="margin-top:12px">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+          <span>📋 各语言代码（点击复制）</span>
+          <span style="font-size:11px;color:var(--text-muted)" id="gen-code-hint"></span>
+        </div>
+        <div id="gen-code-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 页面2：匹配测试 ========== -->
+<div class="page" id="page-test">
+  <div class="section">
+    <div class="section-title">正则表达式</div>
+    <div class="regex-row">
+      <span class="regex-slash">/</span>
+      <input class="regex-input" id="pattern" placeholder="输入正则表达式..." oninput="runTest()" spellcheck="false">
+      <span class="regex-slash">/</span>
+      <input class="flags-input" id="flags" value="g" placeholder="gi" oninput="runTest()" spellcheck="false">
+      <span class="flags-hint">i 忽略大小写 · g 全局 · m 多行 · s 点匹配换行</span>
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('match')" id="tab-match">🎯 匹配</button>
+      <button class="tab" onclick="switchTab('replace')" id="tab-replace">🔄 替换</button>
+      <button class="tab" onclick="switchTab('explain')" id="tab-explain">📖 解释</button>
+      <button class="tab" onclick="switchTab('codegen')" id="tab-codegen">💻 代码生成</button>
+    </div>
+    <div class="tab-content" id="panel-replace">
+      <div class="replace-row">
+        <span class="replace-label">替换为：</span>
+        <input class="replace-input" id="replace-val" placeholder="替换文本，支持 $1, $2 引用捕获组..." oninput="runTest()">
+        <button class="copy-btn" onclick="copyReplaceResult()">📋 复制结果</button>
+      </div>
+      <div style="padding:0 14px 10px"><textarea class="replace-output" id="replace-output" readonly placeholder="替换结果将显示在此..."></textarea></div>
+    </div>
+    <div class="tab-content" id="panel-explain">
+      <div id="explain-content" style="font-size:12px;color:var(--text-muted)">输入正则表达式后将自动分解解释每个 token</div>
+    </div>
+    <div class="tab-content" id="panel-codegen">
+      <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+        <span style="font-size:12px;color:var(--text-muted)">语言：</span>
+        <select class="lang-select" id="codegen-lang" onchange="generateCode()">
+          <option value="javascript">JavaScript</option>
+          <option value="python">Python</option>
+          <option value="java">Java</option>
+          <option value="go">Go</option>
+          <option value="rust">Rust</option>
+          <option value="php">PHP</option>
+        </select>
+        <button class="copy-btn" onclick="copyCodegen()" style="margin-left:auto">📋 复制代码</button>
+      </div>
+      <div class="code-block" id="codegen-output">输入正则表达式后将生成代码</div>
+    </div>
+  </div>
+
+  <!-- 预设 -->
+  <div class="section">
+    <div class="section-title">常用预设</div>
+    <div style="padding:10px 14px;display:flex;gap:6px;flex-wrap:wrap" id="presets"></div>
+  </div>
+
+  <!-- 测试文本 -->
+  <div class="section">
+    <div class="section-title">测试文本</div>
+    <div class="test-area">
+      <div class="highlight-layer" id="highlight-layer"></div>
+      <textarea class="test-textarea" id="test-text" placeholder="在此输入测试文本..." oninput="runTest()" spellcheck="false">联系方式：13800138000，邮箱：admin@example.com
+备用邮箱：dev.manager@company.org.cn
+IP地址：192.168.1.100，服务地址：10.0.0.1
+项目链接：https://github.com/example/project
+身份证：110101199003071234
+版本：1.2.3，发布日期：2026-03-18
+HTML示例：<div class="test">Hello</div>
+中文字符测试：今天天气真好！
+密码测试：Abc123!@#
+常量命名：MAX_BUFFER_SIZE
+驼峰命名：myUserName
+用户名：李明、王小红</textarea>
+    </div>
+  </div>
+
+  <!-- 结果 -->
+  <div class="section">
+    <div class="section-title">匹配结果</div>
+    <div class="result-row" id="result-row"><span class="result-badge badge-blue">等待输入...</span></div>
+    <div class="matches-list" id="matches-list"></div>
+  </div>
+</div>
+
+<!-- ========== 页面3：正则大全 ========== -->
+<div class="page" id="page-cheatsheet">
+  <div class="section">
+    <div class="section-title">🔍 搜索正则</div>
+    <div class="cheat-search"><input id="cheat-search-input" placeholder="搜索正则，如：手机号、邮箱、IP..." oninput="filterCheatsheet()"></div>
+  </div>
+  <div id="cheatsheet-container"></div>
+</div>
+
+<!-- ========== 页面4：交互式教程 ========== -->
+<div class="page" id="page-tutorial">
+  <div class="section">
+    <div class="tutorial-progress">
+      <span id="tut-step-text">第 1 章 / 共 10 章</span>
+      <div class="tutorial-progress-bar"><div class="tutorial-progress-fill" id="tut-progress" style="width:10%"></div></div>
+    </div>
+    <div class="tutorial-content" id="tutorial-content"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== 页面导航 ====================
+function switchPage(name) {
+  document.querySelectorAll('.main-nav-btn').forEach((b, i) => b.classList.toggle('active', ['generate','test','cheatsheet','tutorial'][i] === name));
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + name));
+}
+
+let activeTab = 'match';
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + tab));
+  document.querySelectorAll('.tab-content').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+  if (tab === 'codegen') generateCode();
+  if (tab === 'explain') explainRegex();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1500);
+}
+
+// ==================== 正则生成器（核心） ====================
+let genOpts = { start: false, end: false, ignoreCase: false, multiline: false, capture: false, named: false, nonEmpty: false, wordBoundary: false };
+
+function toggleGenOpt(el) {
+  const key = el.dataset.opt;
+  const cb = el.querySelector('input');
+  // toggle manually since label click fires twice
+  setTimeout(() => { genOpts[key] = cb.checked; }, 0);
+}
+
+function setNaturalExample(btn) {
+  document.getElementById('natural-input').value = btn.textContent;
+  generateFromNatural();
+}
+
+function generateFromNatural() {
+  const input = document.getElementById('natural-input').value.trim();
+  if (!input) return;
+  document.getElementById('gen-status').textContent = '分析中...';
+
+  // 自然语言 → 正则 规则引擎
+  const rules = [
+    { kw: ['手机号','手机','mobile','phone'], fn: () => ({ pattern: '1[3-9]\\d{9}', flags: 'g', explain: '匹配中国大陆手机号：以1开头，第二位3-9，后跟9位数字' }) },
+    { kw: ['邮箱','email','e-mail','邮件'], fn: () => ({ pattern: '[\\w.-]+@[\\w.-]+\\.\\w{2,}', flags: 'gi', explain: '匹配邮箱地址：用户名@域名.后缀' }) },
+    { kw: ['身份证','idcard','id_card','身份证号'], fn: () => ({ pattern: '[1-9]\\d{5}(?:19|20)\\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\\d|3[01])\\d{3}[\\dXx]', flags: 'g', explain: '匹配18位身份证号：6位地区码 + 8位出生日期 + 3位顺序码 + 1位校验码' }) },
+    { kw: ['ipv4','ip地址','ip addr','ip'], fn: () => ({ pattern: '(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)', flags: 'g', explain: '匹配IPv4地址：4组0-255数字用.分隔' }) },
+    { kw: ['url','链接','网址','link','http','https'], fn: () => ({ pattern: 'https?:\\/\\/[\\w.-]+(?:\\.[\\w]{2,})(?:[\\/?#][^\\s]*)?', flags: 'gi', explain: '匹配HTTP/HTTPS URL链接' }) },
+    { kw: ['html','标签','tag','element'], fn: () => ({ pattern: '<([a-zA-Z][a-zA-Z0-9]*)[^>]*>(?:.*?)<\\/\\1>', flags: 'gi', explain: '匹配HTML标签对（含内容）' }) },
+    { kw: ['密码','password','pwd'], fn: () => {
+      const strong = input.includes('强') || input.includes('安全');
+      if (strong || input.includes('大小写') && input.includes('数字')) {
+        return { pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$', flags: '', explain: '强密码：至少8位，包含大小写字母和数字' };
+      }
+      return { pattern: '^(?=.*\\d)(?=.*[a-zA-Z]).{6,}$', flags: '', explain: '中等密码：至少6位，包含字母和数字' };
+    }},
+    { kw: ['金额','money','价格','price','人民币','￥','¥'], fn: () => ({ pattern: '¥\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})?', flags: 'g', explain: '匹配人民币金额：¥ + 千分位分隔 + 两位小数' }) },
+    { kw: ['日期','date','时间','time'], fn: () => ({ pattern: '\\d{4}[-/]\\d{2}[-/]\\d{2}', flags: 'g', explain: '匹配日期：YYYY-MM-DD 或 YYYY/MM/DD' }) },
+    { kw: ['中文字符','中文','chinese','汉字'], fn: () => ({ pattern: '[\\u4e00-\\u9fa5]+', flags: 'g', explain: '匹配连续中文字符（CJK统一汉字）' }) },
+    { kw: ['驼峰','camel','camelcase'], fn: () => ({ pattern: '[a-z]+(?:[A-Z][a-z]*)+', flags: 'g', explain: '匹配驼峰命名：camelCase' }) },
+    { kw: ['下划线','snake','snake_case'], fn: () => ({ pattern: '[a-z]+(?:_[a-z]+)+', flags: 'g', explain: '匹配下划线命名：snake_case' }) },
+    { kw: ['数字','number','整数','integer','小数'], fn: () => ({ pattern: '-?\\d+\\.?\\d*', flags: 'g', explain: '匹配数字：整数和小数' }) },
+    { kw: ['十六进制','hex','0x'], fn: () => ({ pattern: '0x[0-9a-fA-F]+', flags: 'gi', explain: '匹配十六进制数：0x前缀' }) },
+    { kw: ['版本号','version','semver'], fn: () => ({ pattern: '\\d+\\.\\d+\\.\\d+(?:-\\w+)?', flags: 'g', explain: '匹配语义化版本号：1.2.3 或 1.0.0-beta' }) },
+    { kw: ['空白','空行','blank'], fn: () => ({ pattern: '^\\s*$', flags: 'gm', explain: '匹配空行或仅含空白字符的行' }) },
+    { kw: ['常量','const','constant','upper_case'], fn: () => ({ pattern: '[A-Z]+(?:_[A-Z0-9]+)+', flags: 'g', explain: '匹配常量命名：UPPER_CASE' }) },
+    { kw: ['去空行','删空行','remove blank','删除空行'], fn: () => ({ pattern: '^\\s*\\n', flags: 'gm', explain: '匹配可删除的空行（用于替换为空字符串）' }) },
+    { kw: ['域名','domain','hostname'], fn: () => ({ pattern: '[\\w-]+(?:\\.[\\w-]+)+\\.\\w{2,}', flags: 'gi', explain: '匹配域名：如 example.com、sub.domain.org' }) },
+    { kw: ['双引号','引号','string','字符串','quoted'], fn: () => ({ pattern: '"(?:[^"\\\\]|\\\\.)*"', flags: 'g', explain: '匹配双引号字符串（含转义）' }) },
+    { kw: ['单引号','single quote'], fn: () => ({ pattern: "\\'(?:[^'\\\\]|\\\\.)*\\'", flags: 'g', explain: '匹配单引号字符串（含转义）' }) },
+    { kw: ['车牌','license plate','车牌号'], fn: () => ({ pattern: '[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤川青藏琼宁][A-Z][A-HJ-NP-Z0-9]{4,5}[A-HJ-NP-Z0-9挂学警港澳]', flags: 'g', explain: '匹配中国大陆车牌号' }) },
+    { kw: ['邮政编码','邮编','zipcode','zip'], fn: () => ({ pattern: '[1-9]\\d{5}(?!\\d)', flags: 'g', explain: '匹配6位中国邮政编码' }) },
+    { kw: ['mac地址','mac','mac address'], fn: () => ({ pattern: '(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}', flags: 'gi', explain: '匹配MAC地址：00:1A:2B:3C:4D:5E' }) },
+    { kw: ['uuid'], fn: () => ({ pattern: '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}', flags: 'gi', explain: '匹配UUID：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' }) },
+  ];
+
+  // 也处理 "驼峰转下划线" 等替换类需求
+  const replaceRules = [
+    { kw: ['驼峰转下划线','camel to snake','驼峰转snake'], pattern: '([a-z])([A-Z])', replace: '$1_$2', flags: 'g', explain: '将 camelCase 转为 snake_case' },
+    { kw: ['下划线转驼峰','snake to camel','下划线转驼峰'], pattern: '_([a-z])', replace: (m) => m[1].toUpperCase(), flags: 'g', explain: '将 snake_case 转为 camelCase' },
+    { kw: ['去除多余空格','去多余空格','collapse space','合并空格'], pattern: ' {2,}', replace: ' ', flags: 'g', explain: '将连续多个空格合并为一个' },
+    { kw: ['去首尾空格','trim','去除前后空格'], pattern: '^\\s+|\\s+$', replace: '', flags: 'gm', explain: '去除每行首尾空白字符' },
+    { kw: ['去注释','remove comment','删除注释'], pattern: '(?://.*$|/\\*[\\s\\S]*?\\*/)', replace: '', flags: 'gm', explain: '删除单行//注释和多行/* */注释' },
+  ];
+
+  // 先检查替换规则
+  for (const rule of replaceRules) {
+    if (rule.kw.some(k => input.toLowerCase().includes(k.toLowerCase()))) {
+      showGenResult(rule.pattern, rule.flags, rule.explain, rule.replace);
+      document.getElementById('gen-status').textContent = '';
+      return;
+    }
+  }
+
+  // 再检查生成规则
+  for (const rule of rules) {
+    if (rule.kw.some(k => input.toLowerCase().includes(k.toLowerCase()))) {
+      const result = rule.fn();
+      showGenResult(result.pattern, result.flags, result.explain);
+      document.getElementById('gen-status').textContent = '';
+      return;
+    }
+  }
+
+  // 通用模式检测
+  document.getElementById('gen-status').textContent = '未找到预设模式，请尝试基于示例文本生成';
+}
+
+function generateFromSample() {
+  const text = document.getElementById('sample-text').value.trim();
+  if (!text) { document.getElementById('gen-status').textContent = '请输入示例文本'; return; }
+
+  // 解析示例文本
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length === 0) return;
+
+  document.getElementById('gen-status').textContent = '分析模式中...';
+
+  let pattern = '';
+  let explain = '';
+
+  // 尝试匹配已知的模式
+  const allText = lines.join('\n');
+
+  // 1. 检查是否所有行格式一致（结构化数据）
+  if (lines.length >= 2) {
+    // 检查是否是相同的模式
+    const result = detectPatternFromExamples(lines);
+    if (result) {
+      pattern = result.pattern;
+      explain = result.explain;
+    }
+  }
+
+  // 如果没检测到，尝试单行分析
+  if (!pattern && lines.length >= 1) {
+    const result = detectSingleLinePattern(lines[0]);
+    if (result) {
+      pattern = result.pattern;
+      explain = result.explain;
+    }
+  }
+
+  if (!pattern) {
+    // 通用智能检测
+    const result = smartDetect(lines);
+    pattern = result.pattern;
+    explain = result.explain;
+  }
+
+  // 应用选项
+  if (genOpts.start && !pattern.startsWith('^')) pattern = '^' + pattern;
+  if (genOpts.end && !pattern.endsWith('$')) pattern = pattern + '$';
+
+  let flags = 'g';
+  if (genOpts.ignoreCase) flags += 'i';
+  if (genOpts.multiline) flags += 'm';
+
+  if (genOpts.capture && !pattern.includes('(')) {
+    pattern = '(' + pattern + ')';
+    explain = '（已包裹为捕获组）' + explain;
+  }
+  if (genOpts.named && genOpts.capture) {
+    pattern = '(?<match>' + pattern.replace(/^\(|\)$/g, '') + ')';
+    explain = '（已设为命名捕获组 match）' + explain;
+  }
+  if (genOpts.wordBoundary && !pattern.startsWith('\\b')) {
+    pattern = '\\b' + pattern;
+    explain = '（已添加词边界）' + explain;
+  }
+  if (genOpts.nonEmpty && !pattern.includes('+')) {
+    pattern = pattern.replace('*', '+');
+    explain = '（已确保非空匹配）' + explain;
+  }
+
+  setTimeout(() => {
+    showGenResult(pattern, flags, explain);
+    document.getElementById('gen-status').textContent = '';
+  }, 300);
+}
+
+function detectPatternFromExamples(lines) {
+  // 所有行的共同模式
+  if (lines.length < 2) return null;
+
+  // 检查是否全为纯数字
+  if (lines.every(l => /^\d+$/.test(l))) {
+    const lengths = [...new Set(lines.map(l => l.length))];
+    if (lengths.length === 1) {
+      const len = lengths[0];
+      if (len === 11 && lines.every(l => /^1[3-9]/.test(l))) return { pattern: '1[3-9]\\d{9}', explain: '检测到11位手机号模式' };
+      if (len === 6) return { pattern: '\\d{6}', explain: `检测到${len}位纯数字（可能是邮编或验证码）` };
+      return { pattern: '\\d{' + len + '}', explain: `检测到固定${len}位数字` };
+    }
+    const minLen = Math.min(...lines.map(l => l.length));
+    const maxLen = Math.max(...lines.map(l => l.length));
+    return { pattern: '\\d{' + minLen + ',' + maxLen + '}', explain: `检测到${minLen}-${maxLen}位数字范围` };
+  }
+
+  // 检查是否全为邮箱
+  if (lines.every(l => /^[\w.-]+@[\w.-]+\.\w{2,}$/.test(l))) return { pattern: '[\\w.-]+@[\\w.-]+\\.\\w{2,}', explain: '检测到邮箱地址模式' };
+
+  // 检查是否全为URL
+  if (lines.every(l => /^https?:\/\//i.test(l))) return { pattern: 'https?:\\/\\/[^\\s]+', explain: '检测到URL链接模式' };
+
+  // 检查是否全为日期
+  if (lines.every(l => /^\d{4}[-/]\d{2}[-/]\d{2}$/.test(l))) return { pattern: '\\d{4}[-/]\\d{2}[-/]\\d{2}', explain: '检测到日期格式 YYYY-MM-DD' };
+
+  // 检查是否全为IPv4
+  if (lines.every(l => /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(l))) return { pattern: '(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)', explain: '检测到IPv4地址模式' };
+
+  // 检查是否包含冒号分隔（如 key: value）
+  if (lines.every(l => l.includes(':'))) {
+    return { pattern: '([^:\\n]+):\\s*(.+)', explain: '检测到键值对模式（key: value）' };
+  }
+
+  // 尝试结构推断：找固定前缀和变化后缀
+  const result = findCommonPattern(lines);
+  if (result) return result;
+
+  return null;
+}
+
+function findCommonPattern(lines) {
+  // 找最长公共前缀
+  let prefix = lines[0];
+  for (const line of lines) {
+    while (!line.startsWith(prefix)) prefix = prefix.slice(0, -1);
+    if (!prefix) break;
+  }
+  // 找最长公共后缀
+  let suffix = lines[0];
+  for (const line of lines) {
+    while (!line.endsWith(suffix)) suffix = suffix.slice(1);
+    if (!suffix) break;
+  }
+
+  if (prefix.length > 1 || suffix.length > 1) {
+    const middle = lines[0].slice(prefix.length, lines[0].length - (suffix.length || 0));
+    let midPattern = '';
+    if (middle.length > 0) {
+      if (/^\d+$/.test(middle)) midPattern = '\\d+';
+      else if (/^[a-zA-Z]+$/.test(middle)) midPattern = '[a-zA-Z]+';
+      else if (/^[\w]+$/.test(middle)) midPattern = '\\w+';
+      else midPattern = '.+';
+    }
+    let pat = '';
+    if (prefix) pat += prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    pat += midPattern;
+    if (suffix) pat += suffix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return { pattern: pat, explain: `检测到模式：固定前缀"${prefix}" + 可变部分 + 固定后缀"${suffix}"` };
+  }
+
+  return null;
+}
+
+function detectSingleLinePattern(text) {
+  // 分析单行文本
+  if (/^1[3-9]\d{9}$/.test(text)) return { pattern: '1[3-9]\\d{9}', explain: '检测到手机号' };
+  if (/^[\w.-]+@[\w.-]+\.\w{2,}$/.test(text)) return { pattern: '[\\w.-]+@[\\w.-]+\\.\\w{2,}', explain: '检测到邮箱' };
+  if (/^\d{4}[-/]\d{2}[-/]\d{2}$/.test(text)) return { pattern: '\\d{4}[-/]\\d{2}[-/]\\d{2}', explain: '检测到日期' };
+  if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(text)) return { pattern: '(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)', explain: '检测到IP地址' };
+  return null;
+}
+
+function smartDetect(lines) {
+  // 通用智能检测
+  const chars = new Set(lines.join(''));
+  const hasDigits = [...chars].some(c => /\d/.test(c));
+  const hasLetters = [...chars].some(c => /[a-zA-Z]/.test(c));
+  const hasChinese = [...chars].some(c => /[\u4e00-\u9fa5]/.test(c));
+  const hasSpecial = [...chars].some(c => /[^a-zA-Z0-9\s\u4e00-\u9fa5]/.test(c));
+  const hasAt = lines.some(l => l.includes('@'));
+  const hasDot = lines.some(l => l.includes('.'));
+  const hasDash = lines.some(l => l.includes('-'));
+
+  // 分析长度
+  const lengths = lines.map(l => l.length);
+  const minLen = Math.min(...lengths);
+  const maxLen = Math.max(...lengths);
+  const fixedLen = minLen === maxLen ? minLen : 0;
+
+  // 决策树
+  if (hasAt && hasDot && hasLetters) return { pattern: '[\\w.-]+@[\\w.-]+\\.\\w{2,}', explain: '推测为邮箱地址格式' };
+  if (hasDigits && !hasLetters && !hasChinese) {
+    if (fixedLen) return { pattern: '\\d{' + fixedLen + '}', explain: `检测到固定${fixedLen}位数字` };
+    return { pattern: '\\d+', explain: '检测到数字序列' };
+  }
+  if (hasChinese && !hasDigits && !hasLetters) return { pattern: '[\\u4e00-\\u9fa5]+', explain: '检测到中文字符序列' };
+  if (hasDigits && hasDash && !hasLetters) return { pattern: '\\d+(?:-\\d+)+', explain: '检测到数字-数字分隔格式（如日期、版本号）' };
+  if (hasLetters && hasDigits) return { pattern: '[a-zA-Z0-9]+', explain: '检测到字母数字混合' };
+  if (hasLetters && !hasDigits) return { pattern: '[a-zA-Z]+', explain: '检测到纯字母序列' };
+
+  // 回退：提取字符类
+  let cls = '';
+  if (hasDigits) cls += '\\d';
+  if (hasLetters) cls += 'a-zA-Z';
+  if (hasChinese) cls += '\\u4e00-\\u9fa5';
+  if (cls) return { pattern: '[' + cls + ']+' + (fixedLen ? '' : ''), explain: '基于示例文本字符类型推断' };
+
+  return { pattern: '.+', explain: '通用匹配（无法精确推断模式）' };
+}
+
+function showGenResult(pattern, flags, explain, replaceStr) {
+  document.getElementById('gen-result-section').style.display = '';
+  document.getElementById('gen-regex-text').textContent = pattern;
+  document.getElementById('gen-regex-flags').textContent = flags;
+
+  // 存储供其他功能使用
+  window._genResult = { pattern, flags, replace: replaceStr };
+
+  // 生成预览
+  const sampleText = document.getElementById('sample-text').value.trim() || document.getElementById('natural-input').value;
+  const preview = document.getElementById('gen-preview');
+  if (sampleText) {
+    try {
+      const re = new RegExp(pattern, flags);
+      preview.innerHTML = buildHighlight(sampleText, pattern, flags);
+    } catch (e) {
+      preview.textContent = sampleText;
+    }
+  } else {
+    preview.textContent = '（无示例文本可预览）';
+  }
+
+  // 生成解释
+  const explainBox = document.getElementById('gen-explain');
+  let explainHtml = '<b>📖 说明：</b> ' + explain + '<br>';
+
+  // 逐 token 解释
+  const tokens = tokenizeRegex(pattern);
+  explainHtml += '<br><b>逐段解释：</b><br>';
+  for (const t of tokens) {
+    explainHtml += '  <b>' + escapeHtml(t.token) + '</b> — ' + t.desc + '<br>';
+  }
+
+  if (replaceStr) {
+    explainHtml += '<br><b>🔄 替换用法：</b> 将匹配内容替换为 <code>' + escapeHtml(typeof replaceStr === 'function' ? '（动态替换）' : String(replaceStr)) + '</code>';
+  }
+
+  explainHtml += '<br><br><b>🚩 标志位：</b> ';
+  const flagNames = { g: '全局匹配', i: '忽略大小写', m: '多行模式', s: '点号匹配换行', u: 'Unicode模式', y: '粘性匹配' };
+  explainHtml += [...flags].map(f => flagNames[f] || f).join('、') || '无';
+
+  explainBox.innerHTML = explainHtml;
+
+  // 生成各语言代码片段
+  renderGenCodeSnippets(pattern, flags);
+}
+
+function renderGenCodeSnippets(pattern, flags) {
+  const el = document.getElementById('gen-code-list');
+  const hint = document.getElementById('gen-code-hint');
+  const sampleText = document.getElementById('sample-text').value.trim().split('\n')[0] || '示例文本';
+
+  const snippets = [
+    { lang: 'JavaScript', icon: '🟨', code: `const regex = /${pattern.replace(/\//g, '\\/')}\/${flags};\nconst isValid = regex.test(str);` },
+    { lang: 'Python', icon: '🐍', code: `import re\npattern = r"${pattern.replace(/"/g, '""')}"\nis_valid = bool(re.match(pattern, str))` },
+    { lang: 'Java', icon: '☕', code: `import java.util.regex.*;\nPattern pattern = Pattern.compile("${pattern.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"${flags.includes('i') ? ', Pattern.CASE_INSENSITIVE' : ''}${flags.includes('m') ? ' | Pattern.MULTILINE' : ''});\nboolean isValid = pattern.matcher(str).find();` },
+    { lang: 'Go', icon: '🐹', code: `import "regexp"\nre := regexp.MustCompile("${pattern.replace(/"/g, '\\"')}")\nmatched := re.MatchString(str)` },
+    { lang: 'Rust', icon: '🦀', code: `use regex::Regex;\nlet re = Regex::new(r"${pattern.replace(/"/g, '')}").unwrap();\nlet is_valid = re.is_match(str);` },
+    { lang: 'PHP', icon: '🐘', code: `$pattern = '/${pattern.replace(/\//g, '\\/')}\/${flags}';\n$is_valid = preg_match($pattern, $str);` },
+  ];
+
+  el.innerHTML = snippets.map((s, i) => `
+    <div class="gen-code-item" onclick="copyGenSnippet(${i})" title="点击复制 ${s.lang} 代码">
+      <div class="gen-code-header">
+        <span>${s.icon} ${s.lang}</span>
+        <span style="font-size:11px;color:var(--text-muted)">点击复制</span>
+      </div>
+      <pre class="gen-code-pre"><code>${escapeHtml(s.code)}</code></pre>
+    </div>
+  `).join('');
+
+  window._genSnippets = snippets;
+  hint.textContent = `共 ${snippets.length} 种语言`;
+}
+
+function copyGenSnippet(idx) {
+  if (!window._genSnippets || !window._genSnippets[idx]) return;
+  const s = window._genSnippets[idx];
+  navigator.clipboard.writeText(s.code).then(() => showToast(`${s.lang} 代码已复制`)).catch(() => {});
+}
+
+function copyGenRegex() {
+  if (!window._genResult) return;
+  const { pattern } = window._genResult;
+  navigator.clipboard.writeText(pattern).then(() => showToast('正则已复制: ' + pattern)).catch(() => {});
+}
+
+function useInTester() {
+  if (!window._genResult) return;
+  const { pattern, flags } = window._genResult;
+  document.getElementById('pattern').value = pattern;
+  document.getElementById('flags').value = flags;
+  switchPage('test');
+  runTest();
+  showToast('已载入测试器');
+}
+
+function refineRegex() {
+  if (!window._genResult) return;
+  // 生成变体
+  const { pattern, flags } = window._genResult;
+  let variants = [];
+
+  if (pattern.includes('\\d')) {
+    variants.push({ p: pattern.replace(/\\d/g, '[0-9]'), note: '用 [0-9] 替代 \\d（兼容性更好）' });
+  }
+  if (flags.includes('g') && !flags.includes('m')) {
+    variants.push({ p: pattern, f: flags + 'm', note: '添加多行模式（^$ 匹配每行）' });
+  }
+  if (!pattern.startsWith('^')) {
+    variants.push({ p: '^' + pattern, note: '添加行首锚定 ^（确保从行首匹配）' });
+  }
+  if (!pattern.endsWith('$')) {
+    variants.push({ p: pattern + '$', note: '添加行尾锚定 $（确保匹配到行尾）' });
+  }
+
+  if (variants.length === 0) {
+    showToast('当前正则暂无可优化的变体');
+    return;
+  }
+
+  const el = document.getElementById('gen-explain');
+  let html = el.innerHTML + '<br><br><b>🔄 优化变体：</b><br>';
+  variants.forEach((v, i) => {
+    const f = v.f || flags;
+    const escaped = v.p.replace(/'/g, "\\'").replace(/\\/g, '\\\\');
+    html += `<div style="padding:6px 0;cursor:pointer" onclick="document.getElementById('gen-regex-text').textContent='${escaped}';document.getElementById('gen-regex-flags').textContent='${f}';window._genResult={pattern:'${escaped}',flags:'${f}'};renderGenCodeSnippets('${escaped}','${f}')">
+      <span style="color:var(--accent-cyan);font-family:monospace">/${v.p}/${f}</span><br>
+      <span style="font-size:11px;color:var(--text-muted)">${v.note}</span>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+// ==================== 高亮（修复版） ====================
+function buildHighlight(text, pattern, flags) {
+  if (!pattern) return '';
+  try {
+    const re = new RegExp(pattern, flags.includes('g') ? flags : flags + 'g');
+    const matches = [];
+    let m;
+    while ((m = re.exec(text)) !== null && matches.length < 2000) {
+      matches.push({ start: m.index, end: m.index + m[0].length });
+      if (m[0].length === 0) re.lastIndex++;
+    }
+    if (matches.length === 0) return '';
+    const escaped = escapeHtml(text);
+    let result = '', lastEnd = 0;
+    for (const match of matches) {
+      result += escaped.slice(lastEnd, match.start);
+      result += '<mark>' + escaped.slice(match.start, match.end) + '</mark>';
+      lastEnd = match.end;
+    }
+    result += escaped.slice(lastEnd);
+    return result;
+  } catch (e) { return ''; }
+}
+
+// ==================== 测试器核心 ====================
+function runTest() {
+  const pattern = document.getElementById('pattern').value;
+  const flags = document.getElementById('flags').value;
+  const text = document.getElementById('test-text').value;
+  const resultRow = document.getElementById('result-row');
+  const matchesList = document.getElementById('matches-list');
+  const hl = document.getElementById('highlight-layer');
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+
+  if (!pattern) {
+    resultRow.innerHTML = '<span class="result-badge badge-blue">请输入正则表达式</span>';
+    matchesList.innerHTML = '';
+    hl.innerHTML = '';
+    document.getElementById('replace-output').value = '';
+    return;
+  }
+
+  const validFlags = flags.replace(/[^gimsuyv]/g, '').split('').filter((v, i, a) => a.indexOf(v) === i).join('');
+
+  try {
+    const re = new RegExp(pattern, validFlags.includes('g') ? validFlags : validFlags + 'g');
+    const matches = [...text.matchAll(new RegExp(pattern, validFlags.includes('g') ? validFlags : validFlags + 'g'))];
+
+    if (matches.length === 0) {
+      resultRow.innerHTML = '<span class="result-badge badge-red">❌ 无匹配</span>';
+      matchesList.innerHTML = '';
+      hl.innerHTML = '';
+      document.getElementById('replace-output').value = text;
+      if (activeTab === 'explain') explainRegex();
+      return;
+    }
+
+    const uniqueMatches = new Set(matches.map(m => m[0]));
+    resultRow.innerHTML = `
+      <span class="result-badge badge-green">✅ ${matches.length} 个匹配</span>
+      ${uniqueMatches.size < matches.length ? `<span class="result-badge badge-yellow">${uniqueMatches.size} 种不同值</span>` : ''}
+      ${matches[0].groups ? '<span class="result-badge badge-blue">含命名捕获组</span>' : ''}
+    `;
+
+    matchesList.innerHTML = matches.slice(0, 80).map((m, i) => {
+      const groups = m.slice(1);
+      const namedParts = m.groups ? Object.entries(m.groups).filter(([,v]) => v !== undefined).map(([k,v]) => `<span class="match-named">${k}: ${escapeHtml(v)}</span>`) : [];
+      return `<div class="match-item">
+        <span class="match-idx">#${i+1}</span>
+        <span class="match-val" title="${escapeHtml(m[0])}">${escapeHtml(m[0])}</span>
+        <span class="match-pos">${m.index}:${m.index + m[0].length}</span>
+        ${groups.length ? `<span class="match-groups">组:[${groups.map(g => escapeHtml(g || 'undefined')).join(', ')}]</span>` : ''}
+        ${namedParts.join(' ')}
+      </div>`;
+    }).join('') + (matches.length > 80 ? `<div style="color:var(--text-muted);font-size:11px;padding:6px 0">仅显示前 80 条</div>` : '');
+
+    hl.innerHTML = buildHighlight(text, pattern, validFlags);
+
+    if (activeTab === 'replace') {
+      const replaceVal = document.getElementById('replace-val').value;
+      try {
+        const reGlobal = new RegExp(pattern, validFlags.includes('g') ? validFlags : validFlags + 'g');
+        document.getElementById('replace-output').value = text.replace(reGlobal, replaceVal);
+      } catch (e) { document.getElementById('replace-output').value = '替换错误: ' + e.message; }
+    }
+    if (activeTab === 'explain') explainRegex();
+    if (activeTab === 'codegen') generateCode();
+  } catch (e) {
+    resultRow.innerHTML = `<span class="result-badge badge-red">❌ 正则错误: ${e.message}</span>`;
+    matchesList.innerHTML = '';
+    hl.innerHTML = '';
+  }
+}
+
+// ==================== 预设 ====================
+const PRESETS = [
+  { name: '手机号', pattern: '1[3-9]\\d{9}', flags: 'g', desc: '中国大陆手机号' },
+  { name: '邮箱', pattern: '[\\w.-]+@[\\w.-]+\\.\\w{2,}', flags: 'g', desc: '电子邮件地址' },
+  { name: '身份证', pattern: '[1-9]\\d{5}(19|20)\\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])\\d{3}[\\dX]', flags: 'gi', desc: '18位身份证号' },
+  { name: 'IP地址', pattern: '\\b(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\b', flags: 'g', desc: 'IPv4 地址' },
+  { name: 'URL', pattern: 'https?:\\/\\/[^\\s<>]+', flags: 'gi', desc: 'HTTP/HTTPS 链接' },
+  { name: '中文字符', pattern: '[\\u4e00-\\u9fa5]+', flags: 'g', desc: '连续中文字符' },
+  { name: '日期', pattern: '\\d{4}[-/]\\d{2}[-/]\\d{2}', flags: 'g', desc: 'YYYY-MM-DD' },
+  { name: 'HTML标签', pattern: '<[^>]+>', flags: 'g', desc: 'HTML 标签' },
+  { name: '数字', pattern: '-?\\d+\\.?\\d*', flags: 'g', desc: '整数和小数' },
+  { name: '密码强度', pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*]).{8,}$', desc: '强密码' },
+  { name: '驼峰', pattern: '[a-z]+(?:[A-Z][a-z]*)+', flags: 'g', desc: 'camelCase' },
+  { name: '下划线', pattern: '[a-z]+(?:_[a-z]+)+', flags: 'g', desc: 'snake_case' },
+  { name: '版本号', pattern: '\\d+\\.\\d+\\.\\d+(?:-\\w+)?', flags: 'g', desc: 'SemVer' },
+  { name: '空白行', pattern: '^\\s*$', flags: 'gm', desc: '空行' },
+  { name: '十六进制', pattern: '0x[0-9a-fA-F]+', flags: 'gi', desc: 'Hex' },
+  { name: '金额', pattern: '¥\\d+(?:,\\d{3})*(?:\\.\\d{2})?', flags: 'g', desc: '人民币' },
+  { name: '车牌', pattern: '[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤川青藏琼宁][A-Z][A-HJ-NP-Z0-9]{4,5}[A-HJ-NP-Z0-9挂学警港澳]', flags: 'g', desc: '中国车牌' },
+  { name: 'UUID', pattern: '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}', flags: 'gi', desc: 'UUID' },
+];
+
+document.getElementById('presets').innerHTML = PRESETS.map((p, i) =>
+  `<button class="preset-btn" onclick="setPreset(${i})" title="${p.desc}">${p.name}</button>`
+).join('');
+
+function setPreset(idx) {
+  const p = PRESETS[idx];
+  document.getElementById('pattern').value = p.pattern;
+  document.getElementById('flags').value = p.flags;
+  document.querySelectorAll('.preset-btn').forEach((btn, i) => btn.classList.toggle('active', i === idx));
+  runTest();
+  showToast('已加载预设: ' + p.name);
+}
+
+// ==================== 正则解释 ====================
+function explainRegex() {
+  const pattern = document.getElementById('pattern').value;
+  const el = document.getElementById('explain-content');
+  if (!pattern) { el.innerHTML = '<span style="color:var(--text-muted)">输入正则表达式后将自动分解解释</span>'; return; }
+  const tokens = tokenizeRegex(pattern);
+  el.innerHTML = '<div style="margin-bottom:8px;font-size:11px;color:var(--text-muted)">逐 token 解释：</div>' +
+    tokens.map(t => `<div class="explain-item"><span class="explain-token">${escapeHtml(t.token)}</span><span class="explain-desc">${t.desc}</span></div>`).join('');
+}
+
+function tokenizeRegex(pattern) {
+  const tokens = [];
+  let i = 0;
+  while (i < pattern.length) {
+    const ch = pattern[i];
+    if (ch === '\\') {
+      const next = pattern[i + 1];
+      if (next) { tokens.push({ token: ch + next, desc: ESCAPE_MAP[next] || `转义字符 ${next}` }); i += 2; continue; }
+    }
+    if (ch === '[') {
+      let j = i + 1;
+      if (j < pattern.length && pattern[j] === '^') j++;
+      if (j < pattern.length && pattern[j] === ']') j++;
+      while (j < pattern.length && pattern[j] !== ']') { if (pattern[j] === '\\') j++; j++; }
+      tokens.push({ token: pattern.slice(i, j + 1), desc: describeCharClass(pattern.slice(i, j + 1)) });
+      i = j + 1; continue;
+    }
+    if (ch === '{' && /\{\d/.test(pattern.slice(i))) {
+      let j = pattern.indexOf('}', i);
+      if (j !== -1) { tokens.push({ token: pattern.slice(i, j + 1), desc: describeQuantifier(pattern.slice(i, j + 1)) }); i = j + 1; continue; }
+    }
+    if ('?*+'.includes(ch)) {
+      let full = ch;
+      if (pattern[i + 1] === '?' || pattern[i + 1] === '+') full += pattern[++i];
+      tokens.push({ token: full, desc: describeQuantifier(full) }); i++; continue;
+    }
+    if (ch === '(') {
+      let j = i + 1, desc = '捕获组';
+      if (pattern[j] === '?') {
+        j++;
+        if (pattern[j] === ':') { desc = '非捕获组 (?:...)'; j++; }
+        else if (pattern[j] === '=') { desc = '正向先行断言 (?=...)'; j++; }
+        else if (pattern[j] === '!') { desc = '负向先行断言 (?!...)'; j++; }
+        else if (pattern[j] === '<') {
+          j++;
+          if (pattern[j] === '=') { desc = '正向后行断言 (?<=...)'; j++; }
+          else if (pattern[j] === '!') { desc = '负向后行断言 (?<!...)'; j++; }
+          else {
+            const end = pattern.indexOf('>', j);
+            if (end !== -1) { desc = `命名捕获组 (?<${pattern.slice(j + 1, end)}>...)`; j = end + 1; }
+          }
+        }
+      }
+      tokens.push({ token: '(', desc }); i = j; continue;
+    }
+    if (ch === ')') { tokens.push({ token: ')', desc: '捕获组结束' }); i++; continue; }
+    if (ch === '^') { tokens.push({ token: '^', desc: '行的开始' }); i++; continue; }
+    if (ch === '$') { tokens.push({ token: '$', desc: '行的结束' }); i++; continue; }
+    if (ch === '|') { tokens.push({ token: '|', desc: '或（选择分支）' }); i++; continue; }
+    if (ch === '.') { tokens.push({ token: '.', desc: '匹配任意字符（s标志下匹配换行）' }); i++; continue; }
+    tokens.push({ token: ch, desc: `匹配字符 "${ch}"` }); i++;
+  }
+  return tokens;
+}
+
+const ESCAPE_MAP = {
+  'd': '匹配数字 [0-9]', 'D': '匹配非数字 [^0-9]',
+  'w': '匹配单词字符 [a-zA-Z0-9_]', 'W': '匹配非单词字符 [^a-zA-Z0-9_]',
+  's': '匹配空白字符', 'S': '匹配非空白字符',
+  'b': '单词边界', 'B': '非单词边界',
+  'n': '换行符 LF', 'r': '回车符 CR', 't': '制表符 Tab',
+  '0': '空字符 NULL', 'v': '垂直制表符', 'f': '换页符',
+};
+
+function describeCharClass(cls) {
+  const inner = cls.slice(1, -1);
+  if (inner.startsWith('^')) {
+    if (inner === '^\\d') return '非数字字符';
+    if (inner === '^\\w') return '非单词字符';
+    if (inner === '^\\s') return '非空白字符';
+    return `匹配不在 [${inner.slice(1)}] 中的字符`;
+  }
+  if (inner === '\\d') return '数字字符 [0-9]';
+  if (inner === '\\w') return '单词字符 [a-zA-Z0-9_]';
+  if (inner === '\\s') return '空白字符';
+  if (inner === 'a-zA-Z0-9_') return '字母、数字或下划线';
+  if (inner === 'a-z') return '小写字母';
+  if (inner === 'A-Z') return '大写字母';
+  if (inner === '0-9') return '数字';
+  return `字符集：匹配 ${cls} 中的任一字符`;
+}
+
+function describeQuantifier(q) {
+  const map = {
+    '*': '零次或多次', '*?': '零次或多次（非贪婪）', '*+': '零次或多次（占有）',
+    '+': '一次或多次', '+?': '一次或多次（非贪婪）', '++': '一次或多次（占有）',
+    '?': '零次或一次', '??': '零次或一次（非贪婪）',
+  };
+  if (map[q]) return map[q];
+  const m = q.match(/^\{(\d+)(?:,(\d+))?\}([?+]?)/);
+  if (m) {
+    let desc = m[2] !== undefined ? `${m[1]} 到 ${m[2]} 次` : q.includes(',') ? `至少 ${m[1]} 次` : `恰好 ${m[1]} 次`;
+    if (m[3] === '?') desc += '（非贪婪）';
+    if (m[3] === '+') desc += '（占有）';
+    return desc;
+  }
+  return q;
+}
+
+// ==================== 代码生成 ====================
+function generateCode() {
+  const pattern = document.getElementById('pattern').value;
+  const lang = document.getElementById('codegen-lang').value;
+  const el = document.getElementById('codegen-output');
+  if (!pattern) { el.textContent = '输入正则表达式后将生成代码'; return; }
+  const text = document.getElementById('test-text').value.split('\n')[0] || '示例文本';
+  const fl = document.getElementById('flags').value || 'g';
+  const templates = {
+    javascript: `const text = '${text.replace(/'/g, "\\'")}';
+const regex = /${pattern.replace(/\//g, '\\/')}\/${fl};
+const matches = [...text.matchAll(regex)];
+
+matches.forEach((match, i) => {
+  console.log(\`Match \${i + 1}: \${match[0]} (index: \${match.index})\`);
+  if (match.length > 1) console.log('  Groups:', match.slice(1));
+});`,
+    python: `import re
+
+text = """${text.replace(/"/g, '""')}"""
+pattern = r"${pattern.replace(/"/g, '""')}"
+flags = 0${(/m/.test(fl) ? ' | re.MULTILINE' : '')}${(/i/.test(fl) ? ' | re.IGNORECASE' : '')}${(/s/.test(fl) ? ' | re.DOTALL' : '')}
+
+for match in re.finditer(pattern, text, flags):
+    print(f"Match: {match.group()} (pos: {match.start()}-{match.end()})")
+    if match.groups():
+        print(f"  Groups: {match.groups()}")`,
+    java: `import java.util.regex.*;
+
+public class RegexExample {
+    public static void main(String[] args) {
+        String text = "${text.replace(/"/g, '\\"')}";
+        Pattern pattern = Pattern.compile("${pattern.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"
+            ${/m/.test(fl) ? '| Pattern.MULTILINE' : ''}${/i/.test(fl) ? '| Pattern.CASE_INSENSITIVE' : ''});
+        Matcher matcher = pattern.matcher(text);
+
+        while (matcher.find()) {
+            System.out.println("Match: " + matcher.group()
+                + " (pos: " + matcher.start() + "-" + matcher.end() + ")");
+        }
+    }
+}`,
+    go: `package main
+
+import (
+    "fmt"
+    "regexp"
+)
+
+func main() {
+    text := "${text.replace(/"/g, '\\"')}"
+    re := regexp.MustCompile("${pattern.replace(/"/g, '\\"')}")
+    matches := re.FindAllStringIndex(text, -1)
+
+    for _, loc := range matches {
+        fmt.Printf("Match: %s (pos: %d-%d)\\n", text[loc[0]:loc[1]], loc[0], loc[1])
+    }
+}`,
+    rust: `use regex::Regex;
+
+fn main() {
+    let text = "${text.replace(/"/g, '\\"')}";
+    let re = Regex::new(r"${pattern.replace(/"/g, '')}").unwrap();
+
+    for mat in re.find_iter(&text) {
+        println!("Match: {} (pos: {}-{})", mat.as_str(), mat.start(), mat.end());
+    }
+}`,
+    php: `<?php
+$text = '${text.replace(/'/g, "\\'")}';
+$pattern = '/${pattern.replace(/\//g, '\\/')}\/${fl}';
+
+if (preg_match_all($pattern, $text, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE)) {
+    foreach ($matches as $i => $match) {
+        echo "Match " . ($i + 1) . ": " . $match[0][0]
+            . " (pos: " . $match[0][1] . "-" . ($match[0][1] + strlen($match[0][0])) . ")\\n";
+    }
+}`,
+  };
+  el.textContent = templates[lang] || '// 不支持的语言';
+}
+
+// ==================== 正则大全 ====================
+const CHEATSHEET = [
+  { icon: '📱', title: '联系方式', items: [
+    { name: '手机号', regex: '1[3-9]\\d{9}', test: '13800138000' },
+    { name: '邮箱', regex: '[\\w.-]+@[\\w.-]+\\.\\w{2,}', test: 'admin@example.com' },
+    { name: '固定电话', regex: '0\\d{2,3}-?\\d{7,8}', test: '010-88886666' },
+    { name: '身份证', regex: '[1-9]\\d{5}(?:19|20)\\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\\d|3[01])\\d{3}[\\dXx]', test: '110101199003071234' },
+    { name: '邮政编码', regex: '[1-9]\\d{5}(?!\\d)', test: '100000' },
+  ]},
+  { icon: '🌐', title: '网络', items: [
+    { name: 'URL', regex: 'https?:\\/\\/[\\w.-]+(?:\\.[\\w]{2,})(?:[\\/?#][^\\s]*)?', test: 'https://example.com/path' },
+    { name: 'IPv4', regex: '(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)', test: '192.168.1.100' },
+    { name: '域名', regex: '[\\w-]+(?:\\.[\\w-]+)+\\.\\w{2,}', test: 'www.example.com' },
+    { name: 'MAC地址', regex: '(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}', test: '00:1A:2B:3C:4D:5E' },
+    { name: '端口号', regex: '(?:[0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])', test: '8080' },
+  ]},
+  { icon: '📅', title: '日期与时间', items: [
+    { name: 'YYYY-MM-DD', regex: '\\d{4}[-/]\\d{2}[-/]\\d{2}', test: '2024-01-15' },
+    { name: 'HH:MM:SS', regex: '(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d', test: '14:30:00' },
+    { name: 'ISO时间', regex: '\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})?', test: '2024-01-15T14:30:00Z' },
+    { name: '相对时间', regex: '\\d+\\s*(?:秒|分钟|小时|天|周|月|年)[前之以]', test: '3天前' },
+  ]},
+  { icon: '🔢', title: '数字', items: [
+    { name: '整数', regex: '-?\\d+', test: '42' },
+    { name: '小数', regex: '-?\\d+\\.\\d+', test: '3.14' },
+    { name: '科学计数', regex: '-?\\d+\\.?\\d*[eE][+-]?\\d+', test: '1.5e10' },
+    { name: '十六进制', regex: '0x[0-9a-fA-F]+', test: '0xFF' },
+    { name: '正整数', regex: '[1-9]\\d*', test: '42' },
+    { name: '负整数', regex: '-[1-9]\\d*', test: '-42' },
+  ]},
+  { icon: '🔤', title: '文本处理', items: [
+    { name: '中文字符', regex: '[\\u4e00-\\u9fa5]+', test: '你好世界' },
+    { name: '英文单词', regex: '[a-zA-Z]+', test: 'Hello' },
+    { name: '空白行', regex: '^\\s*$', test: '(空行)' },
+    { name: '连续空格', regex: ' {2,}', test: '  ' },
+    { name: '行首空白', regex: '^\\s+', test: '  缩进' },
+    { name: '行尾空白', regex: '\\s+$', test: '行尾  ' },
+    { name: '重复行', regex: '^(.*)(?:\\n\\1)+$', test: '重复行' },
+  ]},
+  { icon: '💻', title: '代码相关', items: [
+    { name: 'HTML标签', regex: '<([a-zA-Z][a-zA-Z0-9]*)[^>]*>', test: '<div class="test">' },
+    { name: 'HTML注释', regex: '<!--[\\s\\S]*?-->', test: '<!-- 注释 -->' },
+    { name: '单行注释', regex: '(?://|#)\\s.*$', test: '// 注释' },
+    { name: '多行注释', regex: '/\\*[\\s\\S]*?\\*/', test: '/* 注释 */' },
+    { name: '字符串(双引号)', regex: '"(?:[^"\\\\]|\\\\.)*"', test: '"hello"' },
+    { name: '字符串(单引号)', regex: "\\'(?:[^'\\\\\\\\]|\\\\\\\\.)*\\'", test: "'hello'" },
+    { name: 'import语句', regex: '^\\s*(?:import|from)\\s+[^;]+;', test: 'import React from "react";' },
+  ]},
+  { icon: '💰', title: '商业', items: [
+    { name: '金额(¥)', regex: '¥\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})?', test: '¥1,234.56' },
+    { name: '金额($)', regex: '\\$\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})?', test: '$1,234.56' },
+    { name: '百分比', regex: '\\d+(?:\\.\\d+)?%', test: '85.5%' },
+    { name: '银行卡号', regex: '\\d{16,19}', test: '6222021234567890' },
+    { name: '发票号', regex: '\\d{8,10}', test: '12345678' },
+    { name: '车牌号', regex: '[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤川青藏琼宁][A-Z][A-HJ-NP-Z0-9]{4,5}[A-HJ-NP-Z0-9挂学警港澳]', test: '京A12345' },
+  ]},
+  { icon: '🛡️', title: '安全与验证', items: [
+    { name: '强密码', regex: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*]).{8,}$', test: 'Abc123!@#' },
+    { name: '中等密码', regex: '^(?=.*\\d)(?=.*[a-zA-Z]).{6,}$', test: 'abc123' },
+    { name: 'UUID', regex: '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}', test: '550e8400-e29b-41d4-a716-446655440000' },
+    { name: '用户名', regex: '^[a-zA-Z0-9_-]{3,16}$', test: 'user_01' },
+    { name: '色值HEX', regex: '#(?:[0-9a-fA-F]{3}){1,2}\\b', test: '#FF6600' },
+  ]},
+  { icon: '🏷️', title: '命名规范', items: [
+    { name: '驼峰', regex: '[a-z]+(?:[A-Z][a-z]*)+', test: 'myVariableName' },
+    { name: '帕斯卡', regex: '[A-Z][a-z]+(?:[A-Z][a-z]*)+', test: 'MyClassName' },
+    { name: '下划线', regex: '[a-z]+(?:_[a-z]+)+', test: 'my_variable_name' },
+    { name: '常量', regex: '[A-Z]+(?:_[A-Z0-9]+)+', test: 'MAX_BUFFER_SIZE' },
+    { name: 'kebab-case', regex: '[a-z]+(?:-[a-z]+)+', test: 'my-css-class' },
+  ]},
+  { icon: '🔧', title: '常用替换', items: [
+    { name: '驼峰→下划线', regex: '([a-z])([A-Z])', replace: '$1_$2' },
+    { name: '下划线→驼峰', regex: '_([a-z])', replace: 'uppercase $1' },
+    { name: '合并空格', regex: ' {2,}', replace: ' ' },
+    { name: '去首尾空格', regex: '^\\s+|\\s+$', replace: '' },
+    { name: '去空行', regex: '^\\s*\\n', replace: '' },
+    { name: '去HTML标签', regex: '<[^>]+>', replace: '' },
+  ]},
+];
+
+function renderCheatsheet(filter = '') {
+  const container = document.getElementById('cheatsheet-container');
+  const f = filter.toLowerCase();
+  let html = '';
+  CHEATSHEET.forEach((cat, ci) => {
+    const filteredItems = f ? cat.items.filter(item => item.name.includes(f) || item.regex.toLowerCase().includes(f) || cat.title.includes(f)) : cat.items;
+    if (filteredItems.length === 0) return;
+    html += `<div class="cheat-card ${f || ci < 3 ? 'open' : ''}" data-cat="${ci}">
+      <div class="cheat-card-header" onclick="this.parentElement.classList.toggle('open')">
+        <span class="cheat-card-icon">${cat.icon}</span>
+        <span class="cheat-card-title">${cat.title} (${filteredItems.length})</span>
+        <span class="cheat-card-toggle">▶</span>
+      </div>
+      <div class="cheat-card-body">
+        ${filteredItems.map((item, ii) => `<div class="cheat-item">
+          <span class="cheat-item-name">${item.name}</span>
+          <span class="cheat-item-regex" onclick="copyCheatRegex(this)" title="点击复制">${escapeHtml(item.regex)}</span>
+          ${item.test ? `<span style="font-size:11px;color:var(--text-muted);min-width:120px;font-family:monospace">${escapeHtml(item.test)}</span>` : ''}
+          ${item.replace ? `<span style="font-size:11px;color:var(--accent-orange)">→ ${escapeHtml(item.replace)}</span>` : ''}
+        </div>`).join('')}
+      </div>
+    </div>`;
+  });
+
+  if (!html) html = '<div style="padding:20px;text-align:center;color:var(--text-muted)">没有匹配的正则</div>';
+  container.innerHTML = `<div class="section"><div class="cheatsheet-grid">${html}</div></div>`;
+}
+
+function filterCheatsheet() {
+  renderCheatsheet(document.getElementById('cheat-search-input').value.trim());
+}
+
+function copyCheatRegex(el) {
+  navigator.clipboard.writeText(el.textContent).then(() => showToast('已复制: ' + el.textContent)).catch(() => {});
+}
+
+// ==================== 交互式教程 ====================
+const TUTORIALS = [
+  {
+    title: '什么是正则表达式？',
+    sub: '入门基础 · 5分钟',
+    text: '正则表达式（Regular Expression，简称 Regex）是一种<strong>描述文本模式</strong>的语言。你可以把它理解为一个超级强大的"文本搜索模板"。\n\n比如，你想从一段文本中找出所有的邮箱地址，你不需要手动搜索，只需要告诉计算机"邮箱长什么样"——这就是正则。\n\n本教程将带你从零开始，逐步掌握正则表达式的核心知识。',
+    tryTitle: '试试看：匹配所有数字',
+    tryPattern: '\\d+',
+    tryText: '我有3只猫，它们花了200元买猫粮，体重分别是4.5kg、3.2kg和5.1kg。'
+  },
+  {
+    title: '普通字符 — 直接匹配',
+    sub: '第1步 · 最简单的正则',
+    text: '最简单的正则就是<strong>直接写字符</strong>。正则 <code>cat</code> 会匹配文本中所有的 "cat"。\n\n正则匹配是<strong>区分大小写</strong>的，<code>cat</code> 不会匹配 "Cat"（除非开启 i 标志）。',
+    tryTitle: '试试看：直接匹配',
+    tryPattern: 'cat',
+    tryText: 'The cat sat on the catalog. My cat is cute. Category: pets.'
+  },
+  {
+    title: '字符类 [] — 匹配一组字符中的任意一个',
+    sub: '第2步 · 灵活匹配',
+    text: '用方括号 <code>[]</code> 定义一个<em>字符集合</em>，匹配其中的任意一个字符。\n\n• <code>[abc]</code> 匹配 a、b、c 中的任意一个\n• <code>[a-z]</code> 匹配任意小写字母（范围表示法）\n• <code>[0-9]</code> 匹配任意数字\n• <code>[a-zA-Z0-9]</code> 匹配任意字母和数字\n\n在 <code>[]</code> 内的 <code>^</code> 表示取反：<code>[^0-9]</code> 匹配非数字。',
+    tryTitle: '试试看：匹配元音字母',
+    tryPattern: '[aeiou]',
+    tryText: 'Regular Expression is powerful!'
+  },
+  {
+    title: '预定义字符类 — 常用缩写',
+    sub: '第3步 · 快捷方式',
+    text: '有些字符类太常用了，正则提供了缩写：\n\n• <code>\\d</code> = <code>[0-9]</code> 数字\n• <code>\\w</code> = <code>[a-zA-Z0-9_]</code> 单词字符\n• <code>\\s</code> 空白字符（空格、Tab、换行）\n\n大写版本是取反：\n\n• <code>\\D</code> = <code>[^0-9]</code> 非数字\n• <code>\\W</code> = <code>[^a-zA-Z0-9_]</code> 非单词字符\n• <code>\\S</code> 非空白字符',
+    tryTitle: '试试看：提取所有数字',
+    tryPattern: '\\d+',
+    tryText: '订单号：20240115，金额：1580.50元，数量：3件'
+  },
+  {
+    title: '量词 — 控制匹配次数',
+    sub: '第4步 · 匹配多少个',
+    text: '量词放在字符或组后面，控制它出现的次数：\n\n• <code>*</code> 零次或多次（可以没有）\n• <code>+</code> 一次或多次（至少一个）\n• <code>?</code> 零次或一次（可有可无）\n• <code>{n}</code> 恰好 n 次\n• <code>{n,m}</code> n 到 m 次\n• <code>{n,}</code> 至少 n 次\n\n加上 <code>?</code> 变为<em>非贪婪</em>模式（尽可能少匹配）：<code>*?</code>、<code>+?</code>',
+    tryTitle: '试试看：匹配不同长度的数字',
+    tryPattern: '\\d{2,4}',
+    tryText: '2024年1月15日，编号A001，数量5，价格1280元'
+  },
+  {
+    title: '锚点 — 匹配位置而非字符',
+    sub: '第5步 · 精确定位',
+    text: '锚点匹配的是<em>位置</em>，不消耗任何字符：\n\n• <code>^</code> 行首（多行模式下匹配每行开头）\n• <code>$</code> 行尾\n• <code>\\b</code> 单词边界（单词字符与非单词字符之间）\n• <code>\\B</code> 非单词边界\n\n例如 <code>^\\d+</code> 匹配行首的数字，<code>\\bcat\\b</code> 只匹配独立单词 "cat"，不匹配 "catalog" 中的 "cat"。',
+    tryTitle: '试试看：只匹配独立的 cat',
+    tryPattern: '\\bcat\\b',
+    tryText: 'The cat sat on the catalog. concatenate category scatter'
+  },
+  {
+    title: '分组与捕获',
+    sub: '第6步 · 提取子匹配',
+    text: '用圆括号 <code>()</code> 将多个字符组成一个整体：\n\n• <code>(ab)+</code> 匹配 "ab"、"abab"、"ababab"... \n• <code>(\\d{4})-(\\d{2})-(\\d{2})</code> 匹配日期，并分别捕获年、月、日\n\n<code>(?:...)</code> 是<strong>非捕获组</em>——分组但不捕获。\n\n<code>(?<name>...)</code> 是<strong>命名捕获组</em>，可以用名字引用：\n<code>(?<year>\\d{4})-(?<month>\\d{2})</code>',
+    tryTitle: '试试看：捕获日期的年月日',
+    tryPattern: '(\\d{4})-(\\d{2})-(\\d{2})',
+    tryText: '开始日期：2024-01-15，结束日期：2024-12-31'
+  },
+  {
+    title: '选择分支与转义',
+    sub: '第7步 · 或 & 特殊字符',
+    text: '<code>|</code> 表示"或"，可以匹配多种模式：\n<code>cat|dog</code> 匹配 "cat" 或 "dog"。\n\n如果你想匹配正则中的特殊字符（如 <code>.</code> <code>*</code> <code>+</code> <code>?</code> <code>^</code> <code>$</code> <code>\\</code> <code>[</code> <code>]</code> <code>(</code> <code>)</code> <code>{</code> <code>}</code> <code>|</code>），需要在前面加 <code>\\</code> 转义：\n\n<code>3\\.14</code> 匹配 "3.14"（<code>.</code> 默认匹配任意字符）\n<code>a\\+b</code> 匹配 "a+b"',
+    tryTitle: '试试看：匹配精确的小数',
+    tryPattern: '\\d+\\.\\d+',
+    tryText: '3.14 和 42 都是数字，但只有 3.14 是小数。pi=3.14159'
+  },
+  {
+    title: '零宽断言 — 高级匹配',
+    sub: '第8步 · 向前/向后看',
+    text: '断言不消耗字符，只判断前后是否符合条件：\n\n• <code>(?=...)</code> 正向先行断言：后面的内容要匹配\n• <code>(?!...)</code> 负向先行断言：后面的内容不能匹配\n• <code>(?<=...)</code> 正向后行断言：前面的内容要匹配\n• <code>(?<!...)</code> 负向后行断言：前面的内容不能匹配\n\n例如 <code>\\d+(?=元)</code> 只匹配后面跟着"元"的数字。\n<code>(?<!\\d)\\d{3}(?!\\d)</code> 匹配独立的三位数字。',
+    tryTitle: '试试看：只匹配后面跟着"元"的数字',
+    tryPattern: '\\d+(?=元)',
+    tryText: '3.14是一个数字。这个商品500元，那个1200元，合计1700元'
+  },
+  {
+    title: '标志位 — 控制匹配行为',
+    sub: '第9步 · 全局、大小写、多行',
+    text: '标志位修改正则的匹配方式：\n\n• <code>g</code> 全局匹配——找到所有匹配，而不是第一个就停\n• <code>i</code> 忽略大小写——<code>abc</code> 也能匹配 "ABC"\n• <code>m</code> 多行模式——<code>^</code> 和 <code>$</code> 匹配每行的开头和结尾\n• <code>s</code> 点号匹配换行——<code>.</code> 也能匹配 \\n\n标志位可以组合使用：<code>/pattern/gim</code>',
+    tryTitle: '试试看：多行模式匹配行首数字',
+    tryPattern: '^\\d+',
+    tryText: '100 第一个\n200 第二个\n不是数字开头\n300 第三个',
+    tryFlags: 'gm'
+  },
+];
+
+let tutIdx = 0;
+function renderTutorial() {
+  const t = TUTORIALS[tutIdx];
+  const content = document.getElementById('tutorial-content');
+  const stepText = document.getElementById('tut-step-text');
+  const progress = document.getElementById('tut-progress');
+
+  stepText.textContent = `第 ${tutIdx + 1} 章 / 共 ${TUTORIALS.length} 章`;
+  progress.style.width = ((tutIdx + 1) / TUTORIALS.length * 100) + '%';
+
+  // 处理文本中的 \n → <br> 和 code 标签
+  let html = `<div class="tutorial-chapter-title">${t.title}</div>`;
+  html += `<div class="tutorial-chapter-sub">${t.sub}</div>`;
+  html += `<div class="tutorial-text">${t.text.replace(/\n/g, '<br>')}</div>`;
+  if (t.tryTitle) {
+    html += `<div class="tutorial-try">
+      <div class="tutorial-try-title">🎯 ${t.tryTitle}</div>
+      <div class="tutorial-mini-editor">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">正则：</div>
+        <input class="tutorial-mini-input" id="tut-regex" value="${escapeHtml(t.tryPattern)}" oninput="updateTutorialPreview()">
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;margin-top:8px">文本：</div>
+      <div class="tutorial-mini-preview" id="tut-preview">${escapeHtml(t.tryText)}</div>
+    </div>`;
+  }
+  html += `<div class="tutorial-nav">
+    <button class="tutorial-nav-btn" onclick="prevTutorial()" ${tutIdx === 0 ? 'disabled' : ''}>← 上一章</button>
+    <button class="tutorial-nav-btn primary" onclick="nextTutorial()" ${tutIdx === TUTORIALS.length - 1 ? 'disabled' : ''}>${tutIdx === TUTORIALS.length - 1 ? '已完成 🎉' : '下一章 →'}</button>
+  </div>`;
+
+  content.innerHTML = html;
+
+  // 渲染预览
+  setTimeout(() => updateTutorialPreview(), 0);
+}
+
+function updateTutorialPreview() {
+  const regex = document.getElementById('tut-regex');
+  const preview = document.getElementById('tut-preview');
+  if (!regex || !preview) return;
+  const t = TUTORIALS[tutIdx];
+  const flags = t.tryFlags || 'g';
+  preview.innerHTML = buildHighlight(t.tryText, regex.value, flags);
+}
+
+function prevTutorial() { if (tutIdx > 0) { tutIdx--; renderTutorial(); } }
+function nextTutorial() { if (tutIdx < TUTORIALS.length - 1) { tutIdx++; renderTutorial(); } }
+
+// ==================== 工具函数 ====================
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function copyReplaceResult() {
+  navigator.clipboard.writeText(document.getElementById('replace-output').value).then(() => showToast('替换结果已复制')).catch(() => {});
+}
+function copyCodegen() {
+  navigator.clipboard.writeText(document.getElementById('codegen-output').textContent).then(() => showToast('代码已复制')).catch(() => {});
+}
+
+// ==================== 滚动同步 ====================
+document.getElementById('test-text').addEventListener('scroll', function() {
+  const hl = document.getElementById('highlight-layer');
+  if (hl) { hl.scrollTop = this.scrollTop; hl.scrollLeft = this.scrollLeft; }
+});
+
+// ==================== 初始化 ====================
+renderCheatsheet();
+renderTutorial();
+</script>
+</body>
+</html>

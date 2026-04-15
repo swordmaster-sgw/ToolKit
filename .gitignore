@@ -1,0 +1,33 @@
+# === 依赖 ===
+node_modules/
+
+# === 构建产物 ===
+dist-electron/
+dist/
+
+# === Electron 相关（纯前端部署不需要） ===
+electron/gen_*.py
+
+# === 开发日志 ===
+build.log
+*.log
+
+# === 系统文件 ===
+.DS_Store
+Thumbs.db
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# === WorkBuddy 工作记忆（不提交到公开仓库）===
+.workbuddy/
+
+# === needs 目录（内部需求文档，不公开）===
+needs/
+
+# === 临时文件 ===
+*.tmp
+*.bak

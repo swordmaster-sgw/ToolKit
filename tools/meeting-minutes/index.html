@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>会议纪要生成器</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .main { padding: 20px; max-width: 1200px; margin: 0 auto; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: #1f2235; font-size: 12px; font-weight: 600; color: #8b90a7; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #2d3148; }
+    .card-body { padding: 16px; }
+    .input-group { margin-bottom: 12px; }
+    .label { font-size: 12px; color: #8b90a7; font-weight: 600; margin-bottom: 4px; }
+    .input, textarea { width: 100%; background: #131520; border: 1px solid #363b5e; border-radius: 6px; padding: 8px 12px; color: #e2e8f0; font-size: 13px; outline: none; transition: border-color .2s; }
+    .input:focus, textarea:focus { border-color: #6366f1; }
+    textarea { font-family: 'Cascadia Code', monospace; resize: vertical; min-height: 80px; }
+    .btn-row { padding: 12px 16px; display: flex; gap: 8px; background: #1a1d2e; border-top: 1px solid #2d3148; }
+    .btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-primary:hover { background: #5457d4; }
+    .btn-secondary { background: #2d3148; color: #c4c9e2; }
+    .btn-secondary:hover { background: #363b5e; }
+    .copy-btn { padding: 3px 10px; background: #2d3148; border: none; border-radius: 4px; color: #8b90a7; cursor: pointer; font-size: 11px; }
+    .copy-btn:hover { background: #6366f1; color: #fff; }
+    .action-item { background: #131520; padding: 8px; border-radius: 4px; border-left: 3px solid #6366f1; margin-bottom: 6px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .action-text { flex: 1; }
+    .action-del { padding: 2px 8px; background: #ef4444; color: #fff; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; }
+    @media (max-width: 768px) { .grid2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">📋</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">会议纪要生成器</h1>
+    <p style="font-size:12px;color:#8b90a7;margin-top:2px">快速录入议题、决策、行动项，自动格式化</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">会议信息</div>
+      <div class="card-body">
+        <div class="input-group">
+          <div class="label">会议主题</div>
+          <input class="input" id="title" placeholder="例：2026年Q1产品规划">
+        </div>
+        <div class="input-group">
+          <div class="label">参会人员</div>
+          <input class="input" id="attendees" placeholder="张三、李四、王五">
+        </div>
+        <div class="input-group">
+          <div class="label">会议时间</div>
+          <input class="input" id="meeting-time" type="datetime-local">
+        </div>
+        <div class="input-group">
+          <div class="label">会议地点</div>
+          <input class="input" id="location" placeholder="会议室1 / 线上腾讯会议">
+        </div>
+        <div class="input-group">
+          <div class="label">议题描述</div>
+          <textarea id="topics" placeholder="1. 产品方向讨论&#10;2. 技术方案评审&#10;3. 资源分配"></textarea>
+        </div>
+        <div class="input-group">
+          <div class="label">决议内容</div>
+          <textarea id="decisions" placeholder="1. 确定方案A为主选方向&#10;2. 同意投入3人月资源"></textarea>
+        </div>
+        <div class="input-group">
+          <div class="label">新建行动项</div>
+          <div style="display:flex;gap:6px;margin-bottom:8px">
+            <input class="input" id="action-input" placeholder="输入行动项..." style="flex:1">
+            <button class="btn btn-primary" onclick="addAction()">+</button>
+          </div>
+          <div id="actions-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        会议纪要
+        <button class="copy-btn" onclick="copyMinutes()">复制</button>
+      </div>
+      <textarea id="minutes" readonly placeholder="生成的会议纪要将显示在此..."></textarea>
+      <div class="btn-row" style="border-top:none;padding:12px 16px">
+        <button class="btn btn-primary" onclick="generate()">📝 生成纪要</button>
+        <button class="btn btn-secondary" onclick="clearAll()">🗑️ 清空</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let actions = [];
+
+function addAction() {
+  const text = document.getElementById('action-input').value.trim();
+  if (!text) return;
+  actions.push({ text, owner: '', duedate: '', id: Date.now() });
+  document.getElementById('action-input').value = '';
+  renderActions();
+}
+
+function removeAction(id) {
+  actions = actions.filter(a => a.id !== id);
+  renderActions();
+}
+
+function renderActions() {
+  const list = document.getElementById('actions-list');
+  list.innerHTML = actions.map(a => `
+    <div class="action-item">
+      <span class="action-text">[ ] ${a.text}</span>
+      <button class="action-del" onclick="removeAction(${a.id})">删除</button>
+    </div>
+  `).join('');
+}
+
+function generate() {
+  const title = document.getElementById('title').value.trim() || '会议记录';
+  const attendees = document.getElementById('attendees').value.trim();
+  const time = document.getElementById('meeting-time').value;
+  const location = document.getElementById('location').value.trim();
+  const topics = document.getElementById('topics').value.trim();
+  const decisions = document.getElementById('decisions').value.trim();
+
+  const timeStr = time ? new Date(time).toLocaleString('zh-CN', {timeZone:'Asia/Shanghai'}) : new Date().toLocaleString('zh-CN', {timeZone:'Asia/Shanghai'});
+
+  let minutes = `# ${title}
+
+## 基本信息
+
+| 项目 | 内容 |
+|------|------|
+| 会议时间 | ${timeStr} |
+| 会议地点 | ${location || '未记录'} |
+| 参会人员 | ${attendees || '未记录'} |
+
+## 议题讨论
+
+${topics.split('\n').filter(t => t.trim()).join('\n') || '无'}
+
+## 会议决议
+
+${decisions.split('\n').filter(d => d.trim()).join('\n') || '无'}`;
+
+  if (actions.length > 0) {
+    minutes += `\n\n## 行动项\n\n`;
+    actions.forEach((a, i) => {
+      minutes += `${i + 1}. [ ] ${a.text}\n`;
+    });
+  }
+
+  minutes += `\n---\n\n**会议记录人**：______  
+**审核人**：______  
+**记录时间**：${timeStr}`;
+
+  document.getElementById('minutes').value = minutes;
+}
+
+function copyMinutes() {
+  const v = document.getElementById('minutes').value;
+  navigator.clipboard.writeText(v).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ 已复制';
+    setTimeout(() => btn.textContent = '复制', 1200);
+  });
+}
+
+function clearAll() {
+  document.getElementById('title').value = '';
+  document.getElementById('attendees').value = '';
+  document.getElementById('meeting-time').value = '';
+  document.getElementById('location').value = '';
+  document.getElementById('topics').value = '';
+  document.getElementById('decisions').value = '';
+  document.getElementById('minutes').value = '';
+  actions = [];
+  renderActions();
+}
+
+const now = new Date();
+document.getElementById('meeting-time').value = now.toISOString().slice(0, 16);
+</script>
+</body>
+</html>

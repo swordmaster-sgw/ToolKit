@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>命令速查手册</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .main { padding: 20px; max-width: 900px; margin: 0 auto; }
+    .search { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; }
+    .search input { width: 100%; background: #131520; border: 1px solid #363b5e; border-radius: 6px; padding: 10px; color: #e2e8f0; font-size: 13px; outline: none; }
+    .search input:focus { border-color: #6366f1; }
+    .cmd-item { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+    .cmd-header { padding: 12px 16px; background: #1f2235; cursor: pointer; display: flex; gap: 10px; align-items: center; }
+    .cmd-category { min-width: 50px; padding: 4px 10px; background: #6366f1; border-radius: 4px; font-size: 11px; font-weight: 600; color: #fff; }
+    .cmd-name { flex: 1; font-weight: 600; }
+    .cmd-body { padding: 12px 16px; border-top: 1px solid #2d3148; display: none; }
+    .cmd-body.show { display: block; }
+    .cmd-code { background: #131520; border: 1px solid #363b5e; border-radius: 4px; padding: 8px; font-family: monospace; font-size: 12px; margin-bottom: 6px; cursor: pointer; }
+    .cmd-code:hover { border-color: #6366f1; }
+    .cmd-desc { font-size: 12px; color: #8b90a7; line-height: 1.5; }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">💻</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">命令速查手册</h1>
+    <p style="font-size:12px;color:#8b90a7;margin-top:2px">Git、Docker、Linux 常用命令速查</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="search">
+    <input id="search" placeholder="搜索命令..." oninput="filter()">
+  </div>
+
+  <div id="cmds-list"></div>
+</div>
+
+<script>
+const COMMANDS = [
+  { cat: 'Git', name: '初始化仓库', cmd: 'git init', desc: '在当前目录创建新的 Git 仓库' },
+  { cat: 'Git', name: '克隆仓库', cmd: 'git clone <url>', desc: '克隆远程仓库到本地' },
+  { cat: 'Git', name: '查看状态', cmd: 'git status', desc: '查看工作目录和暂存区状态' },
+  { cat: 'Git', name: '添加文件', cmd: 'git add .', desc: '将所有改动添加到暂存区' },
+  { cat: 'Git', name: '提交改动', cmd: 'git commit -m "message"', desc: '将暂存区的改动提交到版本库' },
+  { cat: 'Git', name: '查看日志', cmd: 'git log --oneline', desc: '查看提交历史' },
+  { cat: 'Git', name: '推送代码', cmd: 'git push origin main', desc: '将本地代码推送到远程分支' },
+  { cat: 'Git', name: '拉取代码', cmd: 'git pull origin main', desc: '从远程分支拉取最新代码' },
+  
+  { cat: 'Docker', name: '构建镜像', cmd: 'docker build -t name:tag .', desc: '根据 Dockerfile 构建镜像' },
+  { cat: 'Docker', name: '运行容器', cmd: 'docker run -d -p 8080:8080 image', desc: '后台运行容器，映射端口' },
+  { cat: 'Docker', name: '查看容器', cmd: 'docker ps', desc: '列出运行中的容器' },
+  { cat: 'Docker', name: '停止容器', cmd: 'docker stop <container>', desc: '停止运行中的容器' },
+  { cat: 'Docker', name: '进入容器', cmd: 'docker exec -it <container> bash', desc: '进入容器执行命令' },
+  { cat: 'Docker', name: '查看日志', cmd: 'docker logs -f <container>', desc: '实时查看容器日志' },
+  
+  { cat: 'Linux', name: '列出文件', cmd: 'ls -la', desc: '列出当前目录文件（详细格式）' },
+  { cat: 'Linux', name: '进入目录', cmd: 'cd /path/to/dir', desc: '切换工作目录' },
+  { cat: 'Linux', name: '创建文件夹', cmd: 'mkdir -p dir/subdir', desc: '创建文件夹（支持嵌套）' },
+  { cat: 'Linux', name: '复制文件', cmd: 'cp -r source dest', desc: '递归复制文件或文件夹' },
+  { cat: 'Linux', name: '删除文件', cmd: 'rm -rf path', desc: '强制递归删除' },
+  { cat: 'Linux', name: '查找文件', cmd: 'find . -name "*.js"', desc: '查找匹配名称的文件' },
+  { cat: 'Linux', name: '查看文件', cmd: 'cat filename', desc: '输出文件内容' },
+  { cat: 'Linux', name: '搜索内容', cmd: 'grep -r "text" *.js', desc: '在文件中搜索匹配文本' },
+];
+
+function render(list = COMMANDS) {
+  const html = list.map((c, i) => `
+    <div class="cmd-item">
+      <div class="cmd-header" onclick="toggleBody(this)">
+        <span class="cmd-category">${c.cat}</span>
+        <span class="cmd-name">${c.name}</span>
+        <span style="color:#8b90a7">▼</span>
+      </div>
+      <div class="cmd-body">
+        <div class="cmd-code" onclick="copy('${c.cmd.replace(/'/g, "\\'")}')">\$ ${c.cmd}</div>
+        <div class="cmd-desc">${c.desc}</div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('cmds-list').innerHTML = html;
+}
+
+function toggleBody(el) {
+  el.nextElementSibling.classList.toggle('show');
+}
+
+function filter() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const filtered = COMMANDS.filter(c => 
+    c.name.toLowerCase().includes(q) || 
+    c.cat.toLowerCase().includes(q) || 
+    c.cmd.toLowerCase().includes(q)
+  );
+  render(filtered);
+}
+
+function copy(cmd) {
+  navigator.clipboard.writeText(cmd).then(() => alert('✓ 已复制'));
+}
+
+render();
+</script>
+</body>
+</html>

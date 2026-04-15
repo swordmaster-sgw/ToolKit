@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTTP 接口测试</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 12px 20px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .header-icon { font-size: 20px; }
+    .header h1 { font-size: 15px; font-weight: 600; }
+    .header p { font-size: 11px; color: #8b90a7; margin-top: 2px; }
+    .back-btn { margin-left: auto; padding: 5px 12px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; cursor: pointer; font-size: 12px; text-decoration: none; transition: all .2s; white-space: nowrap; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+
+    .workspace { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+
+    /* 左侧历史记录 */
+    .sidebar { width: 220px; flex-shrink: 0; background: #131520; border-right: 1px solid #2d3148; display: flex; flex-direction: column; }
+    .sidebar-title { padding: 10px 14px; font-size: 11px; font-weight: 600; color: #8b90a7; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #2d3148; display: flex; align-items: center; justify-content: space-between; }
+    .clear-btn { font-size: 11px; color: #4a4f6a; cursor: pointer; padding: 2px 6px; border-radius: 4px; border: none; background: transparent; }
+    .clear-btn:hover { color: #ef4444; background: #ef444422; }
+    .history-list { flex: 1; overflow-y: auto; padding: 6px; }
+    .history-item { padding: 8px 10px; border-radius: 6px; cursor: pointer; margin-bottom: 3px; border: 1px solid transparent; transition: all .15s; }
+    .history-item:hover { background: #1a1d2e; border-color: #2d3148; }
+    .history-item.active { background: #1a1d2e; border-color: #6366f1; }
+    .hi-method { font-size: 10px; font-weight: 700; margin-right: 5px; }
+    .hi-url { font-size: 11px; color: #8b90a7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; display: block; margin-top: 2px; }
+    .hi-time { font-size: 10px; color: #4a4f6a; margin-top: 2px; }
+    .method-GET { color: #22c55e; }
+    .method-POST { color: #f59e0b; }
+    .method-PUT { color: #3b82f6; }
+    .method-DELETE { color: #ef4444; }
+    .method-PATCH { color: #a78bfa; }
+    .method-HEAD { color: #6b7280; }
+
+    /* 主区域 */
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+
+    /* 请求行 */
+    .request-bar { padding: 12px 16px; background: #161b27; border-bottom: 1px solid #2d3148; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+    .method-select { padding: 8px 12px; background: #2d3148; color: #e2e8f0; border: 1px solid #363b5e; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; outline: none; min-width: 100px; }
+    .method-select:focus { border-color: #6366f1; }
+    .url-input { flex: 1; padding: 8px 12px; background: #131520; color: #e2e8f0; border: 1px solid #363b5e; border-radius: 6px; font-size: 13px; font-family: 'Cascadia Code', monospace; outline: none; transition: border-color .2s; }
+    .url-input:focus { border-color: #6366f1; }
+    .url-input::placeholder { color: #4a4f6a; }
+    .send-btn { padding: 8px 20px; background: #6366f1; color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; white-space: nowrap; }
+    .send-btn:hover { background: #5457d4; }
+    .send-btn:disabled { background: #363b5e; color: #4a4f6a; cursor: not-allowed; }
+
+    /* 请求/响应分割区 */
+    .req-res { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+    .req-panel, .res-panel { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+    .req-panel { border-right: 1px solid #2d3148; }
+
+    /* 选项卡 */
+    .tabs { display: flex; background: #161b27; border-bottom: 1px solid #2d3148; flex-shrink: 0; }
+    .tab { padding: 8px 16px; font-size: 12px; color: #8b90a7; cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s; white-space: nowrap; }
+    .tab:hover { color: #e2e8f0; }
+    .tab.active { color: #6366f1; border-bottom-color: #6366f1; }
+    .tab-badge { display: inline-block; background: #6366f1; color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 10px; margin-left: 4px; vertical-align: middle; }
+
+    /* 内容区 */
+    .tab-content { flex: 1; overflow-y: auto; display: none; }
+    .tab-content.active { display: flex; flex-direction: column; }
+
+    /* KV 编辑器 */
+    .kv-editor { padding: 10px; flex: 1; }
+    .kv-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+    .kv-check { width: 14px; height: 14px; cursor: pointer; accent-color: #6366f1; }
+    .kv-key, .kv-val { flex: 1; padding: 6px 10px; background: #131520; border: 1px solid #363b5e; border-radius: 4px; color: #e2e8f0; font-size: 12px; font-family: monospace; outline: none; }
+    .kv-key:focus, .kv-val:focus { border-color: #6366f1; }
+    .kv-del { padding: 4px 8px; background: transparent; border: none; color: #4a4f6a; cursor: pointer; font-size: 14px; border-radius: 4px; }
+    .kv-del:hover { color: #ef4444; background: #ef444422; }
+    .add-kv-btn { margin: 0 10px 10px; padding: 6px 14px; background: #2d3148; border: none; border-radius: 6px; color: #8b90a7; cursor: pointer; font-size: 12px; }
+    .add-kv-btn:hover { background: #363b5e; color: #e2e8f0; }
+
+    /* Body 编辑器 */
+    .body-type-bar { padding: 8px 10px; display: flex; gap: 6px; background: #131520; border-bottom: 1px solid #2d3148; flex-shrink: 0; }
+    .body-type-btn { padding: 4px 10px; border-radius: 4px; border: 1px solid transparent; font-size: 11px; cursor: pointer; background: transparent; color: #8b90a7; transition: all .15s; }
+    .body-type-btn.active { background: #6366f1; color: #fff; border-color: #6366f1; }
+    .body-type-btn:hover:not(.active) { border-color: #363b5e; color: #e2e8f0; }
+    .body-editor { flex: 1; padding: 0; display: flex; flex-direction: column; }
+    .body-textarea { flex: 1; background: #0d1117; color: #e2e8f0; border: none; padding: 12px; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 12px; resize: none; outline: none; line-height: 1.6; min-height: 100px; }
+
+    /* 响应区 */
+    .res-status-bar { padding: 8px 14px; background: #161b27; border-bottom: 1px solid #2d3148; display: flex; align-items: center; gap: 12px; font-size: 12px; flex-shrink: 0; flex-wrap: wrap; }
+    .status-code { font-weight: 700; font-size: 14px; padding: 2px 8px; border-radius: 4px; }
+    .status-2xx { background: #16a34a22; color: #22c55e; }
+    .status-3xx { background: #3b82f622; color: #60a5fa; }
+    .status-4xx { background: #f59e0b22; color: #fbbf24; }
+    .status-5xx { background: #dc262622; color: #ef4444; }
+    .res-meta { color: #8b90a7; }
+    .res-body { flex: 1; overflow-y: auto; padding: 12px 14px; font-family: 'Cascadia Code', monospace; font-size: 12px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; background: #0d1117; }
+    .res-headers-content { padding: 12px; }
+    .res-header-row { display: flex; gap: 8px; font-size: 12px; padding: 4px 0; border-bottom: 1px solid #2d314844; }
+    .res-hk { color: #79c0ff; min-width: 180px; font-family: monospace; }
+    .res-hv { color: #a5d6ff; font-family: monospace; word-break: break-all; }
+
+    /* 空态 */
+    .empty-res { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; color: #4a4f6a; gap: 10px; padding: 40px; }
+    .empty-res svg { opacity: .3; }
+    .empty-res p { font-size: 13px; text-align: center; line-height: 1.6; }
+
+    /* 加载中 */
+    .loading { display: flex; align-items: center; justify-content: center; flex: 1; gap: 10px; color: #6366f1; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 20px; height: 20px; border: 2px solid #363b5e; border-top-color: #6366f1; border-radius: 50%; animation: spin .7s linear infinite; }
+
+    /* JSON 语法高亮 */
+    .jk { color: #79c0ff; }
+    .js { color: #a5d6ff; }
+    .jn { color: #ffa657; }
+    .jb { color: #ff7b72; }
+    .jl { color: #ff7b72; }
+
+    /* 格式切换 */
+    .res-format-bar { padding: 6px 10px; background: #161b27; border-bottom: 1px solid #2d3148; display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+    .fmt-btn { padding: 3px 8px; border-radius: 4px; border: 1px solid transparent; font-size: 11px; cursor: pointer; background: transparent; color: #8b90a7; }
+    .fmt-btn.active { background: #2d3148; color: #e2e8f0; border-color: #363b5e; }
+    .fmt-btn:hover:not(.active) { color: #e2e8f0; }
+    .copy-res-btn { margin-left: auto; padding: 3px 10px; background: #2d3148; border: none; border-radius: 4px; color: #8b90a7; cursor: pointer; font-size: 11px; }
+    .copy-res-btn:hover { background: #363b5e; color: #e2e8f0; }
+
+    /* 环境变量提示 */
+    .env-bar { padding: 6px 16px; background: #1a1d2e; border-bottom: 1px solid #2d3148; font-size: 11px; color: #4a4f6a; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .env-note { color: #6366f144; }
+  </style>
+</head>
+<body>
+<div class="header">
+  <div class="header-icon">🔌</div>
+  <div>
+    <h1>HTTP 接口测试</h1>
+    <p>轻量级接口调试工具 · 支持 Headers / Params / Body · 历史记录</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回</a>
+</div>
+
+<div class="workspace">
+  <!-- 左侧历史 -->
+  <div class="sidebar">
+    <div class="sidebar-title">
+      历史记录
+      <button class="clear-btn" onclick="clearHistory()">清空</button>
+    </div>
+    <div class="history-list" id="history-list">
+      <div style="color:#4a4f6a;font-size:12px;padding:12px;text-align:center">暂无记录</div>
+    </div>
+  </div>
+
+  <!-- 主区域 -->
+  <div class="main">
+    <!-- 请求栏 -->
+    <div class="request-bar">
+      <select class="method-select" id="method" onchange="onMethodChange()">
+        <option value="GET">GET</option>
+        <option value="POST">POST</option>
+        <option value="PUT">PUT</option>
+        <option value="PATCH">PATCH</option>
+        <option value="DELETE">DELETE</option>
+        <option value="HEAD">HEAD</option>
+        <option value="OPTIONS">OPTIONS</option>
+      </select>
+      <input class="url-input" id="url" type="text" placeholder="https://api.example.com/v1/users"
+        value="" onkeydown="if(event.key==='Enter') sendRequest()">
+      <button class="send-btn" id="send-btn" onclick="sendRequest()">▶ 发送</button>
+    </div>
+
+    <!-- 请求/响应 -->
+    <div class="req-res">
+      <!-- 请求面板 -->
+      <div class="req-panel">
+        <div class="tabs" id="req-tabs">
+          <div class="tab active" data-tab="params" onclick="switchTab('req','params')">
+            Params <span class="tab-badge" id="badge-params" style="display:none">0</span>
+          </div>
+          <div class="tab" data-tab="headers" onclick="switchTab('req','headers')">
+            Headers <span class="tab-badge" id="badge-headers" style="display:none">0</span>
+          </div>
+          <div class="tab" data-tab="body" onclick="switchTab('req','body')">
+            Body
+          </div>
+          <div class="tab" data-tab="auth" onclick="switchTab('req','auth')">
+            Auth
+          </div>
+        </div>
+
+        <!-- Params -->
+        <div class="tab-content active" id="req-tab-params">
+          <div class="kv-editor" id="params-editor"></div>
+          <button class="add-kv-btn" onclick="addKvRow('params-editor', 'params')">+ 添加参数</button>
+        </div>
+
+        <!-- Headers -->
+        <div class="tab-content" id="req-tab-headers">
+          <div class="kv-editor" id="headers-editor"></div>
+          <button class="add-kv-btn" onclick="addKvRow('headers-editor', 'headers')">+ 添加请求头</button>
+        </div>
+
+        <!-- Body -->
+        <div class="tab-content" id="req-tab-body">
+          <div class="body-type-bar">
+            <button class="body-type-btn active" id="body-none" onclick="setBodyType('none')">none</button>
+            <button class="body-type-btn" id="body-json" onclick="setBodyType('json')">JSON</button>
+            <button class="body-type-btn" id="body-form" onclick="setBodyType('form')">form-data</button>
+            <button class="body-type-btn" id="body-text" onclick="setBodyType('text')">text</button>
+          </div>
+          <div class="body-editor">
+            <div id="body-none-area" style="flex:1;display:flex;align-items:center;justify-content:center;color:#4a4f6a;font-size:12px">
+              此请求没有 Body
+            </div>
+            <textarea class="body-textarea" id="body-json-area" placeholder='{"key": "value"}' style="display:none;flex:1"></textarea>
+            <textarea class="body-textarea" id="body-text-area" placeholder="纯文本内容..." style="display:none;flex:1"></textarea>
+            <div id="body-form-area" style="display:none;flex:1;flex-direction:column">
+              <div class="kv-editor" id="form-editor"></div>
+              <button class="add-kv-btn" onclick="addKvRow('form-editor', 'form')">+ 添加字段</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Auth -->
+        <div class="tab-content" id="req-tab-auth">
+          <div style="padding:14px">
+            <div style="margin-bottom:12px">
+              <label style="font-size:12px;color:#8b90a7;display:block;margin-bottom:6px">认证类型</label>
+              <select id="auth-type" onchange="onAuthTypeChange()" style="background:#131520;border:1px solid #363b5e;border-radius:6px;padding:7px 12px;color:#e2e8f0;font-size:13px;outline:none;width:100%">
+                <option value="none">无认证</option>
+                <option value="bearer">Bearer Token</option>
+                <option value="basic">Basic Auth</option>
+                <option value="apikey">API Key</option>
+              </select>
+            </div>
+            <div id="auth-bearer" style="display:none">
+              <label style="font-size:12px;color:#8b90a7;display:block;margin-bottom:6px">Token</label>
+              <input id="auth-bearer-token" placeholder="eyJhbGci..." style="width:100%;background:#131520;border:1px solid #363b5e;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-family:monospace;font-size:12px;outline:none">
+            </div>
+            <div id="auth-basic" style="display:none">
+              <label style="font-size:12px;color:#8b90a7;display:block;margin-bottom:6px">用户名</label>
+              <input id="auth-basic-user" placeholder="username" style="width:100%;background:#131520;border:1px solid #363b5e;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:13px;outline:none;margin-bottom:10px">
+              <label style="font-size:12px;color:#8b90a7;display:block;margin-bottom:6px">密码</label>
+              <input id="auth-basic-pass" type="password" placeholder="password" style="width:100%;background:#131520;border:1px solid #363b5e;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:13px;outline:none">
+            </div>
+            <div id="auth-apikey" style="display:none">
+              <label style="font-size:12px;color:#8b90a7;display:block;margin-bottom:6px">Header 名</label>
+              <input id="auth-apikey-name" value="X-API-Key" style="width:100%;background:#131520;border:1px solid #363b5e;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-family:monospace;font-size:13px;outline:none;margin-bottom:10px">
+              <label style="font-size:12px;color:#8b90a7;display:block;margin-bottom:6px">Key 值</label>
+              <input id="auth-apikey-val" placeholder="your-api-key" style="width:100%;background:#131520;border:1px solid #363b5e;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-family:monospace;font-size:13px;outline:none">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 响应面板 -->
+      <div class="res-panel" id="res-panel">
+        <div class="empty-res" id="res-empty">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <circle cx="24" cy="24" r="20" stroke="#6366f1" stroke-width="2"/>
+            <path d="M16 24h16M24 16l8 8-8 8" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <p>发送请求后，<br>响应结果将在这里显示</p>
+        </div>
+        <div class="loading" id="res-loading" style="display:none">
+          <div class="spinner"></div>
+          <span>请求中...</span>
+        </div>
+        <div id="res-result" style="display:none;flex:1;display:none;flex-direction:column">
+          <div class="res-status-bar" id="res-status-bar"></div>
+          <div class="tabs" id="res-tabs">
+            <div class="tab active" data-tab="body" onclick="switchResTab('body')">Body</div>
+            <div class="tab" data-tab="headers" onclick="switchResTab('headers')">Headers</div>
+          </div>
+          <div class="res-format-bar" id="res-format-bar">
+            <button class="fmt-btn active" id="fmt-pretty" onclick="setFmt('pretty')">美化</button>
+            <button class="fmt-btn" id="fmt-raw" onclick="setFmt('raw')">原始</button>
+            <button class="copy-res-btn" onclick="copyResBody()">复制</button>
+          </div>
+          <div class="res-body" id="res-body"></div>
+          <div class="res-headers-content" id="res-headers" style="display:none;overflow-y:auto"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== 状态 ==========
+let currentBodyType = 'none';
+let resRaw = '';
+let resJson = null;
+let currentFmt = 'pretty';
+let currentResTab = 'body';
+let history = JSON.parse(localStorage.getItem('http-client-history') || '[]');
+let kvState = { params: [], headers: [], form: [] };
+let abortCtrl = null;
+
+// ========== 初始化 ==========
+function init() {
+  addKvRow('params-editor', 'params');
+  addKvRow('headers-editor', 'headers');
+  addKvRow('form-editor', 'form');
+  renderHistory();
+}
+
+// ========== Tab 切换 ==========
+function switchTab(panel, name) {
+  document.querySelectorAll('#req-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('[id^="req-tab-"]').forEach(c => c.classList.remove('active'));
+  document.getElementById('req-tab-' + name).classList.add('active');
+}
+
+function switchResTab(name) {
+  currentResTab = name;
+  document.querySelectorAll('#res-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  const isBody = name === 'body';
+  document.getElementById('res-body').style.display = isBody ? 'block' : 'none';
+  document.getElementById('res-format-bar').style.display = isBody ? 'flex' : 'none';
+  document.getElementById('res-headers').style.display = isBody ? 'none' : 'block';
+}
+
+// ========== Body 类型 ==========
+function setBodyType(type) {
+  currentBodyType = type;
+  ['none','json','text','form'].forEach(t => {
+    document.getElementById('body-' + t).classList.toggle('active', t === type);
+    const area = document.getElementById('body-' + t + '-area');
+    if (area) area.style.display = t === type ? (t === 'form' ? 'flex' : 'block') : 'none';
+  });
+  document.getElementById('body-none-area').style.display = type === 'none' ? 'flex' : 'none';
+}
+
+// ========== KV 编辑器 ==========
+function addKvRow(editorId, stateKey, key = '', val = '', enabled = true) {
+  const editor = document.getElementById(editorId);
+  const row = document.createElement('div');
+  row.className = 'kv-row';
+  row.innerHTML = `
+    <input type="checkbox" class="kv-check" ${enabled ? 'checked' : ''} onchange="updateBadge('${stateKey}')">
+    <input class="kv-key" placeholder="Key" value="${escAttr(key)}" oninput="updateBadge('${stateKey}')">
+    <input class="kv-val" placeholder="Value" value="${escAttr(val)}" oninput="updateBadge('${stateKey}')">
+    <button class="kv-del" onclick="this.parentElement.remove();updateBadge('${stateKey}')">×</button>
+  `;
+  editor.appendChild(row);
+  updateBadge(stateKey);
+}
+
+function getKvRows(editorId) {
+  const rows = [];
+  document.querySelectorAll(`#${editorId} .kv-row`).forEach(row => {
+    const check = row.querySelector('.kv-check').checked;
+    const k = row.querySelectorAll('input')[1].value.trim();
+    const v = row.querySelectorAll('input')[2].value;
+    if (check && k) rows.push({ key: k, value: v });
+  });
+  return rows;
+}
+
+function updateBadge(stateKey) {
+  const editorMap = { params: 'params-editor', headers: 'headers-editor', form: 'form-editor' };
+  const id = editorMap[stateKey];
+  if (!id) return;
+  const count = getKvRows(id).length;
+  const badge = document.getElementById('badge-' + stateKey);
+  if (badge) {
+    badge.textContent = count;
+    badge.style.display = count > 0 ? 'inline-block' : 'none';
+  }
+}
+
+// ========== Auth ==========
+function onAuthTypeChange() {
+  const type = document.getElementById('auth-type').value;
+  ['bearer','basic','apikey'].forEach(t => {
+    document.getElementById('auth-' + t).style.display = t === type ? 'block' : 'none';
+  });
+}
+
+function onMethodChange() {
+  const method = document.getElementById('method').value;
+  const noBody = ['GET','HEAD','OPTIONS'].includes(method);
+  if (noBody && currentBodyType !== 'none') setBodyType('none');
+}
+
+// ========== 发送请求 ==========
+async function sendRequest() {
+  const method = document.getElementById('method').value;
+  let url = document.getElementById('url').value.trim();
+  if (!url) { alert('请输入请求 URL'); return; }
+  if (!url.startsWith('http')) url = 'https://' + url;
+
+  // 构建 URL 参数
+  const params = getKvRows('params-editor');
+  if (params.length > 0) {
+    const sep = url.includes('?') ? '&' : '?';
+    url += sep + params.map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`).join('&');
+  }
+
+  // 构建 Headers
+  const headers = {};
+  getKvRows('headers-editor').forEach(h => { headers[h.key] = h.value; });
+
+  // Auth
+  const authType = document.getElementById('auth-type').value;
+  if (authType === 'bearer') {
+    const t = document.getElementById('auth-bearer-token').value.trim();
+    if (t) headers['Authorization'] = 'Bearer ' + t;
+  } else if (authType === 'basic') {
+    const u = document.getElementById('auth-basic-user').value;
+    const p = document.getElementById('auth-basic-pass').value;
+    headers['Authorization'] = 'Basic ' + btoa(u + ':' + p);
+  } else if (authType === 'apikey') {
+    const name = document.getElementById('auth-apikey-name').value.trim();
+    const val = document.getElementById('auth-apikey-val').value.trim();
+    if (name && val) headers[name] = val;
+  }
+
+  // Body
+  let body = undefined;
+  if (!['GET','HEAD','OPTIONS'].includes(method)) {
+    if (currentBodyType === 'json') {
+      const bodyText = document.getElementById('body-json-area').value.trim();
+      if (bodyText) {
+        body = bodyText;
+        headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+      }
+    } else if (currentBodyType === 'text') {
+      body = document.getElementById('body-text-area').value;
+      headers['Content-Type'] = headers['Content-Type'] || 'text/plain';
+    } else if (currentBodyType === 'form') {
+      const formData = new URLSearchParams();
+      getKvRows('form-editor').forEach(f => formData.append(f.key, f.value));
+      body = formData.toString();
+      headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    }
+  }
+
+  // 显示 loading
+  showLoading();
+  const startTime = Date.now();
+
+  try {
+    abortCtrl = new AbortController();
+    document.getElementById('send-btn').disabled = true;
+    document.getElementById('send-btn').textContent = '⏳ 请求中';
+
+    const resp = await fetch(url, {
+      method,
+      headers,
+      body,
+      signal: abortCtrl.signal
+    });
+
+    const elapsed = Date.now() - startTime;
+    const contentType = resp.headers.get('Content-Type') || '';
+    const text = await resp.text();
+
+    // 尝试解析 JSON
+    let json = null;
+    if (contentType.includes('json')) {
+      try { json = JSON.parse(text); } catch(e) {}
+    }
+
+    showResponse(resp, text, json, elapsed);
+    addToHistory(method, url, resp.status, elapsed);
+
+  } catch(e) {
+    if (e.name === 'AbortError') {
+      showError('请求已取消');
+    } else {
+      showError('请求失败: ' + e.message + '\n\n提示：浏览器安全限制，部分 HTTP 请求可能被 CORS 拦截。');
+    }
+  } finally {
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('send-btn').textContent = '▶ 发送';
+    abortCtrl = null;
+  }
+}
+
+function showLoading() {
+  document.getElementById('res-empty').style.display = 'none';
+  document.getElementById('res-loading').style.display = 'flex';
+  document.getElementById('res-result').style.display = 'none';
+}
+
+function showResponse(resp, text, json, elapsed) {
+  resRaw = text;
+  resJson = json;
+
+  document.getElementById('res-loading').style.display = 'none';
+  const resEl = document.getElementById('res-result');
+  resEl.style.display = 'flex';
+
+  // 状态栏
+  const sc = resp.status;
+  const cls = sc >= 500 ? 'status-5xx' : sc >= 400 ? 'status-4xx' : sc >= 300 ? 'status-3xx' : 'status-2xx';
+  const size = new Blob([text]).size;
+  document.getElementById('res-status-bar').innerHTML = `
+    <span class="status-code ${cls}">${sc} ${resp.statusText}</span>
+    <span class="res-meta">⏱ ${elapsed}ms</span>
+    <span class="res-meta">📦 ${formatSize(size)}</span>
+  `;
+
+  // 响应头
+  const headerRows = [];
+  resp.headers.forEach((v, k) => {
+    headerRows.push(`<div class="res-header-row"><span class="res-hk">${escHtml(k)}</span><span class="res-hv">${escHtml(v)}</span></div>`);
+  });
+  document.getElementById('res-headers').innerHTML = headerRows.join('') || '<p style="color:#4a4f6a;font-size:12px;padding:12px">无响应头</p>';
+
+  renderResBody();
+}
+
+function showError(msg) {
+  resRaw = msg;
+  resJson = null;
+  document.getElementById('res-loading').style.display = 'none';
+  const resEl = document.getElementById('res-result');
+  resEl.style.display = 'flex';
+  document.getElementById('res-status-bar').innerHTML = `<span class="status-code status-5xx">请求错误</span>`;
+  document.getElementById('res-body').innerHTML = `<span style="color:#ef4444">${escHtml(msg)}</span>`;
+  document.getElementById('res-headers').innerHTML = '';
+}
+
+function renderResBody() {
+  const el = document.getElementById('res-body');
+  if (currentFmt === 'pretty' && resJson !== null) {
+    el.innerHTML = syntaxHighlight(JSON.stringify(resJson, null, 2));
+  } else {
+    el.textContent = resRaw;
+  }
+}
+
+function setFmt(fmt) {
+  currentFmt = fmt;
+  document.getElementById('fmt-pretty').classList.toggle('active', fmt === 'pretty');
+  document.getElementById('fmt-raw').classList.toggle('active', fmt === 'raw');
+  renderResBody();
+}
+
+function copyResBody() {
+  const text = currentFmt === 'pretty' && resJson !== null ? JSON.stringify(resJson, null, 2) : resRaw;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-res-btn');
+    const orig = btn.textContent;
+    btn.textContent = '✓ 已复制';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+// ========== 历史记录 ==========
+function addToHistory(method, url, status, elapsed) {
+  const item = { id: Date.now(), method, url, status, elapsed, time: new Date().toLocaleTimeString() };
+  history.unshift(item);
+  if (history.length > 50) history = history.slice(0, 50);
+  localStorage.setItem('http-client-history', JSON.stringify(history));
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (history.length === 0) {
+    list.innerHTML = '<div style="color:#4a4f6a;font-size:12px;padding:12px;text-align:center">暂无记录</div>';
+    return;
+  }
+  list.innerHTML = history.map((h, i) => `
+    <div class="history-item" onclick="loadHistory(${i})">
+      <div><span class="hi-method method-${h.method}">${h.method}</span><span style="font-size:11px;color:${h.status >= 400 ? '#ef4444' : '#22c55e'}">${h.status}</span></div>
+      <span class="hi-url" title="${escAttr(h.url)}">${escHtml(h.url.replace(/^https?:\/\//, ''))}</span>
+      <div class="hi-time">${h.time} · ${h.elapsed}ms</div>
+    </div>
+  `).join('');
+}
+
+function loadHistory(idx) {
+  const h = history[idx];
+  if (!h) return;
+  const urlBase = h.url.split('?')[0];
+  document.getElementById('method').value = h.method;
+  document.getElementById('url').value = urlBase;
+  document.querySelectorAll('.history-item').forEach((el, i) => el.classList.toggle('active', i === idx));
+}
+
+function clearHistory() {
+  if (!confirm('确定要清空所有历史记录？')) return;
+  history = [];
+  localStorage.removeItem('http-client-history');
+  renderHistory();
+}
+
+// ========== 工具函数 ==========
+function syntaxHighlight(json) {
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let out = '', i = 0;
+  while (i < json.length) {
+    if (json[i] === '"') {
+      let j = i + 1;
+      while (j < json.length) { if (json[j] === '\\') { j += 2; continue; } if (json[j] === '"') { j++; break; } j++; }
+      const raw = json.slice(i, j);
+      let k = j;
+      while (k < json.length && ' \n\r\t'.includes(json[k])) k++;
+      out += json[k] === ':' ? `<span class="jk">${esc(raw)}</span>` : `<span class="js">${esc(raw)}</span>`;
+      i = j; continue;
+    }
+    const nm = json.slice(i).match(/^-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/);
+    if (nm) { out += `<span class="jn">${nm[0]}</span>`; i += nm[0].length; continue; }
+    if (json.slice(i,i+4)==='true') { out += `<span class="jb">true</span>`; i+=4; continue; }
+    if (json.slice(i,i+5)==='false') { out += `<span class="jb">false</span>`; i+=5; continue; }
+    if (json.slice(i,i+4)==='null') { out += `<span class="jl">null</span>`; i+=4; continue; }
+    out += esc(json[i]); i++;
+  }
+  return out;
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(2) + ' MB';
+}
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s) { return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+init();
+</script>
+</body>
+</html>

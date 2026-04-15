@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL 编解码</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .main { padding: 20px; max-width: 1000px; margin: 0 auto; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: #1f2235; font-size: 12px; font-weight: 600; color: #8b90a7; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #2d3148; display: flex; justify-content: space-between; align-items: center; }
+    .copy-btn { padding: 3px 10px; background: #2d3148; border: none; border-radius: 4px; color: #8b90a7; cursor: pointer; font-size: 11px; }
+    .copy-btn:hover { background: #6366f1; color: #fff; }
+    .card-body { padding: 16px; }
+    textarea { width: 100%; background: #131520; color: #e2e8f0; border: 1px solid #363b5e; border-radius: 6px; padding: 12px; font-family: monospace; font-size: 13px; resize: vertical; outline: none; min-height: 80px; transition: border-color .2s; }
+    textarea:focus { border-color: #6366f1; }
+    .btn-row { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
+    .btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-primary:hover { background: #5457d4; }
+    .btn-secondary { background: #2d3148; color: #c4c9e2; }
+    .btn-secondary:hover { background: #363b5e; }
+    .params-table { width: 100%; border-collapse: collapse; }
+    .params-table th { text-align: left; padding: 8px 12px; font-size: 12px; color: #8b90a7; border-bottom: 1px solid #2d3148; font-weight: 600; }
+    .params-table td { padding: 8px 12px; font-size: 13px; border-bottom: 1px solid #2d314866; vertical-align: top; }
+    .params-table td:first-child { color: #79c0ff; font-family: monospace; min-width: 120px; }
+    .params-table td:last-child { color: #a5d6ff; font-family: monospace; word-break: break-all; }
+    .url-parts { display: flex; flex-direction: column; gap: 8px; }
+    .url-part { display: flex; gap: 10px; align-items: flex-start; }
+    .part-name { min-width: 80px; font-size: 12px; color: #8b90a7; padding-top: 2px; }
+    .part-val { font-family: monospace; font-size: 13px; color: #e2e8f0; word-break: break-all; }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">🔗</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">URL 编解码</h1>
+    <p style="font-size:12px;color:#8b90a7;margin-top:2px">URL 编码/解码、参数解析、URL 构建</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="card">
+    <div class="card-title">
+      输入 URL 或文本
+      <button class="copy-btn" onclick="copyText('url-input')">复制</button>
+    </div>
+    <div class="card-body">
+      <textarea id="url-input" placeholder="输入 URL 或需要编码的文本..." oninput="autoProcess()"></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="encode()">🔒 编码</button>
+        <button class="btn btn-primary" onclick="decode()">🔓 解码</button>
+        <button class="btn btn-secondary" onclick="parseUrl()">🔍 解析 URL</button>
+        <button class="btn btn-secondary" onclick="loadSample()">📋 示例</button>
+        <button class="btn btn-secondary" onclick="clearAll()">🗑️ 清空</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      输出结果
+      <button class="copy-btn" onclick="copyText('url-output')">复制</button>
+    </div>
+    <div class="card-body">
+      <textarea id="url-output" readonly placeholder="结果将显示在此..."></textarea>
+    </div>
+  </div>
+
+  <div id="parse-result" class="card" style="display:none">
+    <div class="card-title">URL 解析结果</div>
+    <div class="card-body">
+      <div class="url-parts" id="url-parts"></div>
+    </div>
+  </div>
+
+  <div id="params-card" class="card" style="display:none">
+    <div class="card-title">Query 参数解析</div>
+    <div class="card-body">
+      <table class="params-table">
+        <thead><tr><th>参数名</th><th>值（已解码）</th></tr></thead>
+        <tbody id="params-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function encode() {
+  const v = document.getElementById('url-input').value;
+  document.getElementById('url-output').value = encodeURIComponent(v);
+}
+
+function decode() {
+  const v = document.getElementById('url-input').value;
+  try {
+    document.getElementById('url-output').value = decodeURIComponent(v);
+  } catch(e) {
+    document.getElementById('url-output').value = '解码失败：' + e.message;
+  }
+}
+
+function parseUrl() {
+  const raw = document.getElementById('url-input').value.trim();
+  try {
+    const url = new URL(raw);
+    document.getElementById('parse-result').style.display = 'block';
+    
+    const parts = [
+      ['协议', url.protocol],
+      ['主机', url.host],
+      ['路径', url.pathname],
+      ['查询字符串', url.search],
+      ['锚点', url.hash],
+      ['完整 URL', url.href],
+    ].filter(([,v]) => v);
+    
+    document.getElementById('url-parts').innerHTML = parts.map(([k,v]) => `
+      <div class="url-part">
+        <span class="part-name">${k}</span>
+        <span class="part-val">${v}</span>
+      </div>
+    `).join('');
+
+    // 参数解析
+    const params = [...url.searchParams.entries()];
+    if (params.length > 0) {
+      document.getElementById('params-card').style.display = 'block';
+      document.getElementById('params-tbody').innerHTML = params.map(([k,v]) => `
+        <tr><td>${k}</td><td>${v}</td></tr>
+      `).join('');
+    }
+  } catch(e) {
+    document.getElementById('parse-result').innerHTML = '';
+    document.getElementById('parse-result').style.display = 'none';
+    document.getElementById('params-card').style.display = 'none';
+  }
+}
+
+function clearAll() {
+  document.getElementById('url-input').value = '';
+  document.getElementById('url-output').value = '';
+  document.getElementById('parse-result').style.display = 'none';
+  document.getElementById('params-card').style.display = 'none';
+}
+
+function loadSample() {
+  document.getElementById('url-input').value = 'https://api.example.com/v1/users?page=1&size=20&keyword=张三&sort=created_at&order=desc#section2';
+  parseUrl();
+}
+
+function copyText(id) {
+  const el = document.getElementById(id);
+  navigator.clipboard.writeText(el.value).then(() => {
+    const old = el.style.borderColor;
+    el.style.borderColor = '#22c55e';
+    setTimeout(() => el.style.borderColor = old, 1000);
+  });
+}
+
+let autoTimer;
+function autoProcess() {
+  clearTimeout(autoTimer);
+  autoTimer = setTimeout(() => {
+    const v = document.getElementById('url-input').value.trim();
+    if (v.startsWith('http://') || v.startsWith('https://')) parseUrl();
+  }, 400);
+}
+</script>
+</body>
+</html>

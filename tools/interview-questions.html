@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>技术面试题库管理器 - ToolKit</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #e2e8f0; min-height: 100vh; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 30px; padding: 25px; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(10px); border-radius: 20px; border: 1px solid rgba(94, 234, 212, 0.1); }
+        .header h1 { font-size: 2.2em; margin-bottom: 10px; background: linear-gradient(135deg, #5eead4 0%, #38bdf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .header p { color: #94a3b8; }
+        .main-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+        .sidebar { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(10px); border-radius: 15px; border: 1px solid rgba(94, 234, 212, 0.1); padding: 20px; }
+        .sidebar h3 { color: #5eead4; margin-bottom: 15px; }
+        .filter-section { margin-bottom: 20px; }
+        .filter-input { width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(94, 234, 212, 0.2); border-radius: 8px; color: #e2e8f0; margin-bottom: 10px; }
+        .filter-group { margin-bottom: 15px; }
+        .filter-option { display: flex; align-items: center; margin: 8px 0; cursor: pointer; }
+        .filter-option input { margin-right: 8px; }
+        .stats-card { background: rgba(30, 41, 59, 0.5); padding: 12px; border-radius: 8px; margin-bottom: 10px; }
+        .stats-value { font-size: 1.2em; font-weight: bold; color: #5eead4; }
+        .stats-label { font-size: 0.85em; color: #94a3b8; }
+        .main-content { background: rgba(15, 23, 42, 0.6); border-radius: 15px; border: 1px solid rgba(94, 234, 212, 0.1); padding: 20px; }
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .search-box { flex: 1; min-width: 200px; padding: 12px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(94, 234, 212, 0.2); border-radius: 10px; color: #e2e8f0; }
+        .btn { padding: 10px 16px; background: linear-gradient(135deg, #0ea5e9 0%, #0d9488 100%); color: white; border: none; border-radius: 8px; cursor: pointer; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(14, 165, 233, 0.3); }
+        .btn-secondary { background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(94, 234, 212, 0.2); }
+        .btn-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .question-list { max-height: 600px; overflow-y: auto; }
+        .question-item { background: rgba(30, 41, 59, 0.5); border-radius: 12px; padding: 15px; margin-bottom: 10px; border: 1px solid rgba(94, 234, 212, 0.1); cursor: pointer; transition: all 0.3s ease; }
+        .question-item:hover { border-color: rgba(94, 234, 212, 0.3); transform: translateY(-2px); }
+        .question-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .question-title { font-weight: 600; color: #5eead4; flex: 1; margin-right: 10px; }
+        .question-meta { display: flex; gap: 10px; font-size: 0.8em; color: #94a3b8; margin-bottom: 8px; }
+        .question-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
+        .tag { background: rgba(94, 234, 212, 0.1); color: #5eead4; padding: 3px 8px; border-radius: 12px; font-size: 0.75em; }
+        .difficulty-badge { padding: 3px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500; }
+        .difficulty-easy { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .difficulty-medium { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .difficulty-hard { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 1000; backdrop-filter: blur(5px); }
+        .modal.show { display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(20px); border-radius: 15px; border: 1px solid rgba(94, 234, 212, 0.2); padding: 30px; width: 90%; max-width: 700px; max-height: 80vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-title { font-size: 1.3em; color: #5eead4; }
+        .close-btn { background: none; border: none; color: #94a3b8; font-size: 1.5em; cursor: pointer; }
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; margin-bottom: 8px; color: #5eead4; font-size: 0.9em; }
+        .form-input, .form-textarea, .form-select { width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(94, 234, 212, 0.2); border-radius: 8px; color: #e2e8f0; }
+        .form-textarea { min-height: 100px; resize: vertical; }
+        .review-modal { background: rgba(15, 23, 42, 0.95); }
+        .review-question { background: rgba(30, 41, 59, 0.8); padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .answer-options { display: grid; gap: 10px; margin: 15px 0; }
+        .answer-option { background: rgba(30, 41, 59, 0.5); padding: 12px; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; border: 1px solid rgba(94, 234, 212, 0.1); }
+        .answer-option:hover { border-color: rgba(94, 234, 212, 0.3); }
+        .answer-option.selected { border-color: #5eead4; background: rgba(94, 234, 212, 0.1); }
+        .answer-option.correct { border-color: #10b981; background: rgba(16, 185, 129, 0.1); }
+        .answer-option.incorrect { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+        .toast { position: fixed; bottom: 30px; right: 30px; background: rgba(15, 23, 42, 0.9); color: #f8fafc; padding: 16px 24px; border-radius: 10px; border: 1px solid rgba(94, 234, 212, 0.2); transform: translateY(100px); opacity: 0; transition: all 0.3s ease; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        @media (max-width: 768px) { .main-layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 技术面试题库管理器</h1>
+            <p>题库管理、面试复盘、间隔复习，提升面试准备效率50%</p>
+        </div>
+
+        <div class="main-layout">
+            <div class="sidebar">
+                <div class="filter-section">
+                    <h3>🔍 快速搜索</h3>
+                    <input type="text" class="filter-input" id="searchInput" placeholder="搜索题目、标签、公司">
+                </div>
+
+                <div class="filter-section">
+                    <h3>🏢 公司筛选</h3>
+                    <div class="filter-group">
+                        <div class="filter-option"><input type="checkbox" value="字节跳动" checked><label>字节跳动</label></div>
+                        <div class="filter-option"><input type="checkbox" value="腾讯" checked><label>腾讯</label></div>
+                        <div class="filter-option"><input type="checkbox" value="阿里" checked><label>阿里巴巴</label></div>
+                        <div class="filter-option"><input type="checkbox" value="美团" checked><label>美团</label></div>
+                        <div class="filter-option"><input type="checkbox" value="百度" checked><label>百度</label></div>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <h3>📚 题目类型</h3>
+                    <div class="filter-group">
+                        <div class="filter-option"><input type="checkbox" value="算法" checked><label>算法</label></div>
+                        <div class="filter-option"><input type="checkbox" value="系统设计" checked><label>系统设计</label></div>
+                        <div class="filter-option"><input type="checkbox" value="前端" checked><label>前端</label></div>
+                        <div class="filter-option"><input type="checkbox" value="后端" checked><label>后端</label></div>
+                        <div class="filter-option"><input type="checkbox" value="数据库" checked><label>数据库</label></div>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <h3>📊 统计概览</h3>
+                    <div class="stats-card">
+                        <div class="stats-value" id="totalQuestions">0</div>
+                        <div class="stats-label">总题数</div>
+                    </div>
+                    <div class="stats-card">
+                        <div class="stats-value" id="masteredQuestions">0</div>
+                        <div class="stats-label">已掌握</div>
+                    </div>
+                    <div class="stats-card">
+                        <div class="stats-value" id="reviewToday">0</div>
+                        <div class="stats-label">今日复习</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="controls">
+                    <button class="btn" onclick="showAddQuestionModal()">➕ 添加题目</button>
+                    <button class="btn btn-success" onclick="startReview()">🎯 开始复习</button>
+                    <button class="btn btn-secondary" onclick="startMockInterview()">🎤 模拟面试</button>
+                    <button class="btn btn-secondary" onclick="showInterviewHistory()">📜 面试历史</button>
+                </div>
+
+                <div class="question-list" id="questionList">
+                    <!-- 动态生成题目列表 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑题目模态框 -->
+    <div class="modal" id="questionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">添加题目</h2>
+                <button class="close-btn" onclick="closeModal('questionModal')">&times;</button>
+            </div>
+            
+            <form id="questionForm">
+                <div class="form-group">
+                    <label class="form-label">题目</label>
+                    <input type="text" class="form-input" id="questionTitle" placeholder="例如：实现一个快速排序算法" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">题目描述</label>
+                    <textarea class="form-textarea" id="questionDescription" placeholder="详细描述题目要求和约束条件"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">公司</label>
+                    <select class="form-select" id="questionCompany">
+                        <option value="字节跳动">字节跳动</option>
+                        <option value="腾讯">腾讯</option>
+                        <option value="阿里">阿里巴巴</option>
+                        <option value="美团">美团</option>
+                        <option value="百度">百度</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">题目类型</label>
+                    <select class="form-select" id="questionType">
+                        <option value="算法">算法</option>
+                        <option value="系统设计">系统设计</option>
+                        <option value="前端">前端</option>
+                        <option value="后端">后端</option>
+                        <option value="数据库">数据库</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">难度</label>
+                    <select class="form-select" id="questionDifficulty">
+                        <option value="easy">简单</option>
+                        <option value="medium">中等</option>
+                        <option value="hard">困难</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">标签（用空格分隔）</label>
+                    <input type="text" class="form-input" id="questionTags" placeholder="例如：数组 排序 算法">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">参考答案</label>
+                    <textarea class="form-textarea" id="questionAnswer" placeholder="提供参考答案或解题思路"></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('questionModal')">取消</button>
+                    <button type="submit" class="btn btn-success">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 复习模态框 -->
+    <div class="modal review-modal" id="reviewModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">🎯 间隔复习</h2>
+                <button class="close-btn" onclick="closeModal('reviewModal')">&times;</button>
+            </div>
+            
+            <div id="reviewContent">
+                <!-- 动态生成复习内容 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 模拟面试模态框 -->
+    <div class="modal" id="mockInterviewModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">🎤 模拟面试</h2>
+                <button class="close-btn" onclick="closeModal('mockInterviewModal')">&times;</button>
+            </div>
+            
+            <div id="mockInterviewContent">
+                <div style="text-align: center; padding: 40px;">
+                    <h3>选择面试类型</h3>
+                    <div style="margin: 20px 0;">
+                        <button class="btn" onclick="startTechnicalInterview()">💻 技术面试</button>
+                        <button class="btn btn-secondary" onclick="startBehavioralInterview()">👥 行为面试</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let questions = [];
+        let reviewHistory = [];
+        let interviewRecords = [];
+
+        // 模拟题目数据
+        const demoQuestions = [
+            {
+                id: 'q1',
+                title: '实现一个快速排序算法',
+                description: '给定一个整数数组，使用快速排序算法对其进行排序。要求时间复杂度为O(nlogn)，空间复杂度为O(logn)。',
+                company: '字节跳动',
+                type: '算法',
+                difficulty: 'medium',
+                tags: ['排序', '算法', '数组'],
+                answer: '快速排序通过选择一个基准元素，将数组分为两部分，左边都小于基准，右边都大于基准，然后递归排序。',
+                lastReviewed: Date.now() - 86400000,
+                reviewCount: 2,
+                masteryLevel: 3
+            },
+            {
+                id: 'q2',
+                title: '设计一个秒杀系统',
+                description: '设计一个能支持10万QPS的秒杀系统，要求防止超卖，保证公平性，并能处理恶意请求。',
+                company: '阿里',
+                type: '系统设计',
+                difficulty: 'hard',
+                tags: ['系统设计', '高并发', 'Redis'],
+                answer: '使用Redis预减库存，MQ异步下单，限流防刷，页面静态化等方案。',
+                lastReviewed: Date.now() - 172800000,
+                reviewCount: 1,
+                masteryLevel: 2
+            },
+            {
+                id: 'q3',
+                title: '什么是闭包？有什么应用场景？',
+                description: '解释JavaScript中的闭包概念，并举例说明其应用场景。',
+                company: '腾讯',
+                type: '前端',
+                difficulty: 'easy',
+                tags: ['JavaScript', '闭包', '作用域'],
+                answer: '闭包是指有权访问另一个函数作用域中变量的函数，常用于模块化、事件处理、定时器等场景。',
+                lastReviewed: Date.now() - 3600000,
+                reviewCount: 5,
+                masteryLevel: 5
+            }
+        ];
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            questions = [...demoQuestions];
+            renderQuestions();
+            updateStats();
+            
+            document.getElementById('questionForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveQuestion();
+            });
+            
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                filterQuestions();
+            });
+            
+            showToast('✅ 面试题库管理器已就绪', 3000);
+        });
+
+        // 渲染题目列表
+        function renderQuestions(filtered = null) {
+            const list = document.getElementById('questionList');
+            const data = filtered || questions;
+            
+            if (data.length === 0) {
+                list.innerHTML = `
+                    <div style="text-align: center; padding: 60px; color: #94a3b8;">
+                        <div style="font-size: 3em; margin-bottom: 15px;">🎯</div>
+                        <h3>暂无题目</h3>
+                        <p>点击"添加题目"开始构建你的面试题库</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            list.innerHTML = data.map(q => `
+                <div class="question-item" onclick="viewQuestion('${q.id}')">
+                    <div class="question-header">
+                        <div class="question-title">${q.title}</div>
+                        <div class="difficulty-badge difficulty-${q.difficulty}">${q.difficulty === 'easy' ? '简单' : q.difficulty === 'medium' ? '中等' : '困难'}</div>
+                    </div>
+                    <div class="question-meta">
+                        <span>🏢 ${q.company}</span>
+                        <span>📚 ${q.type}</span>
+                        <span>📝 ${q.reviewCount}次复习</span>
+                        <span>⭐ 掌握度: ${'⭐'.repeat(q.masteryLevel)}</span>
+                    </div>
+                    <div class="question-tags">
+                        ${q.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    </div>
+                    <div style="font-size: 0.9em; color: #94a3b8; margin-top: 8px;">
+                        ${q.description.substring(0, 100)}${q.description.length > 100 ? '...' : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 显示添加题目模态框
+        function showAddQuestionModal() {
+            document.getElementById('modalTitle').textContent = '添加题目';
+            document.getElementById('questionForm').reset();
+            document.getElementById('questionModal').classList.add('show');
+        }
+
+        // 保存题目
+        function saveQuestion() {
+            const question = {
+                id: 'q' + Date.now(),
+                title: document.getElementById('questionTitle').value,
+                description: document.getElementById('questionDescription').value,
+                company: document.getElementById('questionCompany').value,
+                type: document.getElementById('questionType').value,
+                difficulty: document.getElementById('questionDifficulty').value,
+                tags: document.getElementById('questionTags').value.split(' ').filter(t => t),
+                answer: document.getElementById('questionAnswer').value,
+                lastReviewed: Date.now(),
+                reviewCount: 0,
+                masteryLevel: 1
+            };
+            
+            questions.push(question);
+            renderQuestions();
+            updateStats();
+            closeModal('questionModal');
+            showToast('✅ 题目已添加', 3000);
+        }
+
+        // 查看题目详情
+        function viewQuestion(id) {
+            const q = questions.find(q => q.id === id);
+            if (!q) return;
+            
+            alert(`🎯 题目详情\n\n${q.title}\n\n🏢 公司: ${q.company}\n📚 类型: ${q.type}\n⭐ 难度: ${q.difficulty}\n\n📝 描述:\n${q.description}\n\n🏷️ 标签: ${q.tags.join(', ')}\n\n💡 参考答案:\n${q.answer}\n\n📝 复习次数: ${q.reviewCount}\n⭐ 掌握度: ${q.masteryLevel}/5`);
+        }
+
+        // 开始复习
+        function startReview() {
+            const now = Date.now();
+            const reviewQuestions = questions.filter(q => {
+                const daysSinceLastReview = (now - q.lastReviewed) / 86400000;
+                return daysSinceLastReview > 7 / q.masteryLevel; // 间隔复习算法
+            });
+            
+            if (reviewQuestions.length === 0) {
+                showToast('✅ 暂无需要复习的题目', 3000);
+                return;
+            }
+            
+            showReviewQuestion(reviewQuestions[0]);
+        }
+
+        // 显示复习题目
+        function showReviewQuestion(question) {
+            document.getElementById('reviewContent').innerHTML = `
+                <div class="review-question">
+                    <h3 style="color: #5eead4; margin-bottom: 15px;">${question.title}</h3>
+                    <div style="margin-bottom: 15px;">
+                        <span class="difficulty-badge difficulty-${question.difficulty}">${question.difficulty === 'easy' ? '简单' : question.difficulty === 'medium' ? '中等' : '困难'}</span>
+                        <span style="margin-left: 10px; color: #94a3b8;">🏢 ${question.company} • 📚 ${question.type}</span>
+                    </div>
+                    <p style="margin-bottom: 15px; line-height: 1.6;">${question.description}</p>
+                    <div style="margin-bottom: 15px;">
+                        ${question.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    </div>
+                    <button class="btn btn-secondary" onclick="showAnswer('${question.id}')" style="margin-bottom: 15px;">查看答案</button>
+                    <div id="answer-${question.id}" style="display: none; background: rgba(30, 41, 59, 0.8); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <strong>参考答案:</strong><br><br>
+                        ${question.answer}
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <p style="margin-bottom: 10px; color: #94a3b8;">掌握程度:</p>
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <button class="btn" onclick="rateMastery('${question.id}', 1)">1 - 完全不会</button>
+                            <button class="btn" onclick="rateMastery('${question.id}', 3)">3 - 基本掌握</button>
+                            <button class="btn btn-success" onclick="rateMastery('${question.id}', 5)">5 - 完全掌握</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('reviewModal').classList.add('show');
+        }
+
+        // 显示答案
+        function showAnswer(id) {
+            const answerDiv = document.getElementById(`answer-${id}`);
+            answerDiv.style.display = answerDiv.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // 评分掌握度
+        function rateMastery(id, rating) {
+            const q = questions.find(q => q.id === id);
+            if (q) {
+                q.masteryLevel = rating;
+                q.reviewCount++;
+                q.lastReviewed = Date.now();
+                
+                showToast(`⭐ 掌握度已更新: ${rating}/5`, 2000);
+                closeModal('reviewModal');
+                updateStats();
+            }
+        }
+
+        // 开始模拟面试
+        function startMockInterview() {
+            document.getElementById('mockInterviewModal').classList.add('show');
+        }
+
+        // 技术面试
+        function startTechnicalInterview() {
+            const techQuestions = questions.filter(q => q.type !== '系统设计');
+            if (techQuestions.length === 0) return;
+            
+            const randomQ = techQuestions[Math.floor(Math.random() * techQuestions.length)];
+            showToast(`🎤 面试开始！题目: ${randomQ.title}`, 5000);
+            closeModal('mockInterviewModal');
+        }
+
+        // 行为面试
+        function startBehavioralInterview() {
+            showToast('👥 行为面试: 请分享一个你解决复杂问题的经历', 5000);
+            closeModal('mockInterviewModal');
+        }
+
+        // 更新统计
+        function updateStats() {
+            document.getElementById('totalQuestions').textContent = questions.length;
+            document.getElementById('masteredQuestions').textContent = questions.filter(q => q.masteryLevel >= 4).length;
+            document.getElementById('reviewToday').textContent = questions.filter(q => {
+                const daysSinceLastReview = (Date.now() - q.lastReviewed) / 86400000;
+                return daysSinceLastReview > 7 / q.masteryLevel;
+            }).length;
+        }
+
+        // 过滤题目
+        function filterQuestions() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const selectedCompanies = Array.from(document.querySelectorAll('.filter-section:nth-child(2) input:checked')).map(cb => cb.value);
+            const selectedTypes = Array.from(document.querySelectorAll('.filter-section:nth-child(3) input:checked')).map(cb => cb.value);
+            
+            const filtered = questions.filter(q => {
+                const matchesSearch = !searchTerm || q.title.toLowerCase().includes(searchTerm) || q.tags.some(tag => tag.toLowerCase().includes(searchTerm));
+                const matchesCompany = selectedCompanies.length === 0 || selectedCompanies.includes(q.company);
+                const matchesType = selectedTypes.length === 0 || selectedTypes.includes(q.type);
+                
+                return matchesSearch && matchesCompany && matchesType;
+            });
+            
+            renderQuestions(filtered);
+        }
+
+        // 关闭模态框
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        // 显示提示
+        function showToast(message, duration = 3000) {
+            const toast = document.createElement('div');
+            toast.className = 'toast show';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, duration);
+        }
+    </script>
+</body>
+</html>

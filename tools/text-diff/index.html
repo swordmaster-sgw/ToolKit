@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文本 Diff 对比</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { margin-left: auto; padding: 6px 14px; background: transparent; border: 1px solid #2d3148; color: #8b90a7; border-radius: 6px; font-size: 13px; text-decoration: none; transition: all .2s; }
+    .back-btn:hover { border-color: #6366f1; color: #6366f1; }
+    .main { padding: 20px; max-width: 1200px; margin: 0 auto; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; overflow: hidden; }
+    .card-title { padding: 10px 16px; background: #1f2235; font-size: 12px; font-weight: 600; color: #8b90a7; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #2d3148; }
+    textarea { width: 100%; background: #131520; color: #e2e8f0; border: none; padding: 14px; font-family: 'Cascadia Code', monospace; font-size: 12px; resize: vertical; outline: none; min-height: 150px; line-height: 1.6; }
+    .btn-row { padding: 12px 16px; display: flex; gap: 8px; background: #1a1d2e; border-top: 1px solid #2d3148; }
+    .btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-primary:hover { background: #5457d4; }
+    .btn-secondary { background: #2d3148; color: #c4c9e2; }
+    .btn-secondary:hover { background: #363b5e; }
+    .diff-view { background: #131520; padding: 16px; min-height: 300px; overflow-x: auto; font-family: 'Cascadia Code', monospace; font-size: 12px; line-height: 1.8; }
+    .diff-line { padding: 2px 8px; margin: 2px 0; border-radius: 3px; }
+    .diff-add { background: #16a34a22; color: #22c55e; border-left: 3px solid #22c55e; }
+    .diff-del { background: #dc262622; color: #ef4444; border-left: 3px solid #ef4444; }
+    .diff-ctx { background: transparent; color: #8b90a7; }
+    .diff-info { background: #3b82f622; color: #60a5fa; border-left: 3px solid #60a5fa; padding: 4px 8px; margin: 4px 0; border-radius: 3px; font-size: 11px; }
+    .stat { padding: 8px 16px; background: #1a1d2e; border-top: 1px solid #2d3148; font-size: 12px; color: #8b90a7; }
+    @media (max-width: 768px) { .grid2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:22px">📝</span>
+  <div>
+    <h1 style="font-size:16px;font-weight:600">文本 Diff 对比</h1>
+    <p style="font-size:12px;color:#8b90a7;margin-top:2px">逐行对比，高亮增删改</p>
+  </div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
+</div>
+
+<div class="main">
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">文本 A（旧版本）</div>
+      <textarea id="text-a" placeholder="输入第一个版本的内容..."></textarea>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="loadSampleA()">📋 示例</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">文本 B（新版本）</div>
+      <textarea id="text-b" placeholder="输入第二个版本的内容..."></textarea>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="loadSampleB()">📋 示例</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Diff 结果</div>
+    <button class="btn btn-primary" style="margin:12px 16px" onclick="compare()">🔍 对比</button>
+    <div class="diff-view" id="diff-result">输入内容后点击对比...</div>
+    <div class="stat" id="diff-stat"></div>
+  </div>
+</div>
+
+<script>
+// 简单的 diff 算法
+function simpleDiff(old, newer) {
+  const oldLines = old.split('\n');
+  const newLines = newer.split('\n');
+  const result = [];
+  let added = 0, removed = 0, common = 0;
+
+  const maxLen = Math.max(oldLines.length, newLines.length);
+  for (let i = 0; i < maxLen; i++) {
+    const a = oldLines[i];
+    const b = newLines[i];
+    if (a === b) {
+      if (a !== undefined) result.push({ type: 'ctx', text: a });
+      common++;
+    } else {
+      if (a !== undefined) { result.push({ type: 'del', text: a }); removed++; }
+      if (b !== undefined) { result.push({ type: 'add', text: b }); added++; }
+    }
+  }
+  return { lines: result, added, removed, common };
+}
+
+function compare() {
+  const a = document.getElementById('text-a').value;
+  const b = document.getElementById('text-b').value;
+  if (!a && !b) return;
+  const diff = simpleDiff(a, b);
+  const html = diff.lines.map(l => {
+    const cls = l.type === 'add' ? 'diff-add' : l.type === 'del' ? 'diff-del' : 'diff-ctx';
+    const prefix = l.type === 'add' ? '+' : l.type === 'del' ? '−' : ' ';
+    return `<div class="diff-line ${cls}">${prefix} ${escapeHtml(l.text)}</div>`;
+  }).join('');
+  document.getElementById('diff-result').innerHTML = `<div class="diff-info">共 ${diff.lines.length} 行 | 新增 ${diff.added} 行 | 删除 ${diff.removed} 行 | 相同 ${diff.common} 行</div>` + html;
+  document.getElementById('diff-stat').textContent = `Diff 统计：新增 ${diff.added} 行，删除 ${diff.removed} 行，相同 ${diff.common} 行`;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function loadSampleA() {
+  document.getElementById('text-a').value = `function getUserInfo(id) {
+  const user = db.query('SELECT * FROM users WHERE id = ?', [id]);
+  return user;
+}
+
+const token = generateToken();
+if (token) {
+  console.log('Token generated');
+}`;
+  compare();
+}
+
+function loadSampleB() {
+  document.getElementById('text-b').value = `function getUserInfo(id) {
+  if (!id) return null;
+  const user = db.query('SELECT * FROM users WHERE id = ?', [id]);
+  return user || { error: 'Not found' };
+}
+
+const token = generateToken();
+if (token) {
+  logger.info('Token generated successfully');
+  saveToken(token);
+}`;
+  compare();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WorkBuddy API - 开发者工具服务</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; padding: 20px; }
+    h1 { color: #6366f1; margin-bottom: 10px; }
+    .subtitle { color: #8b90a7; margin-bottom: 30px; }
+    .card { background: #1a1d2e; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .card h2 { color: #22c55e; margin-bottom: 15px; font-size: 18px; }
+    .card h3 { color: #79c0ff; margin: 15px 0 10px; font-size: 14px; }
+    code { background: #161b27; padding: 2px 6px; border-radius: 4px; font-family: 'Cascadia Code', monospace; font-size: 13px; }
+    pre { background: #161b27; padding: 15px; border-radius: 8px; overflow-x: auto; margin: 10px 0; }
+    .method { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-right: 8px; }
+    .get { background: #22c55e; color: #000; }
+    .post { background: #6366f1; color: #fff; }
+    .endpoint { color: #ffa657; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #2d3148; font-size: 13px; }
+    th { color: #8b90a7; }
+    .status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+    .stable { background: #22c55e; color: #000; }
+    .beta { background: #f59e0b; color: #000; }
+    .badge { display: inline-block; background: #6366f1; color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 8px; }
+  </style>
+</head>
+<body>
+  <h1>⚡ WorkBuddy API</h1>
+  <p class="subtitle">开发者工具服务 - 让 AI 也能调用你的工具</p>
+
+  <div class="card">
+    <h2>📚 API 端点</h2>
+    
+    <h3><span class="method get">GET</span> <span class="endpoint">/api/tools</span></h3>
+    <p style="color: #8b90a7; font-size: 13px; margin: 5px 0;">获取所有可用工具列表</p>
+    
+    <h3><span class="method get">GET</span> <span class="endpoint">/api/tools/:id</span></h3>
+    <p style="color: #8b90a7; font-size: 13px; margin: 5px 0;">获取指定工具的详细信息</p>
+    
+    <h3><span class="method get">GET</span> <span class="endpoint">/api/tools/ai</span></h3>
+    <p style="color: #8b90a7; font-size: 13px; margin: 5px 0;">获取 AI 可调用的工具清单 (OpenAI/OAI 格式)</p>
+    
+    <h3><span class="method post">POST</span> <span class="endpoint">/api/exec/:toolId</span></h3>
+    <p style="color: #8b90a7; font-size: 13px; margin: 5px 0;">执行指定工具</p>
+  </div>
+
+  <div class="card">
+    <h2>🔧 可用工具</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>工具 ID</th>
+          <th>名称</th>
+          <th>描述</th>
+          <th>状态</th>
+        </tr>
+      </thead>
+      <tbody id="tools-list">
+        <tr><td colspan="4" style="text-align: center; color: #8b90a7;">加载中...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>📖 使用示例</h2>
+    
+    <h3>curl 调用示例</h3>
+    <pre># 获取所有工具
+curl https://your-domain.com/api/tools
+
+# 执行 JSON 格式化
+curl -X POST https://your-domain.com/api/exec/json-formatter \
+  -H "Content-Type: application/json" \
+  -d '{"input": "{\"name\":\"test\"}", "action": "format"}'
+
+# 生成密码
+curl -X POST https://your-domain.com/api/exec/password-gen \
+  -H "Content-Type: application/json" \
+  -d '{"length": 16, "count": 5}'</pre>
+    
+    <h3>JavaScript 调用示例</h3>
+    <pre>// 在浏览器或 Node.js 中
+const response = await fetch('/api/exec/json-formatter', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    input: '{"name":"test","value":123}',
+    action: 'format',
+    indent: 2
+  })
+});
+const result = await response.json();
+console.log(result);</pre>
+  </div>
+
+  <div class="card">
+    <h2>🤖 AI 集成</h2>
+    <p style="color: #8b90a7; font-size: 13px; margin-bottom: 15px;">
+      使用 <code>/api/tools/ai</code> 端点获取 OpenAI 格式的工具定义，然后在你的 AI Agent 中使用：
+    </p>
+    <pre>const tools = await fetch('/api/tools/ai').then(r => r.json());
+// 传入你的 AI 模型 tools 参数</pre>
+  </div>
+
+  <script>
+    // 加载工具列表
+    fetch('tools.json')
+      .then(r => r.json())
+      .then(tools => {
+        const tbody = document.getElementById('tools-list');
+        tbody.innerHTML = tools.map(t => `
+          <tr>
+            <td><code>${t.id}</code></td>
+            <td>${t.icon || '🔧'} ${t.name}</td>
+            <td style="color: #8b90a7; font-size: 12px;">${t.description?.substring(0, 40) || '-'}...</td>
+            <td><span class="status ${t.status}">${t.status}</span></td>
+          </tr>
+        `).join('');
+      });
+  </script>
+</body>
+</html>
