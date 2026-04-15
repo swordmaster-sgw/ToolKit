@@ -3,80 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DevKit - 开发者常用工具集</title>
-  <meta name="description" content="免费在线开发者工具：JSON 格式化、正则测试、Base64 编解码、时间戳转换、颜色转换、JWT 解析、文本处理。全本地运行，无需登录。">
-  <meta name="keywords" content="JSON格式化,正则测试,Base64,时间戳,JWT,颜色转换,开发者工具,在线工具">
+  <title>DevKit - 开发者工具集</title>
+  <meta name="description" content="免费、开源、全本地运行的在线开发者工具箱">
   <link rel="stylesheet" href="./assets/css/style.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366f1'/><text x='6' y='23' font-size='18'>⚡</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 </head>
 <body>
-
-<!-- ===== 顶部导航 ===== -->
-<nav class="navbar">
-  <a class="navbar-brand" href="#" onclick="return false">
-    <div class="logo">⚡</div>
-    <span class="brand-name">DevKit</span>
-  </a>
-  <div class="navbar-actions">
-    <a class="nav-link" href="https://github.com/swordmaster-sgw/ToolKit" target="_blank" rel="noopener">GitHub</a>
-  </div>
-</nav>
-
-<!-- ===== 主内容 ===== -->
-<main id="main-content">
-  <!-- Hero -->
-  <div class="hero">
-    <h1>开发者<span class="gradient-text">工具集</span></h1>
-    <p class="hero-desc">免费、开源、全本地运行的开发者常用工具</p>
-
-    <!-- 搜索 -->
-    <div class="hero-search">
-      <span class="search-icon">🔍</span>
-      <input
-        id="search-input"
-        class="search-input"
-        type="text"
-        placeholder="搜索工具… (Ctrl+K)"
-        autocomplete="off"
-      />
+  <!-- 导航栏 -->
+  <nav class="navbar">
+    <a href="/" class="nav-brand">
+      <div class="nav-brand-icon">⚡</div>
+      DevKit
+    </a>
+    <div class="nav-search">
+      <span class="nav-search-icon">🔍</span>
+      <input type="text" id="search-input" placeholder="搜索工具..." autocomplete="off">
+      <span class="nav-search-kbd">⌘K</span>
     </div>
+    <a href="https://github.com/swordmaster-swg/ToolKit" target="_blank" class="nav-github">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      GitHub
+    </a>
+  </nav>
 
-    <!-- 分类筛选 -->
-    <div id="category-tabs" class="category-tabs"></div>
-  </div>
+  <!-- 主内容 -->
+  <main class="main-content">
+    <!-- 分类标签 -->
+    <div class="category-tabs" id="category-tabs"></div>
 
-  <!-- 工具列表 -->
-  <div class="tools-section">
-    <div class="tools-section-header">
-      <span class="section-title" id="tools-count">加载中…</span>
-      <div class="view-toggle">
-        <button class="view-btn active" data-mode="grid" onclick="setViewMode('grid')" title="网格视图">⊞</button>
-        <button class="view-btn" data-mode="list" onclick="setViewMode('list')" title="列表视图">≡</button>
-      </div>
-    </div>
-    <div id="tools-grid" class="tools-grid">
-      <div style="height:180px" class="skeleton"></div>
-      <div style="height:180px" class="skeleton"></div>
-      <div style="height:180px" class="skeleton"></div>
-    </div>
-  </div>
-</main>
+    <!-- 工具网格 -->
+    <section class="tools-section">
+      <div class="tools-grid" id="tools-container"></div>
+    </section>
+  </main>
 
-<!-- ===== 页脚 ===== -->
-<footer>
-  <div class="footer-inner">
-    <p>DevKit · 免费开源开发者工具集 · 所有数据均在本地处理</p>
-    <p class="footer-links">
-      <a href="https://github.com/swordmaster-sgw/ToolKit" target="_blank" rel="noopener">GitHub</a>
-      <span>·</span>
-      <span>全本地运行，无需登录，无数据上传</span>
-    </p>
-  </div>
-</footer>
+  <!-- 页脚 -->
+  <footer class="footer">
+    DevKit · 开源免费 · <a href="https://github.com/swordmaster-swg/ToolKit" target="_blank">GitHub</a>
+  </footer>
 
-<!-- ===== Toast 通知 ===== -->
-<div id="toast" class="toast"></div>
-
-<script src="./assets/js/app.js"></script>
+  <script src="./assets/js/app.js"></script>
 </body>
 </html>

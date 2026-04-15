@@ -1,290 +1,143 @@
 /**
- * DevKit - 开发者工具集导航
- * 功能：工具加载、搜索、分类筛选、内联详情展开
+ * DevKit - 开发者工具集
+ * 公开展示所有点开即用的工具
  */
 
-// ==================== 内嵌工具数据（只展示公开部署的工具） ====================
-const TOOLS_DATA = [
-  {
-    id: 'json-formatter',
-    name: 'JSON 格式化 / 压缩',
-    description: 'JSON 格式化美化、压缩、语法校验，支持树形折叠展开，开发必备。',
-    category: '开发工具',
-    tags: ['JSON', '格式化', '校验', '压缩'],
-    version: '1.0.0',
-    url: './tools/json-formatter/index.html',
-    icon: '📋',
-    features: [
-      '智能格式化与压缩',
-      '树形折叠展开',
-      '语法校验与错误定位',
-      '节点路径高亮',
-      'JSON 路径查询（JSONPath）',
-    ]
-  },
-  {
-    id: 'regex-tester',
-    name: '正则表达式测试器',
-    description: '实时高亮匹配，支持标记(flags)，捕获组提取，常用正则快速引用。',
-    category: '开发工具',
-    tags: ['正则', 'Regex', '测试', '匹配'],
-    version: '1.0.0',
-    url: './tools/regex-tester/index.html',
-    icon: '🔍',
-    features: [
-      '实时匹配高亮',
-      '捕获组提取',
-      '常用正则模板库',
-      'Flags 快速切换',
-    ]
-  },
-  {
-    id: 'base64-codec',
-    name: 'Base64 编解码',
-    description: '文本 / 文件 Base64 编码与解码，支持 URL-safe 模式，一键复制。',
-    category: '开发工具',
-    tags: ['Base64', '编码', '解码'],
-    version: '1.0.0',
-    url: './tools/base64-codec/index.html',
-    icon: '🔐',
-    features: [
-      '文本 Base64 编码/解码',
-      '文件 Base64 编解码',
-      'URL-safe 模式',
-      '一键复制结果',
-    ]
-  },
-  {
-    id: 'timestamp-converter',
-    name: '时间戳转换',
-    description: 'Unix 时间戳 ↔ 可读日期时间互转，支持毫秒/秒，显示多时区。',
-    category: '开发工具',
-    tags: ['时间戳', '时间', '日期', '转换'],
-    version: '1.0.0',
-    url: './tools/timestamp-converter/index.html',
-    icon: '⏱️',
-    features: [
-      '时间戳 ↔ 日期互转',
-      '毫秒/秒单位切换',
-      '多时区同时显示',
-      '实时当前时间戳',
-    ]
-  },
-  {
-    id: 'color-converter',
-    name: '颜色转换器',
-    description: 'HEX、RGB、HSL 三种格式互转，取色板，生成渐变代码，前端开发利器。',
-    category: '开发工具',
-    tags: ['颜色', 'HEX', 'RGB', 'HSL', '前端'],
-    version: '1.0.0',
-    url: './tools/color-converter/index.html',
-    icon: '🎨',
-    features: [
-      'HEX / RGB / HSL 互转',
-      '可视化取色板',
-      '渐变代码生成',
-      '颜色对比度检查',
-    ]
-  },
-  {
-    id: 'jwt-decoder',
-    name: 'JWT 解析器',
-    description: '解码 JWT Token，展示 Header、Payload、签名，检查过期时间，无需密钥。',
-    category: '开发工具',
-    tags: ['JWT', 'Token', '认证', '解析'],
-    version: '1.0.0',
-    url: './tools/jwt-decoder/index.html',
-    icon: '🎫',
-    features: [
-      '解码 Header / Payload',
-      '签名算法显示',
-      '过期时间检测与高亮',
-      'JSON 格式化展示',
-    ]
-  },
-  {
-    id: 'text-process',
-    name: '文本批处理工具',
-    description: '文本去重、排序、计行数、替换、大小写转换、JSON转义等多种文本操作，一站式搞定。',
-    category: '数据处理',
-    tags: ['文本', '处理', '去重', '替换', '格式化'],
-    version: '1.0.0',
-    url: './tools/text-process/index.html',
-    icon: '📝',
-    features: [
-      '文本去重与排序',
-      '批量查找替换',
-      '大小写转换',
-      '行数统计与 JSON 转义',
-    ]
-  },
-];
+// 依赖用户数据、无法公开展示的工具 ID
+const HIDDEN_IDS = new Set([
+  'clipboard-manager',   // 剪贴板工作台 — 本地历史数据
+  'code-snippets',       // 代码片段极速插入 — 本地收藏数据
+  'code-snippet',        // 代码片段管理器 — 本地收藏数据
+  'quick-notes',         // 快速便签 — 本地便签数据
+  'task-board',          // 个人任务看板 — 本地任务数据
+  'simple-accounting',   // 个人记账 — 本地财务数据
+  'health-reminder',     // 久坐健康提醒 — Electron 专属
+  'mock-assistant',      // 接口Mock小助手 — 本地 Mock 数据
+  'wechat-quick',        // 微信/钉钉快速助手 — Electron 专属
+  'cli-toolkit',         // 命令行工具箱 — 本地命令数据
+  'code-snippets-pro',   // 代码片段增强版 — 本地团队数据
+  'architecture-sketch', // 架构设计草稿本 — 本地草稿数据
+  'image-toolbox',       // 图片工具箱增强版 — Electron 专属
+  'adr-notebook',        // 架构决策记录本 — 本地决策数据
+  'dev-analytics',       // 个人开发数据分析 — 本地编码数据
+  'tech-debt-dashboard', // 技术债务仪表盘 — 本地分析数据
+  'team-code-analytics', // 团队代码影响力分析器 — 本地团队数据
+  'ai-code-review',      // AI代码审查 — 依赖 AI API key
+  'api-development-kit', // 本地API开发套件 — Electron 专属
+  'countdown-timer',     // 项目倒计时 — 本地倒计时数据
+  'standup-helper',      // 每日站会助手 — 本地站会数据
+  'interview-questions', // 技术面试题库 — 本地题库数据
+  'dependency-security-scanner', // 依赖安全扫描 — 需要离线 CVE 库
+  'code-search-navigator', // 代码搜索导航器 — Electron 专属
+]);
 
-// ==================== 状态管理 ====================
-const AppState = {
-  tools: [],
-  filtered: [],
-  activeCategory: 'all',
-  searchQuery: '',
-  viewMode: 'grid',
-  expandedCard: null, // 当前展开详情的卡片 id
-};
+// 隐藏的分类
+const HIDDEN_CATEGORIES = new Set([
+  '提效工具',
+  '写作工具',
+  '生活工具',
+  'AI工具',
+  '管理工具',
+  '数据分析',
+  '学习工具',
+  '安全工具',
+  '项目管理',
+  '文档写作',
+]);
 
-// ==================== 类别颜色 ====================
-const CATEGORY_COLORS = {
-  '开发工具': '#3b82f6',
-  '数据处理': '#06b6d4',
-};
+let allTools = [];
+let filteredTools = [];
+let searchQuery = '';
+let activeCategory = '全部';
 
-function getCategoryColor(cat) {
-  return CATEGORY_COLORS[cat] || '#8b90a7';
-}
-
-// ==================== 工具加载 ====================
+// ==================== 加载 ====================
 async function loadTools() {
   try {
     const resp = await fetch('./tools.json?t=' + Date.now());
     if (!resp.ok) throw new Error('fail');
-    const allTools = await resp.json();
-    // 只显示 TOOLS_DATA 里定义的工具
-    const showIds = new Set(TOOLS_DATA.map(t => t.id));
-    AppState.tools = allTools.filter(t => showIds.has(t.id)).map(t => {
-      // 补充 features 字段
-      const base = TOOLS_DATA.find(b => b.id === t.id);
-      return { ...t, features: base?.features || [] };
-    });
-  } catch (e) {
-    AppState.tools = TOOLS_DATA;
+    const data = await resp.json();
+    // 过滤：排除隐藏 ID 和隐藏分类
+    allTools = data.filter(t =>
+      !HIDDEN_IDS.has(t.id) && !HIDDEN_CATEGORIES.has(t.category)
+    );
+  } catch {
+    allTools = [];
   }
+  filteredTools = [...allTools];
   renderCategoryTabs();
-  applyFilters();
+  render();
 }
 
 // ==================== 分类标签 ====================
 function renderCategoryTabs() {
-  // 只显示有工具的分类
-  const cats = ['all', ...new Set(AppState.tools.map(t => t.category))];
+  const cats = ['全部', ...new Set(allTools.map(t => t.category).filter(Boolean))];
   const container = document.getElementById('category-tabs');
-  if (!container) return;
-
-  container.innerHTML = cats.map(cat => {
-    const isAll = cat === 'all';
-    const label = isAll ? '全部' : cat;
-    const count = isAll ? AppState.tools.length : AppState.tools.filter(t => t.category === cat).length;
-    const active = AppState.activeCategory === cat ? 'active' : '';
-    return `<button class="filter-tab ${active}" onclick="setCategory('${cat}')">
-      ${!isAll ? `<span class="category-dot" style="background:${getCategoryColor(cat)}"></span>` : ''}
-      ${label} <span class="tab-count">${count}</span>
-    </button>`;
-  }).join('');
+  container.innerHTML = cats.map(cat =>
+    `<button class="category-tab ${cat === activeCategory ? 'active' : ''}" onclick="filterCategory('${cat}')">${cat}</button>`
+  ).join('');
 }
 
-function setCategory(cat) {
-  AppState.activeCategory = cat;
-  renderCategoryTabs();
+function filterCategory(cat) {
+  activeCategory = cat;
+  document.querySelectorAll('.category-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.textContent === cat);
+  });
   applyFilters();
 }
 
-// ==================== 搜索 & 过滤 ====================
+// ==================== 搜索 ====================
 function applyFilters() {
-  let list = [...AppState.tools];
-
-  if (AppState.activeCategory !== 'all') {
-    list = list.filter(t => t.category === AppState.activeCategory);
-  }
-
-  const q = AppState.searchQuery.toLowerCase().trim();
-  if (q) {
-    list = list.filter(t =>
-      t.name.toLowerCase().includes(q) ||
-      t.description.toLowerCase().includes(q) ||
-      (t.tags || []).some(tag => tag.toLowerCase().includes(q))
-    );
-  }
-
-  AppState.filtered = list;
-  renderTools(list);
+  filteredTools = allTools.filter(t => {
+    const matchCat = activeCategory === '全部' || (t.category || '') === activeCategory;
+    const matchSearch = !searchQuery ||
+      t.name.toLowerCase().includes(searchQuery) ||
+      t.description.toLowerCase().includes(searchQuery) ||
+      (t.tags || []).some(tag => tag.toLowerCase().includes(searchQuery));
+    return matchCat && matchSearch;
+  });
+  render();
 }
 
-// ==================== 渲染工具列表 ====================
-function renderTools(tools) {
-  const grid = document.getElementById('tools-grid');
-  const countEl = document.getElementById('tools-count');
+function highlight(text, query) {
+  if (!query) return text;
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  return text.replace(regex, '<span class="search-highlight">$1</span>');
+}
 
-  countEl.textContent = `共 ${tools.length} 个工具`;
+// ==================== 渲染 ====================
+function render() {
+  const container = document.getElementById('tools-container');
 
-  if (tools.length === 0) {
-    grid.innerHTML = `
-      <div class="empty-state" style="grid-column:1/-1">
-        <div class="empty-icon">🔍</div>
+  if (filteredTools.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">🔍</div>
         <h3>未找到匹配工具</h3>
-        <p>试试其他关键词或切换分类</p>
+        <p>试试其他关键词</p>
       </div>`;
     return;
   }
 
-  grid.innerHTML = tools.map(tool => renderToolCard(tool)).join('');
-}
+  container.innerHTML = filteredTools.map(tool => {
+    const tagsHtml = (tool.tags || []).slice(0, 3).map(tag =>
+      `<span class="tool-tag">${highlight(tag, searchQuery)}</span>`
+    ).join('');
 
-function renderToolCard(tool) {
-  const isExpanded = AppState.expandedCard === tool.id;
-  const tagsHtml = (tool.tags || []).slice(0, 3).map(tag =>
-    `<span class="tool-tag">${tag}</span>`
-  ).join('');
-
-  const featuresHtml = (tool.features || []).length > 0
-    ? `<ul class="feature-list">${tool.features.map(f => `<li>${f}</li>`).join('')}</ul>`
-    : `<p class="detail-text">${tool.description}</p>`;
-
-  return `
-    <div class="tool-card" data-id="${tool.id}">
-      <div class="tool-card-header" onclick="openTool('${tool.url}')">
-        <div class="tool-icon">${tool.icon || '🔧'}</div>
-        <div style="flex:1">
-          <div class="tool-name">${tool.name}</div>
-          <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
-            <span class="category-dot" style="background:${getCategoryColor(tool.category)}"></span>
-            <span class="tool-category-label">${tool.category}</span>
+    return `
+      <a class="tool-card" href="${tool.url}" target="_blank" rel="noopener">
+        <div class="tool-card-header">
+          <div class="tool-icon">${tool.icon || '🔧'}</div>
+          <div class="tool-info">
+            <div class="tool-name">${highlight(tool.name, searchQuery)}</div>
           </div>
         </div>
-      </div>
-      <div class="tool-description">${tool.description}</div>
-      ${tagsHtml ? `<div class="tool-tags">${tagsHtml}</div>` : ''}
-      <div class="tool-actions">
-        <button class="btn btn-primary" onclick="event.stopPropagation();openTool('${tool.url}')">
-          <span class="btn-icon">↗</span> 打开工具
-        </button>
-        <button class="btn btn-ghost" onclick="event.stopPropagation();toggleDetail('${tool.id}')">
-          <span class="btn-icon chevron ${isExpanded ? 'expanded' : ''}">›</span>
-          ${isExpanded ? '收起详情' : '查看详情'}
-        </button>
-      </div>
-      <div class="tool-detail ${isExpanded ? 'open' : ''}">
-        <div class="detail-divider"></div>
-        <div class="detail-content">${featuresHtml}</div>
-      </div>
-    </div>`;
+        <div class="tool-desc">${highlight(tool.description, searchQuery)}</div>
+        <div class="tool-tags">${tagsHtml}</div>
+      </a>`;
+  }).join('');
 }
 
-// ==================== 交互 ====================
-function openTool(url) {
-  window.open(url, '_blank');
-}
-
-function toggleDetail(id) {
-  AppState.expandedCard = AppState.expandedCard === id ? null : id;
-  renderTools(AppState.filtered);
-}
-
-// ==================== 视图切换 ====================
-function setViewMode(mode) {
-  AppState.viewMode = mode;
-  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.view-btn[data-mode="${mode}"]`).classList.add('active');
-  document.getElementById('tools-grid').className = `tools-grid ${mode === 'list' ? 'list-view' : ''}`;
-}
-
-// ==================== 键盘事件 ====================
+// ==================== 快捷键 ====================
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
     e.preventDefault();
@@ -292,11 +145,21 @@ document.addEventListener('keydown', e => {
     input.focus();
     input.select();
   }
+  if (e.key === 'Escape') {
+    const input = document.getElementById('search-input');
+    if (document.activeElement === input && input.value) {
+      input.value = '';
+      searchQuery = '';
+      applyFilters();
+    }
+  }
 });
 
+let searchTimer;
 document.getElementById('search-input').addEventListener('input', e => {
-  AppState.searchQuery = e.target.value;
-  applyFilters();
+  clearTimeout(searchTimer);
+  searchQuery = e.target.value.trim().toLowerCase();
+  searchTimer = setTimeout(() => applyFilters(), 120);
 });
 
 // ==================== 初始化 ====================
