@@ -1758,11 +1758,22 @@ function loadSample() {
 
 // ========== 全局状态 ==========
 let cgState = {
-  cat: 'type',        // type | struct | data | schema
+  cat: 'type',        // type | struct | data | schema | curl | ddl
   lang: 'typescript', // 当前语言
   rootName: 'Root',
   indent: 2,
   useOptional: true,
+  // curl 选项
+  curlUrl:    'https://api.example.com/endpoint',
+  curlMethod: 'POST',
+  curlToken:  '',
+  curlPretty: true,
+  // ddl 选项
+  tableName:  'my_table',
+  ddlAddId:   true,
+  ddlAddTime: true,
+  ddlNotNull: false,
+  ddlComment: true,
   addComments: true,
   code: '',           // 当前生成代码
   fileName: ''        // 当前文件名
@@ -1833,6 +1844,17 @@ const LANGS = {
   php:        { name: 'PHP',        ext: '.php', color: '#777bb4' },
   dart:       { name: 'Dart',       ext: '.dart', color: '#0175c2' },
   swift:      { name: 'Swift',      ext: '.swift', color: '#f05138' },
+  // cURL 变体
+  curl_bash:  { name: 'Bash/cURL',  ext: '.sh',   color: '#89e051' },
+  curl_ps:    { name: 'PowerShell', ext: '.ps1',  color: '#012456' },
+  curl_py:    { name: 'Python',     ext: '.py',   color: '#3776ab' },
+  curl_js:    { name: 'JavaScript', ext: '.js',   color: '#f7df1e' },
+  curl_go:    { name: 'Go',         ext: '.go',   color: '#00add8' },
+  // DDL 变体
+  ddl_mysql:  { name: 'MySQL',      ext: '.sql',  color: '#4479a1' },
+  ddl_pg:     { name: 'PostgreSQL', ext: '.sql',  color: '#336791' },
+  ddl_sqlite: { name: 'SQLite',     ext: '.sql',  color: '#003b57' },
+  ddl_mssql:  { name: 'SQL Server', ext: '.sql',  color: '#cc2927' },
 };
 
 // ========== 类别定义 ==========
@@ -1841,6 +1863,8 @@ const CATS = {
   struct: { langs: ['typescript','go','python','java','kotlin','rust','csharp','php','dart','swift'], label: '数据结构' },
   data:   { langs: ['typescript','go','python','java','rust'], label: '数据转换' },
   schema: { langs: ['typescript','python','go','java'], label: 'Schema' },
+  curl:   { langs: ['curl_bash','curl_ps','curl_py','curl_js','curl_go'], label: 'cURL' },
+  ddl:    { langs: ['ddl_mysql','ddl_pg','ddl_sqlite','ddl_mssql'], label: 'DDL' },
 };
 
 // ========== 选项定义 ==========
@@ -1860,6 +1884,19 @@ const OPTIONS = {
   ],
   schema: [
     { key: 'rootName', label: 'Schema名', type: 'text', default: 'Root' },
+  ],
+  curl: [
+    { key: 'curlUrl',    label: 'URL',         type: 'text', default: 'https://api.example.com/endpoint' },
+    { key: 'curlMethod', label: 'HTTP 方法',   type: 'text', default: 'POST' },
+    { key: 'curlToken',  label: 'Bearer Token', type: 'text', default: '' },
+    { key: 'curlPretty', label: '格式化输出', type: 'checkbox', default: true },
+  ],
+  ddl: [
+    { key: 'tableName',    label: '表名',       type: 'text', default: 'my_table' },
+    { key: 'ddlAddId',     label: '自增主键 id', type: 'checkbox', default: true },
+    { key: 'ddlAddTime',   label: '时间戳字段', type: 'checkbox', default: true },
+    { key: 'ddlNotNull',   label: 'NOT NULL',   type: 'checkbox', default: false },
+    { key: 'ddlComment',   label: '列注释',     type: 'checkbox', default: true },
   ],
 };
 
@@ -1928,7 +1965,15 @@ function generateCodeForCurrent() {
   }
   cgState.code = code;
   const L = LANGS[cgState.lang];
-  cgState.fileName = snakeCase(cgState.rootName) + L.ext;
+  // curl/ddl 类别的文件名基于 url 路径或表名，而不是 rootName
+  if (cgState.cat === 'curl') {
+    const urlPart = (cgState.curlUrl || '').split('/').filter(Boolean).pop() || 'request';
+    cgState.fileName = snakeCase(urlPart) + (L ? L.ext : '.sh');
+  } else if (cgState.cat === 'ddl') {
+    cgState.fileName = snakeCase(cgState.tableName || 'table') + (L ? L.ext : '.sql');
+  } else {
+    cgState.fileName = snakeCase(cgState.rootName) + (L ? L.ext : '.txt');
+  }
   document.getElementById('codegen-code').textContent = code;
   document.getElementById('codegen-file-tag').textContent = cgState.fileName;
   document.getElementById('codegen-size-tag').textContent = `${code.length} chars · ${code.split('\n').length} lines`;
@@ -1954,7 +1999,7 @@ function downloadCodegen() {
 }
 
 // ========== 代码生成器 ==========
-const codeGenerators = { type: {}, struct: {}, data: {}, schema: {} };
+const codeGenerators = { type: {}, struct: {}, data: {}, schema: {}, curl: {}, ddl: {} };
 
 // ==================== 类型定义生成器 ====================
 
@@ -2912,8 +2957,258 @@ codeGenerators.schema.java = function(data, state) {
   };
   return JSON.stringify(schema, null, 2) + '\n\n// Generated JSON Schema (Draft 2020-12)\n// Can be used with: https://github.com/networknt/json-schema-validator';
 };
-function copyInput() { const v=document.getElementById('input').value; if(!v){setStatus('输入内容为空','error');return;} copy(v,document.getElementById('copy-in-btn')); }
-function copyOutput() { const el=document.getElementById('output'); const v=el.textContent; if(!v||el.classList.contains('empty-hint')){setStatus('输出内容为空','error');return;} copy(v,document.getElementById('copy-out-btn')); }
+
+// ==================== cURL 生成器 ====================
+
+function buildCurlHeaders(state) {
+  const hdrs = ['-H "Content-Type: application/json"'];
+  if (state.curlToken) hdrs.push(`-H "Authorization: Bearer ${state.curlToken}"`);
+  return hdrs;
+}
+
+// Bash / cURL
+codeGenerators.curl.curl_bash = function(data, state) {
+  const method = (state.curlMethod || 'POST').toUpperCase();
+  const url = state.curlUrl || 'https://api.example.com/endpoint';
+  const json = JSON.stringify(data, null, 2);
+  const headers = buildCurlHeaders(state);
+  const pretty = state.curlPretty ? " | python3 -m json.tool" : "";
+  const bodyFlag = ['GET','DELETE','HEAD'].includes(method) ? '' : `\\\n  --data-binary @- <<'EOF'\n${json}\nEOF`;
+  if (['GET','DELETE','HEAD'].includes(method)) {
+    return `curl -s -X ${method} \\\n  ${headers.join(' \\\n  ')} \\\n  "${url}"${pretty}`;
+  }
+  return `curl -s -X ${method} \\\n  ${headers.join(' \\\n  ')} \\\n  "${url}" \\\n  --data-binary @- <<'EOF'${pretty}\n${json}\nEOF`;
+};
+
+// PowerShell
+codeGenerators.curl.curl_ps = function(data, state) {
+  const method = (state.curlMethod || 'POST').toUpperCase();
+  const url = state.curlUrl || 'https://api.example.com/endpoint';
+  const json = JSON.stringify(data, null, 2).replace(/'/g, "''");
+  const headers = `$headers = @{\n    "Content-Type" = "application/json"${state.curlToken ? `\n    "Authorization" = "Bearer ${state.curlToken}"` : ''}\n}`;
+  const bodyLine = ['GET','DELETE','HEAD'].includes(method) ? '' : `\n$body = @'\n${json}\n'@\n`;
+  const bodyParam = ['GET','DELETE','HEAD'].includes(method) ? '' : '\n    -Body $body \\';
+  return `${headers}\n${bodyLine}\n$response = Invoke-RestMethod \\\n    -Uri "${url}" \\\n    -Method ${method} \\\n    -Headers $headers \\${bodyParam}\n    -UseBasicParsing\n\n$response | ConvertTo-Json -Depth 10`;
+};
+
+// Python requests
+codeGenerators.curl.curl_py = function(data, state) {
+  const method = (state.curlMethod || 'POST').toUpperCase();
+  const url = state.curlUrl || 'https://api.example.com/endpoint';
+  const jsonStr = JSON.stringify(data, null, 4);
+  const headers = `headers = {\n    "Content-Type": "application/json"${state.curlToken ? `,\n    "Authorization": "Bearer ${state.curlToken}"` : ''}\n}`;
+  const bodyLine = ['GET','DELETE','HEAD'].includes(method)
+    ? ''
+    : `\npayload = ${jsonStr}\n`;
+  const callArgs = ['GET','DELETE','HEAD'].includes(method)
+    ? `requests.${method.toLowerCase()}(url, headers=headers)`
+    : `requests.${method.toLowerCase()}(url, headers=headers, json=payload)`;
+  const pretty = state.curlPretty
+    ? '\nimport pprint\npprint.pprint(response.json())'
+    : '\nprint(response.json())';
+  return `import requests\n\nurl = "${url}"\n${headers}\n${bodyLine}\nresponse = ${callArgs}\nresponse.raise_for_status()${pretty}`;
+};
+
+// JavaScript fetch
+codeGenerators.curl.curl_js = function(data, state) {
+  const method = (state.curlMethod || 'POST').toUpperCase();
+  const url = state.curlUrl || 'https://api.example.com/endpoint';
+  const jsonStr = JSON.stringify(data, null, 2);
+  const tokenLine = state.curlToken ? `\n  "Authorization": \`Bearer ${state.curlToken}\`` : '';
+  const bodyArg = ['GET','DELETE','HEAD'].includes(method)
+    ? ''
+    : `,\n  body: JSON.stringify(payload)`;
+  const payloadVar = ['GET','DELETE','HEAD'].includes(method)
+    ? ''
+    : `\nconst payload = ${jsonStr};\n`;
+  return `${payloadVar}const response = await fetch("${url}", {\n  method: "${method}",\n  headers: {\n    "Content-Type": "application/json"${tokenLine}\n  }${bodyArg}\n});\n\nif (!response.ok) throw new Error(\`HTTP error! status: \${response.status}\`);\n\nconst result = await response.json();\nconsole.log(result);`;
+};
+
+// Go net/http
+codeGenerators.curl.curl_go = function(data, state) {
+  const method = (state.curlMethod || 'POST').toUpperCase();
+  const url = state.curlUrl || 'https://api.example.com/endpoint';
+  const jsonStr = JSON.stringify(data, null, 2).replace(/`/g, '` + "`" + `');
+  const bodyPart = ['GET','DELETE','HEAD'].includes(method)
+    ? `\treq, err := http.NewRequest("${method}", url, nil)`
+    : `\tbody := \`${jsonStr}\`\n\treq, err := http.NewRequest("${method}", url, strings.NewReader(body))\n\treq.Header.Set("Content-Type", "application/json")`;
+  const tokenLine = state.curlToken
+    ? `\n\treq.Header.Set("Authorization", "Bearer ${state.curlToken}")`
+    : '';
+  return `package main\n\nimport (\n\t"fmt"\n\t"io"\n\t"net/http"\n\t"strings"\n)\n\nfunc main() {\n\turl := "${url}"\n${bodyPart}${tokenLine}\n\tif err != nil {\n\t\tpanic(err)\n\t}\n\n\tclient := &http.Client{}\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tpanic(err)\n\t}\n\tdefer resp.Body.Close()\n\n\tresultBody, _ := io.ReadAll(resp.Body)\n\tfmt.Printf("Status: %s\\n%s\\n", resp.Status, string(resultBody))\n}`;
+};
+
+// ==================== DDL 生成器 ====================
+
+// 推断 JSON 值对应的 SQL 类型
+function inferSqlType(value, key, dialect) {
+  if (value === null || value === undefined) return dialect === 'pg' ? 'TEXT' : 'VARCHAR(255)';
+  const kl = (key || '').toLowerCase();
+  if (typeof value === 'boolean') {
+    return dialect === 'mssql' ? 'BIT' : dialect === 'pg' ? 'BOOLEAN' : 'TINYINT(1)';
+  }
+  if (typeof value === 'number') {
+    if (Number.isInteger(value)) {
+      if (kl.includes('id') && value > 0) return dialect === 'pg' ? 'BIGINT' : 'BIGINT';
+      return dialect === 'pg' ? 'INTEGER' : 'INT';
+    }
+    return dialect === 'pg' ? 'NUMERIC(18,4)' : 'DECIMAL(18,4)';
+  }
+  if (typeof value === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) return dialect === 'pg' ? 'TIMESTAMPTZ' : dialect === 'mssql' ? 'DATETIME2' : 'DATETIME';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return dialect === 'pg' ? 'DATE' : 'DATE';
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'VARCHAR(255)';
+    if (/^https?:\/\//.test(value)) return dialect === 'pg' ? 'TEXT' : 'VARCHAR(2048)';
+    if (value.length > 500 || kl.includes('content') || kl.includes('desc') || kl.includes('body') || kl.includes('remark')) {
+      return dialect === 'pg' ? 'TEXT' : dialect === 'mssql' ? 'NVARCHAR(MAX)' : 'TEXT';
+    }
+    return dialect === 'mssql' ? `NVARCHAR(255)` : 'VARCHAR(255)';
+  }
+  if (typeof value === 'object') return dialect === 'pg' ? 'JSONB' : dialect === 'mssql' ? 'NVARCHAR(MAX)' : 'JSON';
+  return 'VARCHAR(255)';
+}
+
+// 转下划线命名
+function toSnakeCase(str) {
+  return str.replace(/([A-Z])/g, '_$1').replace(/[\s\-]+/g, '_').replace(/^_/, '').toLowerCase();
+}
+
+// 通用 DDL 生成核心
+function buildDDL(data, state, dialect) {
+  // 取顶层对象（数组时取第一个元素）
+  let obj = data;
+  if (Array.isArray(data)) obj = data.find(x => x && typeof x === 'object') || {};
+  if (!obj || typeof obj !== 'object') {
+    return `-- 输入的 JSON 不是对象或对象数组，无法生成 DDL`;
+  }
+
+  const table = toSnakeCase(state.tableName || 'my_table');
+  const notNull = state.ddlNotNull ? ' NOT NULL' : '';
+  const useComment = state.ddlComment;
+  const lines = [];
+
+  // 方言差异
+  const quoteL = dialect === 'mssql' ? '[' : '`';
+  const quoteR = dialect === 'mssql' ? ']' : '`';
+  const q = s => `${quoteL}${s}${quoteR}`;
+  const autoInc = dialect === 'pg' ? 'BIGSERIAL' : dialect === 'mssql' ? 'BIGINT IDENTITY(1,1)' : dialect === 'sqlite' ? 'INTEGER' : 'BIGINT AUTO_INCREMENT';
+  const pk = dialect === 'sqlite' ? 'PRIMARY KEY AUTOINCREMENT' : 'PRIMARY KEY';
+  const now = dialect === 'pg' ? 'NOW()' : dialect === 'mssql' ? 'GETDATE()' : 'CURRENT_TIMESTAMP';
+
+  // DROP + CREATE 头部
+  if (dialect === 'mssql') {
+    lines.push(`IF OBJECT_ID('dbo.${table}', 'U') IS NOT NULL DROP TABLE dbo.${table};`);
+    lines.push(`CREATE TABLE dbo.${table} (`);
+  } else if (dialect === 'pg') {
+    lines.push(`DROP TABLE IF EXISTS "${table}";`);
+    lines.push(`CREATE TABLE "${table}" (`);
+  } else {
+    lines.push(`DROP TABLE IF EXISTS ${q(table)};`);
+    lines.push(`CREATE TABLE ${q(table)} (`);
+  }
+
+  const cols = [];
+
+  // 自增主键
+  if (state.ddlAddId) {
+    if (dialect === 'sqlite') {
+      cols.push(`  ${q('id')} INTEGER PRIMARY KEY AUTOINCREMENT`);
+    } else if (dialect === 'pg') {
+      cols.push(`  "id" BIGSERIAL PRIMARY KEY`);
+    } else if (dialect === 'mssql') {
+      cols.push(`  [id] BIGINT IDENTITY(1,1) PRIMARY KEY`);
+    } else {
+      cols.push(`  ${q('id')} BIGINT AUTO_INCREMENT PRIMARY KEY`);
+    }
+  }
+
+  // JSON 字段
+  for (const [key, value] of Object.entries(obj)) {
+    if (key === 'id' && state.ddlAddId) continue; // 已有 id 列
+    const colName = toSnakeCase(key);
+    const sqlType = inferSqlType(value, key, dialect);
+    const nn = notNull;
+    const commentStr = useComment
+      ? (typeof value === 'string' && value.length > 0 && value.length < 50 ? ` -- example: ${value.replace(/\n/g,'\\n').slice(0,40)}` : '')
+      : '';
+    if (dialect === 'pg') {
+      cols.push(`  "${colName}" ${sqlType}${nn}${commentStr}`);
+    } else if (dialect === 'mssql') {
+      cols.push(`  [${colName}] ${sqlType}${nn}${commentStr}`);
+    } else {
+      cols.push(`  ${q(colName)} ${sqlType}${nn}${commentStr}`);
+    }
+  }
+
+  // 时间戳
+  if (state.ddlAddTime) {
+    if (dialect === 'pg') {
+      cols.push(`  "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()`);
+      cols.push(`  "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()`);
+    } else if (dialect === 'mssql') {
+      cols.push(`  [created_at] DATETIME2 NOT NULL DEFAULT GETDATE()`);
+      cols.push(`  [updated_at] DATETIME2 NOT NULL DEFAULT GETDATE()`);
+    } else if (dialect === 'sqlite') {
+      cols.push(`  ${q('created_at')} TEXT NOT NULL DEFAULT (datetime('now'))`);
+      cols.push(`  ${q('updated_at')} TEXT NOT NULL DEFAULT (datetime('now'))`);
+    } else {
+      cols.push(`  ${q('created_at')} DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`);
+      cols.push(`  ${q('updated_at')} DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`);
+    }
+  }
+
+  lines.push(cols.join(',\n'));
+
+  // 结尾
+  if (dialect === 'mysql') {
+    lines.push(`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='${table}';`);
+  } else if (dialect === 'pg') {
+    lines.push(`);`);
+    if (state.ddlAddTime) {
+      lines.push(`\n-- 自动更新 updated_at（需要 pgcrypto 或自定义 trigger）`);
+      lines.push(`CREATE OR REPLACE FUNCTION update_updated_at_column()\nRETURNS TRIGGER AS $$\nBEGIN\n  NEW.updated_at = NOW();\n  RETURN NEW;\nEND;\n$$ language 'plpgsql';\n\nCREATE TRIGGER update_${table}_updated_at\n  BEFORE UPDATE ON "${table}"\n  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();`);
+    }
+  } else if (dialect === 'mssql') {
+    lines.push(`);`);
+  } else {
+    lines.push(`);`);
+  }
+
+  // 索引提示
+  lines.push(`\n-- 常用查询字段建议建索引：`);
+  const idxCandidates = Object.keys(obj).filter(k => {
+    const kl = k.toLowerCase();
+    return kl.includes('id') || kl.includes('name') || kl.includes('status') || kl.includes('type') || kl.includes('code') || kl.includes('email');
+  }).slice(0, 4);
+  idxCandidates.forEach(k => {
+    const colName = toSnakeCase(k);
+    if (dialect === 'pg') {
+      lines.push(`CREATE INDEX idx_${table}_${colName} ON "${table}" ("${colName}");`);
+    } else if (dialect === 'mssql') {
+      lines.push(`CREATE INDEX IX_${table}_${colName} ON dbo.${table} ([${colName}]);`);
+    } else {
+      lines.push(`CREATE INDEX idx_${colName} ON ${q(table)} (${q(colName)});`);
+    }
+  });
+
+  return lines.join('\n');
+}
+
+codeGenerators.ddl.ddl_mysql  = function(data, state) { return buildDDL(data, state, 'mysql'); };
+codeGenerators.ddl.ddl_pg     = function(data, state) { return buildDDL(data, state, 'pg'); };
+codeGenerators.ddl.ddl_sqlite = function(data, state) { return buildDDL(data, state, 'sqlite'); };
+codeGenerators.ddl.ddl_mssql  = function(data, state) { return buildDDL(data, state, 'mssql'); };
+
+ const v=document.getElementById('input').value; if(!v){setStatus('输入内容为空','error');return;} copy(v,document.getElementById('copy-in-btn')); }
+function copyOutput() {
+  // 优先使用 lastFormattedOutput（格式化后的 JSON 纯文本），避免 textContent 夹带折叠按钮图标
+  if (lastFormattedOutput) { copy(lastFormattedOutput, document.getElementById('copy-out-btn')); return; }
+  const el = document.getElementById('output');
+  if (!el || el.classList.contains('empty-hint')) { setStatus('输出内容为空','error'); return; }
+  const v = el.textContent;
+  if (!v) { setStatus('输出内容为空','error'); return; }
+  copy(v, document.getElementById('copy-out-btn'));
+}
 function copy(text,btn) {
   navigator.clipboard.writeText(text).then(()=>{
     const orig=btn.textContent; btn.textContent='✓ 已复制'; btn.style.color='#22c55e';
@@ -3416,6 +3711,8 @@ setOutputEmpty();
       <button class="codegen-cat-tab" onclick="switchCodegenCat('struct',this)">数据结构</button>
       <button class="codegen-cat-tab" onclick="switchCodegenCat('data',this)">数据转换</button>
       <button class="codegen-cat-tab" onclick="switchCodegenCat('schema',this)">Schema</button>
+      <button class="codegen-cat-tab" onclick="switchCodegenCat('curl',this)" style="color:var(--accent-green)">cURL</button>
+      <button class="codegen-cat-tab" onclick="switchCodegenCat('ddl',this)" style="color:var(--accent-orange)">DDL</button>
     </div>
     <!-- 语言选择 -->
     <div class="codegen-langs" id="codegen-langs"></div>
