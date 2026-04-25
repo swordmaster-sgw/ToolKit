@@ -2,6 +2,7 @@
 # ============================================================
 # publish.sh — ToolKit 一键发布脚本
 # 流程：git commit → git push → wrangler pages deploy → 上线
+# 线上地址：https://toolkit-3ur.pages.dev
 #
 # 用法：
 #   ./publish.sh                       # 交互模式，自动提示输入 message
@@ -57,9 +58,9 @@ if [ "$DEPLOY_ONLY" = true ]; then
   npx wrangler pages deploy . \
     --project-name="$CF_PROJECT" \
     --branch=main \
+    --commit-dirty=true \
     --skip-binding \
-    --no-bundle \
-    $(printf -- '--exclude=node_modules\n--exclude=.git\n--exclude=dist-electron\n--exclude=.workbuddy\n--exclude=needs\n--exclude=electron/gen_*.py' | sed 's/^/--/')
+    --no-bundle
 
   echo ""
   echo "${GREEN}${BOLD}✅ 部署完成！${RESET}"
@@ -155,14 +156,9 @@ echo "${DIM}   排除：node_modules, .git, dist-electron, .workbuddy, needs${RE
 npx wrangler pages deploy . \
   --project-name="$CF_PROJECT" \
   --branch=main \
+  --commit-dirty=true \
   --skip-binding \
-  --no-bundle \
-  --exclude=node_modules \
-  --exclude=.git \
-  --exclude=dist-electron \
-  --exclude=.workbuddy \
-  --exclude=needs \
-  --exclude='electron/gen_*.py'
+  --no-bundle
 
 # ---------- 完成 ----------
 echo ""

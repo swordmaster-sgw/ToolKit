@@ -1,7 +1,7 @@
 # 🚀 ToolKit 发布流程说明
 
-> 项目托管于 GitHub (`swordmaster-sgw/ToolKit`)，自动部署到 Cloudflare Pages。
-> **每次 push 到 `main` 分支后，Cloudflare Pages 会自动触发部署，通常 1~2 分钟上线。**
+> 项目托管于 GitHub (`swordmaster-sgw/ToolKit`)，通过 **Wrangler CLI** 手动部署到 Cloudflare Pages。
+> **线上地址**：`https://toolkit-3ur.pages.dev`
 
 ---
 
@@ -9,13 +9,17 @@
 
 ```
 本地修改
-  ↓ git add / commit / push
-GitHub (swordmaster-sgw/ToolKit)
-  ↓ 自动触发（Webhook）
-Cloudflare Pages
-  ↓ 静态资源部署
-线上访问
+  ↓ ./publish.sh 或手动执行
+  ├─ git add / commit / push（保存到 GitHub）
+  └─ npx wrangler pages deploy（直接上传到 Cloudflare）
+      ↓
+Cloudflare Pages (toolkit)
+  ↓ 部署完成，即时生效
+线上访问 https://toolkit-3ur.pages.dev
 ```
+
+> ⚠️ **注意**：本项目 Cloudflare Pages **未连接 GitHub 自动部署**（Git Provider: No），
+> `git push` 不会触发线上更新，必须通过 wrangler CLI 部署。
 
 ---
 
@@ -51,11 +55,13 @@ node scripts/generate-sitemap.js > sitemap.xml
 git add -A
 git commit -m "你的 commit 信息"
 
-# 4. 推送到 GitHub，触发 Cloudflare 自动部署
+# 4. 推送到 GitHub（代码备份）
 git push origin main
 
-# 5. 查看部署状态（约 1~2 分钟）
-# 访问：https://dash.cloudflare.com → Workers & Pages → ToolKit
+# 5. 部署到 Cloudflare Pages（这一步才是上线的！）
+npx wrangler pages deploy . --project-name=toolkit --branch=main --commit-dirty=true
+
+# 部署成功后会输出线上 URL，通常即时生效
 ```
 
 ---
@@ -95,9 +101,9 @@ git push origin main
 
 ## 验证部署
 
-1. 打开 [Cloudflare Pages Dashboard](https://dash.cloudflare.com) → **Workers & Pages**
-2. 找到 `ToolKit` 项目，查看最新 deployment 状态
-3. 状态变为 ✅ **Active** 后即可访问线上页面
+1. 部署成功后 wrangler 会输出部署 URL
+2. 访问 https://toolkit-3ur.pages.dev 确认页面更新
+3. 也可在 [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages** → `toolkit` 查看
 
 ---
 
