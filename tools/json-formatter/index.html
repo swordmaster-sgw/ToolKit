@@ -3199,7 +3199,8 @@ codeGenerators.ddl.ddl_pg     = function(data, state) { return buildDDL(data, st
 codeGenerators.ddl.ddl_sqlite = function(data, state) { return buildDDL(data, state, 'sqlite'); };
 codeGenerators.ddl.ddl_mssql  = function(data, state) { return buildDDL(data, state, 'mssql'); };
 
- const v=document.getElementById('input').value; if(!v){setStatus('输入内容为空','error');return;} copy(v,document.getElementById('copy-in-btn')); }
+function copyInput() {
+  const v=document.getElementById('input').value; if(!v){setStatus('输入内容为空','error');return;} copy(v,document.getElementById('copy-in-btn')); }
 function copyOutput() {
   // 优先使用 lastFormattedOutput（格式化后的 JSON 纯文本），避免 textContent 夹带折叠按钮图标
   if (lastFormattedOutput) { copy(lastFormattedOutput, document.getElementById('copy-out-btn')); return; }
