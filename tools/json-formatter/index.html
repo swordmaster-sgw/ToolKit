@@ -3073,125 +3073,208 @@ function toSnakeCase(str) {
   return str.replace(/([A-Z])/g, '_$1').replace(/[\s\-]+/g, '_').replace(/^_/, '').toLowerCase();
 }
 
-// 通用 DDL 生成核心
-function buildDDL(data, state, dialect) {
-  // 取顶层对象（数组时取第一个元素）
-  let obj = data;
-  if (Array.isArray(data)) obj = data.find(x => x && typeof x === 'object') || {};
-  if (!obj || typeof obj !== 'object') {
-    return `-- 输入的 JSON 不是对象或对象数组，无法生成 DDL`;
+// ---- DDL 方言工具 ----
+function ddlDialect(dialect) {
+  const pg = dialect === 'pg', ms = dialect === 'mssql', sl = dialect === 'sqlite';
+  const q  = s => ms ? `[${s}]` : `\`${s}\``;
+  const qn = s => pg ? `"${s}"` : q(s);           // 列/表引号
+  const col = (name, type) => pg ? `  "${name}" ${type}` : ms ? `  [${name}] ${type}` : `  ${q(name)} ${type}`;
+  const pkCol = () => {
+    if (sl)  return `  ${q('id')} INTEGER PRIMARY KEY AUTOINCREMENT`;
+    if (pg)  return `  "id" BIGSERIAL PRIMARY KEY`;
+    if (ms)  return `  [id] BIGINT IDENTITY(1,1) PRIMARY KEY`;
+    return `  ${q('id')} BIGINT AUTO_INCREMENT PRIMARY KEY`;
+  };
+  const fkCol = (colName) => {
+    if (pg)  return `  "${colName}" BIGINT`;
+    if (ms)  return `  [${colName}] BIGINT`;
+    return `  ${q(colName)} BIGINT`;
+  };
+  const createHeader = (tbl) => {
+    if (ms)  return [`IF OBJECT_ID('dbo.${tbl}', 'U') IS NOT NULL DROP TABLE dbo.${tbl};`, `CREATE TABLE dbo.${tbl} (`];
+    if (pg)  return [`DROP TABLE IF EXISTS "${tbl}";`, `CREATE TABLE "${tbl}" (`];
+    return [`DROP TABLE IF EXISTS ${q(tbl)};`, `CREATE TABLE ${q(tbl)} (`];
+  };
+  const createFooter = (tbl, addTime) => {
+    const parts = [];
+    if (dialect === 'mysql') {
+      parts.push(`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='${tbl}';`);
+    } else {
+      parts.push(`);`);
+    }
+    if (pg && addTime) {
+      parts.push(`\nCREATE OR REPLACE FUNCTION update_updated_at_column()\nRETURNS TRIGGER AS $$\nBEGIN\n  NEW.updated_at = NOW();\n  RETURN NEW;\nEND;\n$$ language 'plpgsql';\n\nCREATE TRIGGER update_${tbl}_updated_at\n  BEFORE UPDATE ON "${tbl}"\n  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();`);
+    }
+    return parts;
+  };
+  const tsCol = (addTime) => {
+    if (!addTime) return [];
+    if (pg)  return [`  "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()`, `  "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()`];
+    if (ms)  return [`  [created_at] DATETIME2 NOT NULL DEFAULT GETDATE()`, `  [updated_at] DATETIME2 NOT NULL DEFAULT GETDATE()`];
+    if (sl)  return [`  ${q('created_at')} TEXT NOT NULL DEFAULT (datetime('now'))`, `  ${q('updated_at')} TEXT NOT NULL DEFAULT (datetime('now'))`];
+    return [`  ${q('created_at')} DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`, `  ${q('updated_at')} DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`];
+  };
+  const fkConstraint = (tbl, colName, refTbl) => {
+    if (ms)  return `ALTER TABLE dbo.${tbl} ADD CONSTRAINT FK_${tbl}_${colName} FOREIGN KEY ([${colName}]) REFERENCES dbo.${refTbl} ([id]);`;
+    if (pg)  return `ALTER TABLE "${tbl}" ADD CONSTRAINT fk_${tbl}_${colName} FOREIGN KEY ("${colName}") REFERENCES "${refTbl}" ("id");`;
+    return `ALTER TABLE ${q(tbl)} ADD CONSTRAINT fk_${tbl}_${colName} FOREIGN KEY (${q(colName)}) REFERENCES ${q(refTbl)} (${q('id')});`;
+  };
+  const idxStmt = (tbl, colName) => {
+    if (pg)  return `CREATE INDEX idx_${tbl}_${colName} ON "${tbl}" ("${colName}");`;
+    if (ms)  return `CREATE INDEX IX_${tbl}_${colName} ON dbo.${tbl} ([${colName}]);`;
+    return `CREATE INDEX idx_${tbl}_${colName} ON ${q(tbl)} (${q(colName)});`;
+  };
+  return { q, qn, col, pkCol, fkCol, createHeader, createFooter, tsCol, fkConstraint, idxStmt };
+}
+
+// ---- 递归提取所有子表，返回 [{tableName, parentTable, fkCol, obj}] 有序列表（父表先于子表）----
+function extractTables(rootName, data) {
+  const tables = [];   // { tableName, parentTable, fkColName, obj }
+  const seen = new Set();
+
+  function visit(tableName, obj, parentTable, fkColName) {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return;
+    if (seen.has(tableName)) return;
+    seen.add(tableName);
+    tables.push({ tableName, obj, parentTable, fkColName });
+
+    for (const [key, value] of Object.entries(obj)) {
+      const childName = toSnakeCase(tableName + '_' + key);
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        // 嵌套对象 → 单独一张子表，外键 = parent_id
+        visit(toSnakeCase(key), value, tableName, tableName + '_id');
+      } else if (Array.isArray(value)) {
+        // 数组：取第一个非 null 元素
+        const elem = value.find(x => x !== null && x !== undefined);
+        if (elem && typeof elem === 'object' && !Array.isArray(elem)) {
+          // 对象数组 → 关联表（一对多），外键 = parent_id
+          visit(toSnakeCase(key), elem, tableName, tableName + '_id');
+        }
+        // 标量数组忽略（保留为 JSON 列）
+      }
+    }
   }
 
-  const table = toSnakeCase(state.tableName || 'my_table');
+  let root = data;
+  if (Array.isArray(data)) root = data.find(x => x && typeof x === 'object') || {};
+  visit(rootName, root, null, null);
+  return tables;
+}
+
+// ---- 为单张表生成 CREATE TABLE 文本 ----
+function buildTableDDL(tableInfo, state, dialect, D) {
+  const { tableName, obj, parentTable, fkColName } = tableInfo;
   const notNull = state.ddlNotNull ? ' NOT NULL' : '';
   const useComment = state.ddlComment;
-  const lines = [];
-
-  // 方言差异
-  const quoteL = dialect === 'mssql' ? '[' : '`';
-  const quoteR = dialect === 'mssql' ? ']' : '`';
-  const q = s => `${quoteL}${s}${quoteR}`;
-  const autoInc = dialect === 'pg' ? 'BIGSERIAL' : dialect === 'mssql' ? 'BIGINT IDENTITY(1,1)' : dialect === 'sqlite' ? 'INTEGER' : 'BIGINT AUTO_INCREMENT';
-  const pk = dialect === 'sqlite' ? 'PRIMARY KEY AUTOINCREMENT' : 'PRIMARY KEY';
-  const now = dialect === 'pg' ? 'NOW()' : dialect === 'mssql' ? 'GETDATE()' : 'CURRENT_TIMESTAMP';
-
-  // DROP + CREATE 头部
-  if (dialect === 'mssql') {
-    lines.push(`IF OBJECT_ID('dbo.${table}', 'U') IS NOT NULL DROP TABLE dbo.${table};`);
-    lines.push(`CREATE TABLE dbo.${table} (`);
-  } else if (dialect === 'pg') {
-    lines.push(`DROP TABLE IF EXISTS "${table}";`);
-    lines.push(`CREATE TABLE "${table}" (`);
-  } else {
-    lines.push(`DROP TABLE IF EXISTS ${q(table)};`);
-    lines.push(`CREATE TABLE ${q(table)} (`);
-  }
-
+  const lines = [...D.createHeader(tableName)];
   const cols = [];
 
-  // 自增主键
-  if (state.ddlAddId) {
-    if (dialect === 'sqlite') {
-      cols.push(`  ${q('id')} INTEGER PRIMARY KEY AUTOINCREMENT`);
-    } else if (dialect === 'pg') {
-      cols.push(`  "id" BIGSERIAL PRIMARY KEY`);
-    } else if (dialect === 'mssql') {
-      cols.push(`  [id] BIGINT IDENTITY(1,1) PRIMARY KEY`);
-    } else {
-      cols.push(`  ${q('id')} BIGINT AUTO_INCREMENT PRIMARY KEY`);
-    }
+  // 主键
+  if (state.ddlAddId) cols.push(D.pkCol());
+
+  // 外键列（指向父表 id）
+  if (parentTable && fkColName) {
+    const fkName = fkColName;
+    cols.push(D.fkCol(fkName));
   }
 
-  // JSON 字段
+  // 普通字段（跳过嵌套对象/对象数组，它们已拆表）
   for (const [key, value] of Object.entries(obj)) {
-    if (key === 'id' && state.ddlAddId) continue; // 已有 id 列
-    const colName = toSnakeCase(key);
-    const sqlType = inferSqlType(value, key, dialect);
-    const nn = notNull;
-    const commentStr = useComment
-      ? (typeof value === 'string' && value.length > 0 && value.length < 50 ? ` -- example: ${value.replace(/\n/g,'\\n').slice(0,40)}` : '')
-      : '';
-    if (dialect === 'pg') {
-      cols.push(`  "${colName}" ${sqlType}${nn}${commentStr}`);
-    } else if (dialect === 'mssql') {
-      cols.push(`  [${colName}] ${sqlType}${nn}${commentStr}`);
-    } else {
-      cols.push(`  ${q(colName)} ${sqlType}${nn}${commentStr}`);
+    if (key === 'id' && state.ddlAddId) continue;
+    // 嵌套对象 → 已拆子表，跳过
+    if (value && typeof value === 'object' && !Array.isArray(value)) continue;
+    // 对象数组 → 已拆子表，跳过
+    if (Array.isArray(value)) {
+      const elem = value.find(x => x !== null && x !== undefined);
+      if (elem && typeof elem === 'object' && !Array.isArray(elem)) continue;
     }
+    const colName = toSnakeCase(key);
+    const sqlType = inferSqlType(Array.isArray(value) ? JSON.stringify(value) : value, key, dialect);
+    const commentStr = useComment
+      ? (typeof value === 'string' && value.length > 0 && value.length < 50
+          ? ` -- example: ${value.replace(/\n/g,'\\n').slice(0,40)}`
+          : '')
+      : '';
+    cols.push(D.col(colName, sqlType + notNull) + commentStr);
   }
 
   // 时间戳
-  if (state.ddlAddTime) {
-    if (dialect === 'pg') {
-      cols.push(`  "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()`);
-      cols.push(`  "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()`);
-    } else if (dialect === 'mssql') {
-      cols.push(`  [created_at] DATETIME2 NOT NULL DEFAULT GETDATE()`);
-      cols.push(`  [updated_at] DATETIME2 NOT NULL DEFAULT GETDATE()`);
-    } else if (dialect === 'sqlite') {
-      cols.push(`  ${q('created_at')} TEXT NOT NULL DEFAULT (datetime('now'))`);
-      cols.push(`  ${q('updated_at')} TEXT NOT NULL DEFAULT (datetime('now'))`);
-    } else {
-      cols.push(`  ${q('created_at')} DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`);
-      cols.push(`  ${q('updated_at')} DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`);
-    }
-  }
+  cols.push(...D.tsCol(state.ddlAddTime));
 
+  // 外键约束（inline 放列尾，ALTER 单独追加）
   lines.push(cols.join(',\n'));
-
-  // 结尾
-  if (dialect === 'mysql') {
-    lines.push(`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='${table}';`);
-  } else if (dialect === 'pg') {
-    lines.push(`);`);
-    if (state.ddlAddTime) {
-      lines.push(`\n-- 自动更新 updated_at（需要 pgcrypto 或自定义 trigger）`);
-      lines.push(`CREATE OR REPLACE FUNCTION update_updated_at_column()\nRETURNS TRIGGER AS $$\nBEGIN\n  NEW.updated_at = NOW();\n  RETURN NEW;\nEND;\n$$ language 'plpgsql';\n\nCREATE TRIGGER update_${table}_updated_at\n  BEFORE UPDATE ON "${table}"\n  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();`);
-    }
-  } else if (dialect === 'mssql') {
-    lines.push(`);`);
-  } else {
-    lines.push(`);`);
-  }
-
-  // 索引提示
-  lines.push(`\n-- 常用查询字段建议建索引：`);
-  const idxCandidates = Object.keys(obj).filter(k => {
-    const kl = k.toLowerCase();
-    return kl.includes('id') || kl.includes('name') || kl.includes('status') || kl.includes('type') || kl.includes('code') || kl.includes('email');
-  }).slice(0, 4);
-  idxCandidates.forEach(k => {
-    const colName = toSnakeCase(k);
-    if (dialect === 'pg') {
-      lines.push(`CREATE INDEX idx_${table}_${colName} ON "${table}" ("${colName}");`);
-    } else if (dialect === 'mssql') {
-      lines.push(`CREATE INDEX IX_${table}_${colName} ON dbo.${table} ([${colName}]);`);
-    } else {
-      lines.push(`CREATE INDEX idx_${colName} ON ${q(table)} (${q(colName)});`);
-    }
-  });
+  lines.push(...D.createFooter(tableName, state.ddlAddTime));
 
   return lines.join('\n');
+}
+
+// 通用 DDL 生成核心（多表版）
+function buildDDL(data, state, dialect) {
+  let root = data;
+  if (Array.isArray(data)) root = data.find(x => x && typeof x === 'object') || {};
+  if (!root || typeof root !== 'object') {
+    return `-- 输入的 JSON 不是对象或对象数组，无法生成 DDL`;
+  }
+
+  const rootName = toSnakeCase(state.tableName || 'my_table');
+  const D = ddlDialect(dialect);
+  const tables = extractTables(rootName, data);
+
+  const sections = [];
+
+  // ---- DROP 顺序：子表先 DROP（反向），避免外键约束报错 ----
+  if (tables.length > 1) {
+    sections.push('-- ================================================');
+    sections.push(`-- 共检测到 ${tables.length} 张表（按外键依赖顺序）`);
+    sections.push('-- 删除顺序（子表先删）：' + [...tables].reverse().map(t => t.tableName).join(' → '));
+    sections.push('-- ================================================\n');
+  }
+
+  // ---- 逐表生成 CREATE ----
+  for (const tableInfo of tables) {
+    if (tables.length > 1) {
+      const rel = tableInfo.parentTable
+        ? `-- [子表] ${tableInfo.tableName}  →  ${tableInfo.parentTable} (通过 ${tableInfo.fkColName})`
+        : `-- [主表] ${tableInfo.tableName}`;
+      sections.push(rel);
+    }
+    sections.push(buildTableDDL(tableInfo, state, dialect, D));
+    sections.push('');
+  }
+
+  // ---- 外键 ALTER TABLE ----
+  const fkLines = [];
+  for (const tableInfo of tables) {
+    if (tableInfo.parentTable && tableInfo.fkColName) {
+      fkLines.push(D.fkConstraint(tableInfo.tableName, tableInfo.fkColName, tableInfo.parentTable));
+    }
+  }
+  if (fkLines.length > 0) {
+    sections.push('-- ---- 外键约束 ----');
+    sections.push(...fkLines);
+    sections.push('');
+  }
+
+  // ---- 索引建议 ----
+  const idxLines = [];
+  for (const tableInfo of tables) {
+    const idxCandidates = Object.keys(tableInfo.obj).filter(k => {
+      const kl = k.toLowerCase();
+      return kl.includes('id') || kl.includes('name') || kl.includes('status') || kl.includes('type') || kl.includes('code') || kl.includes('email');
+    }).slice(0, 3);
+    // 外键列也建索引
+    if (tableInfo.fkColName) idxLines.push(D.idxStmt(tableInfo.tableName, tableInfo.fkColName));
+    idxCandidates.forEach(k => {
+      const colName = toSnakeCase(k);
+      if (colName !== 'id') idxLines.push(D.idxStmt(tableInfo.tableName, colName));
+    });
+  }
+  if (idxLines.length > 0) {
+    sections.push('-- ---- 建议索引 ----');
+    sections.push(...idxLines);
+  }
+
+  return sections.join('\n');
 }
 
 codeGenerators.ddl.ddl_mysql  = function(data, state) { return buildDDL(data, state, 'mysql'); };
