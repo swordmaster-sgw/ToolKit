@@ -3069,7 +3069,9 @@ function inferSqlType(value, key, dialect) {
 }
 
 // 转下划线命名
+// 如果原字段名全是大写字母/数字/下划线（纯大写缩写如 FKJE、SOURCE_SYS），直接转小写，不插入下划线
 function toSnakeCase(str) {
+  if (/^[A-Z0-9_]+$/.test(str)) return str.toLowerCase();
   return str.replace(/([A-Z])/g, '_$1').replace(/[\s\-]+/g, '_').replace(/^_/, '').toLowerCase();
 }
 
