@@ -1298,7 +1298,7 @@ function buildLineWithFoldBtn(line, range) {
   // SVG 图标（展开状态：向下三角）
   // type class：object 蓝色，array 绿色
   const typeClass = range.type === 'array' ? 'type-arr' : 'type-obj';
-  const btnHTML = `<span class="inline-fold-btn ${typeClass}" data-start="${range.startLine}" data-end="${range.endLine}" data-type="${range.type}" data-state="expanded" title="折叠（点击折叠）">${makeFoldSVG(false, range.type)}</span>`;
+  const btnHTML = `<span class="inline-fold-btn ${typeClass}" data-start="${range.startLine}" data-end="${range.endLine}" data-type="${range.type}" data-count="${range.count||0}" data-state="expanded" title="折叠（点击折叠）">${makeFoldSVG(false, range.type)}</span>`;
   
   // 用语法高亮处理整行，再在开括号前插入按钮
   const highlighted = syntaxHighlight(line);
@@ -1360,12 +1360,16 @@ function bindInlineFoldBtn(btn, range) {
       btn.dataset.state = 'collapsed';
       btn.title = '点击展开';
       
-      // 在行尾追加折叠提示
+      // 在行尾追加折叠提示（显示元素数量）
       if (startLineEl && !startLineEl.querySelector('.fold-hint')) {
         const endSymbol = rangeType === 'array' ? ']' : '}';
+        const count = parseInt(btn.dataset.count) || 0;
+        const label = rangeType === 'array'
+          ? `${count} item${count !== 1 ? 's' : ''}`
+          : `${count} key${count !== 1 ? 's' : ''}`;
         const hint = document.createElement('span');
         hint.className = 'fold-hint';
-        hint.textContent = `… ${endSymbol}`;
+        hint.textContent = `… ${endSymbol}  ${label}`;
         startLineEl.appendChild(hint);
       }
     } else {
@@ -1561,7 +1565,8 @@ function calcLineRanges(obj, indent = 0, startLine = 0, path = '') {
       startLine: arrayStart,
       endLine: arrayEnd,
       path: path || 'root',
-      type: 'array'
+      type: 'array',
+      count: obj.length
     });
     
   } else if (obj !== null && typeof obj === 'object') {
@@ -1593,7 +1598,8 @@ function calcLineRanges(obj, indent = 0, startLine = 0, path = '') {
       startLine: objectStart,
       endLine: objectEnd,
       path: path || 'root',
-      type: 'object'
+      type: 'object',
+      count: keys.length
     });
   }
   
