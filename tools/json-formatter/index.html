@@ -851,6 +851,10 @@
     <svg viewBox="0 0 14 14" fill="none"><rect x="2" y="4" width="10" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
     压缩
   </button>
+  <button class="btn btn-secondary" onclick="unescapeJSON()" title="去除转义 / 将转义 JSON 字符串还原为 JSON">
+    <svg viewBox="0 0 14 14" fill="none"><path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 4v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    去转义
+  </button>
   <button class="btn btn-success" onclick="validateJSON()">
     <svg viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5l3 3 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     校验
@@ -1618,6 +1622,58 @@ function minifyJSON() {
     setStatus('✅ 压缩成功','success');
     setDetail(`节省 ${saved.toLocaleString()} 个字符 (${Math.round(saved/inputSource.length*100)}%)`);
   } catch(e) { setStatus('JSON 语法错误: '+e.message,'error'); }
+}
+
+// 去除转义：将转义 JSON 字符串（如 "{\"a\":1}"）还原为 JSON 对象后格式化输出
+// 支持多层嵌套转义（转义套转义）以及外层带引号的情况
+function unescapeJSON() {
+  const raw = document.getElementById('input').value.trim();
+  if (!raw) { setStatus('请先输入内容', 'error'); return; }
+
+  let str = raw;
+  let parsed = null;
+  let depth = 0;
+
+  // 尝试多次 unescape，最多 5 层（防止无限循环）
+  while (depth < 5) {
+    // 先尝试直接解析（可能已经是合法 JSON）
+    try {
+      parsed = JSON.parse(str);
+      // 如果解析结果仍是字符串，说明还有一层转义，继续剥
+      if (typeof parsed === 'string') {
+        str = parsed;
+        depth++;
+        continue;
+      }
+      break; // 解析成非字符串 → 成功
+    } catch(e) {
+      // 解析失败：尝试去掉外层引号后再解析
+      if ((str.startsWith('"') && str.endsWith('"')) ||
+          (str.startsWith("'") && str.endsWith("'"))) {
+        str = str.slice(1, -1);
+        depth++;
+        continue;
+      }
+      setStatus('无法识别的内容，请确认是转义 JSON 字符串', 'error');
+      return;
+    }
+  }
+
+  if (parsed === null || typeof parsed === 'string') {
+    setStatus('去转义失败：内容无法还原为 JSON', 'error');
+    return;
+  }
+
+  // 还原成功，填回输入框并格式化输出
+  const formatted = JSON.stringify(parsed, null, getIndent());
+  parsedData = parsed;
+  lastFormattedOutput = formatted;
+  document.getElementById('input').value = JSON.stringify(parsed); // 更新输入为干净 JSON
+  showOutput(syntaxHighlight(formatted));
+  setOutSize(formatted.length);
+  const stats = countStats(parsed);
+  setStatus(`✅ 去转义成功（剥了 ${depth + 1} 层）`, 'success');
+  setDetail(`${stats.keys} 个键 · ${stats.values} 个值 · 深度 ${stats.depth}`);
 }
 
 function validateJSON() {
