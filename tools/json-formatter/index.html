@@ -1773,7 +1773,7 @@ let cgState = {
   ddlAddId:   true,
   ddlAddTime: true,
   ddlNotNull: false,
-  ddlComment: true,
+  ddlComment: false,
   addComments: true,
   code: '',           // 当前生成代码
   fileName: ''        // 当前文件名
@@ -1896,7 +1896,7 @@ const OPTIONS = {
     { key: 'ddlAddId',     label: '自增主键 id', type: 'checkbox', default: true },
     { key: 'ddlAddTime',   label: '时间戳字段', type: 'checkbox', default: true },
     { key: 'ddlNotNull',   label: 'NOT NULL',   type: 'checkbox', default: false },
-    { key: 'ddlComment',   label: '列注释',     type: 'checkbox', default: true },
+    { key: 'ddlComment',   label: '列注释',     type: 'checkbox', default: false },
   ],
 };
 
