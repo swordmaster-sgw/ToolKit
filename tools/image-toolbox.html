@@ -169,10 +169,61 @@
     .toast.success { border-color: #22c55e; }
     .toast.error { border-color: #E24B4A; }
 
+    /* 批量处理面板 */
+    .batch-overlay { position: fixed; inset: 0; background: #0f1117; z-index: 200; display: none; flex-direction: column; overflow: hidden; }
+    .batch-overlay.active { display: flex; }
+    .batch-header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: #1a1d2e; border-bottom: 1px solid #2d3148; }
+    .batch-header h2 { font-size: 16px; font-weight: 600; flex: 1; }
+    .batch-body { flex: 1; display: grid; grid-template-columns: 320px 1fr; overflow: hidden; }
+    .batch-left { background: #1a1d2e; border-right: 1px solid #2d3148; display: flex; flex-direction: column; overflow: hidden; }
+    .batch-right { display: flex; flex-direction: column; overflow: hidden; padding: 16px; gap: 12px; }
+    .batch-section-title { font-size: 11px; color: #8b90a7; text-transform: uppercase; letter-spacing: .5px; padding: 8px 0 6px; }
+    .batch-upload-zone { border: 2px dashed #2d3148; border-radius: 10px; padding: 28px 16px; text-align: center; cursor: pointer; transition: all .2s; margin-bottom: 8px; }
+    .batch-upload-zone:hover { border-color: #6366f1; background: rgba(99,102,241,.06); }
+    .batch-upload-zone .icon { font-size: 32px; margin-bottom: 8px; }
+    .batch-upload-zone .title { font-size: 13px; color: #c4c9e2; }
+    .batch-upload-zone .hint { font-size: 11px; color: #4a4f6a; margin-top: 4px; }
+    .batch-file-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
+    .batch-file-item { display: flex; align-items: center; gap: 10px; background: #131520; border: 1px solid #2d3148; border-radius: 8px; padding: 8px 10px; position: relative; }
+    .batch-file-item.done { border-color: #22c55e; }
+    .batch-file-item.error { border-color: #E24B4A; }
+    .batch-file-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 5px; background: #2d3148; flex-shrink: 0; }
+    .batch-file-info { flex: 1; min-width: 0; }
+    .batch-file-name { font-size: 12px; color: #c4c9e2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .batch-file-meta { font-size: 11px; color: #8b90a7; margin-top: 2px; }
+    .batch-file-status { font-size: 11px; font-weight: 600; }
+    .batch-file-status.done { color: #22c55e; }
+    .batch-file-status.error { color: #E24B4A; }
+    .batch-file-status.pending { color: #8b90a7; }
+    .batch-file-status.processing { color: #BA7517; }
+    .batch-file-remove { background: none; border: none; color: #8b90a7; cursor: pointer; font-size: 14px; padding: 2px 4px; border-radius: 4px; flex-shrink: 0; }
+    .batch-file-remove:hover { background: #2d3148; color: #E24B4A; }
+    .batch-config { padding: 12px 0; border-bottom: 1px solid #2d3148; }
+    .batch-config .form-row { margin-bottom: 8px; }
+    .batch-progress-area { margin-top: auto; padding-top: 12px; border-top: 1px solid #2d3148; }
+    .batch-progress-bar { height: 4px; background: #2d3148; border-radius: 2px; overflow: hidden; margin: 8px 0; }
+    .batch-progress-fill { height: 100%; background: #6366f1; border-radius: 2px; transition: width .3s; }
+    .batch-progress-text { font-size: 12px; color: #8b90a7; text-align: center; margin-bottom: 10px; }
+    .batch-result-summary { font-size: 13px; color: #c4c9e2; text-align: center; padding: 8px 0; }
+    .batch-result-summary b { color: #22c55e; }
+    .batch-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; overflow-y: auto; flex: 1; }
+    .batch-preview-item { background: #131520; border: 1px solid #2d3148; border-radius: 8px; overflow: hidden; position: relative; }
+    .batch-preview-item img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+    .batch-preview-item .overlay { position: absolute; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .2s; }
+    .batch-preview-item:hover .overlay { opacity: 1; }
+    .batch-preview-item .overlay span { font-size: 12px; color: #fff; }
+    .batch-preview-item .size-diff { position: absolute; bottom: 4px; right: 4px; font-size: 10px; background: rgba(0,0,0,.6); color: #fff; padding: 1px 5px; border-radius: 3px; }
+    .batch-preview-item .size-diff.save { color: #22c55e; }
+    .batch-preview-item .size-diff.grow { color: #E24B4A; }
+    .batch-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #8b90a7; font-size: 13px; gap: 8px; }
+    .batch-empty .icon { font-size: 40px; opacity: .4; }
+    @media (max-width: 700px) { .batch-body { grid-template-columns: 1fr; } .batch-left { border-right: none; border-bottom: 1px solid #2d3148; max-height: 240px; } }
+
     /* Animations */
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .card { animation: fadeIn .3s ease; }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3/dist/jszip.min.js"></script>
 </head>
 <body>
 
@@ -205,6 +256,7 @@
     <button class="sb-btn" onclick="IT.showPanel('convert-panel')">🔄 格式转换</button>
     <button class="sb-btn" onclick="IT.showPanel('resize-panel')">📐 调整尺寸</button>
     <button class="sb-btn" onclick="IT.startCrop()">✂️ 裁剪图片</button>
+    <button class="sb-btn" onclick="IT.openBatch()" style="color:#6366f1">📦 批量处理</button>
     <div class="sb-sep"></div>
     <div class="sidebar-title">工具</div>
     <button class="sb-btn" onclick="IT.showPanel('base64-panel')">🔐 Base64</button>
@@ -524,7 +576,97 @@
   </div>
 </div>
 
+<!-- 批量处理面板 -->
+<div class="batch-overlay" id="batchOverlay">
+  <div class="batch-header">
+    <h2>📦 批量处理</h2>
+    <button class="btn btn-ghost btn-sm" onclick="IT.closeBatch()">✕ 关闭</button>
+  </div>
+  <div class="batch-body">
+    <!-- 左侧：文件列表 + 配置 -->
+    <div class="batch-left">
+      <div class="batch-section-title" style="padding:12px 12px 6px">上传图片（最多 10 张）</div>
+      <div style="padding:0 12px">
+        <div class="batch-upload-zone" id="batchUploadZone" onclick="IT.selectBatchFiles()">
+          <div class="icon">🖼️</div>
+          <div class="title">点击上传多张图片</div>
+          <div class="hint">或拖拽文件到此处</div>
+        </div>
+      </div>
+      <div class="batch-file-list" id="batchFileList">
+        <div class="batch-empty" id="batchEmpty">
+          <div class="icon">📁</div>
+          <div>暂未上传图片</div>
+        </div>
+      </div>
+      <div class="batch-config" style="padding:10px 12px">
+        <div class="batch-section-title">批量设置</div>
+        <div class="form-row">
+          <span class="form-label">输出格式</span>
+          <select class="form-input" id="batchFmt" style="flex:1">
+            <option value="image/png">PNG</option>
+            <option value="image/jpeg">JPEG</option>
+            <option value="image/webp">WebP</option>
+          </select>
+        </div>
+        <div class="form-row" id="batchQualityRow">
+          <span class="form-label">质量</span>
+          <div style="flex:1;display:flex;align-items:center;gap:8px">
+            <input type="range" id="batchQuality" min="10" max="100" value="80" style="flex:1;accent-color:#6366f1">
+            <span id="batchQualityVal" style="font-size:12px;color:#6366f1;min-width:30px">80%</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <span class="form-label">缩放</span>
+          <select class="form-input" id="batchScale" style="flex:1">
+            <option value="1">原尺寸</option>
+            <option value="0.5">50%</option>
+            <option value="0.25">25%</option>
+            <option value="2">200%</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label style="font-size:12px;color:#8b90a7;display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="checkbox" id="batchWatermark"> 添加水印
+          </label>
+        </div>
+        <div id="batchWmConfig" style="display:none">
+          <div class="form-row">
+            <span class="form-label">水印文字</span>
+            <input class="form-input" id="batchWmText" type="text" value="ToolKit" style="flex:1">
+          </div>
+          <div class="form-row">
+            <span class="form-label">透明度</span>
+            <div style="flex:1;display:flex;align-items:center;gap:8px">
+              <input type="range" id="batchWmAlpha" min="0" max="1" step="0.05" value="0.5" style="flex:1;accent-color:#6366f1">
+              <span id="batchWmAlphaVal" style="font-size:12px;color:#6366f1;min-width:30px">50%</span>
+            </div>
+          </div>
+        </div>
+        <div class="batch-progress-area">
+          <div class="batch-progress-text" id="batchProgressText">等待开始...</div>
+          <div class="batch-progress-bar"><div class="batch-progress-fill" id="batchProgressFill" style="width:0%"></div></div>
+          <div class="batch-result-summary" id="batchResultSummary" style="display:none"></div>
+          <button class="btn btn-primary" style="width:100%" id="batchStartBtn" onclick="IT.startBatchProcess()">🚀 开始处理</button>
+          <button class="btn btn-primary" style="width:100%;margin-top:6px;display:none" id="batchDownloadBtn" onclick="IT.downloadBatchZip()">📦 下载 ZIP</button>
+        </div>
+      </div>
+    </div>
+    <!-- 右侧：预览网格 -->
+    <div class="batch-right">
+      <div class="batch-section-title">处理预览</div>
+      <div class="batch-preview-grid" id="batchPreviewGrid">
+        <div class="batch-empty" id="batchGridEmpty">
+          <div class="icon">🖼️</div>
+          <div>上传图片后在此预览</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="IT.onFileSelected(event)">
+<input type="file" id="batchFileInput" accept="image/*" multiple style="display:none" onchange="IT.onBatchFilesSelected(event)">
 <div class="toast" id="toast"></div>
 
 <script>
@@ -579,6 +721,20 @@ class ImageToolbox {
     });
     // 对比滑块
     this._initCompareSlider();
+    // 批量处理控件
+    document.getElementById('batchQuality').addEventListener('input', e => {
+      document.getElementById('batchQualityVal').textContent = e.target.value + '%';
+    });
+    document.getElementById('batchFmt').addEventListener('change', e => {
+      const show = e.target.value !== 'image/png';
+      document.getElementById('batchQualityRow').style.display = show ? '' : 'none';
+    });
+    document.getElementById('batchWatermark').addEventListener('change', e => {
+      document.getElementById('batchWmConfig').style.display = e.target.checked ? '' : 'none';
+    });
+    document.getElementById('batchWmAlpha').addEventListener('input', e => {
+      document.getElementById('batchWmAlphaVal').textContent = Math.round(e.target.value * 100) + '%';
+    });
   }
 
   /* ========== 拖拽上传 ========== */
@@ -1750,6 +1906,269 @@ class ImageToolbox {
     t.className = 'toast show' + (success && !error ? ' success' : error ? ' error' : '');
     clearTimeout(this._toastTimer);
     this._toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  /* ========== 批量处理 ========== */
+  openBatch() {
+    this._batch = {
+      files: [],      // [{file, name, size, w, h, thumbUrl, status, processedUrl, processedSize}]
+      done: 0,
+      processing: false,
+    };
+    document.getElementById('batchOverlay').classList.add('active');
+    document.getElementById('batchEmpty').style.display = 'flex';
+    document.getElementById('batchFileList').querySelectorAll('.batch-file-item').forEach(el => el.remove());
+    document.getElementById('batchProgressFill').style.width = '0%';
+    document.getElementById('batchProgressText').textContent = '等待开始...';
+    document.getElementById('batchResultSummary').style.display = 'none';
+    document.getElementById('batchStartBtn').style.display = '';
+    document.getElementById('batchDownloadBtn').style.display = 'none';
+    document.getElementById('batchGridEmpty').style.display = 'flex';
+    document.getElementById('batchPreviewGrid').querySelectorAll('.batch-preview-item').forEach(el => el.remove());
+    this._bindBatchDrop();
+  }
+
+  closeBatch() {
+    this._unbindBatchDrop();
+    // 释放缩略图 blob URLs
+    if (this._batch) {
+      this._batch.files.forEach(f => { if (f.thumbUrl) URL.revokeObjectURL(f.thumbUrl); });
+    }
+    document.getElementById('batchOverlay').classList.remove('active');
+  }
+
+  selectBatchFiles() {
+    document.getElementById('batchFileInput').click();
+  }
+
+  onBatchFilesSelected(e) {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    if (files.length > 10) { this.toast('最多支持 10 张图片', false, true); files.splice(10); }
+    files.forEach(f => this._addBatchFile(f));
+    e.target.value = '';
+  }
+
+  _addBatchFile(file) {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const entry = {
+          file,
+          name: file.name.replace(/\.[^.]+$/, ''),
+          size: file.size,
+          w: img.width,
+          h: img.height,
+          thumbUrl: e.target.result,
+          status: 'pending',
+          processedUrl: null,
+          processedSize: 0,
+        };
+        this._batch.files.push(entry);
+        this._renderBatchFileItem(entry);
+        this._renderBatchPreviewItem(entry);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  _renderBatchFileItem(entry) {
+    document.getElementById('batchEmpty').style.display = 'none';
+    const list = document.getElementById('batchFileList');
+    const div = document.createElement('div');
+    div.className = 'batch-file-item';
+    div.id = 'bfi_' + entry.name;
+    div.innerHTML = `
+      <img class="batch-file-thumb" src="${entry.thumbUrl}" alt="">
+      <div class="batch-file-info">
+        <div class="batch-file-name" title="${entry.name}">${entry.name}</div>
+        <div class="batch-file-meta">${entry.w}×${entry.h} · ${this.fmtSize(entry.size)}</div>
+        <div class="batch-file-status pending" id="bfs_${entry.name}">等待处理</div>
+      </div>
+      <button class="batch-file-remove" onclick="IT.removeBatchFile('${entry.name}')">✕</button>`;
+    list.appendChild(div);
+  }
+
+  _renderBatchPreviewItem(entry) {
+    document.getElementById('batchGridEmpty').style.display = 'none';
+    const grid = document.getElementById('batchPreviewGrid');
+    const div = document.createElement('div');
+    div.className = 'batch-preview-item';
+    div.id = 'bpi_' + entry.name;
+    div.innerHTML = `
+      <img src="${entry.thumbUrl}" alt="${entry.name}">
+      <div class="overlay"><span>${entry.name}</span></div>
+      <div class="size-diff" id="bps_${entry.name}">${this.fmtSize(entry.size)}</div>`;
+    grid.appendChild(div);
+  }
+
+  removeBatchFile(name) {
+    const idx = this._batch.files.findIndex(f => f.name === name);
+    if (idx === -1) return;
+    const entry = this._batch.files[idx];
+    if (entry.thumbUrl) URL.revokeObjectURL(entry.thumbUrl);
+    this._batch.files.splice(idx, 1);
+    const el = document.getElementById('bfi_' + name);
+    if (el) el.remove();
+    const pel = document.getElementById('bpi_' + name);
+    if (pel) pel.remove();
+    if (this._batch.files.length === 0) {
+      document.getElementById('batchEmpty').style.display = 'flex';
+      document.getElementById('batchGridEmpty').style.display = 'flex';
+    }
+  }
+
+  _bindBatchDrop() {
+    const zone = document.getElementById('batchUploadZone');
+    const overlay = document.getElementById('batchOverlay');
+    const onDrag = (e) => { e.preventDefault(); zone.classList.add('dragover'); };
+    const onLeave = () => zone.classList.remove('dragover');
+    const onDrop = (e) => {
+      e.preventDefault(); zone.classList.remove('dragover');
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+      if (files.length > 10) { this.toast('最多支持 10 张图片', false, true); files.splice(10); }
+      files.forEach(f => this._addBatchFile(f));
+    };
+    overlay.addEventListener('dragover', onDrag);
+    overlay.addEventListener('dragleave', onLeave);
+    overlay.addEventListener('drop', onDrop);
+    this._batchDropHandlers = { onDrag, onLeave, onDrop };
+  }
+
+  _unbindBatchDrop() {
+    const h = this._batchDropHandlers;
+    if (!h) return;
+    const overlay = document.getElementById('batchOverlay');
+    overlay.removeEventListener('dragover', h.onDrag);
+    overlay.removeEventListener('dragleave', h.onLeave);
+    overlay.removeEventListener('drop', h.onDrop);
+    this._batchDropHandlers = null;
+  }
+
+  async startBatchProcess() {
+    if (this._batch.files.length === 0) return this.toast('请先上传图片');
+    if (this._batch.processing) return;
+    this._batch.processing = true;
+    this._batch.done = 0;
+    const btn = document.getElementById('batchStartBtn');
+    btn.disabled = true; btn.textContent = '处理中...';
+    const fmt = document.getElementById('batchFmt').value;
+    const quality = parseInt(document.getElementById('batchQuality').value) / 100;
+    const scale = parseFloat(document.getElementById('batchScale').value);
+    const wmEnabled = document.getElementById('batchWatermark').checked;
+    const wmText = wmEnabled ? document.getElementById('batchWmText').value : '';
+    const wmAlpha = wmEnabled ? parseFloat(document.getElementById('batchWmAlpha').value) : 0.5;
+
+    const total = this._batch.files.length;
+    let totalOrig = 0, totalNew = 0;
+
+    for (const entry of this._batch.files) {
+      document.getElementById('bfs_' + entry.name).textContent = '处理中...';
+      document.getElementById('bfs_' + entry.name).className = 'batch-file-status processing';
+      document.getElementById('bfi_' + entry.name).className = 'batch-file-item';
+      try {
+        const result = await this._processSingleImage(entry, fmt, quality, scale, wmText, wmAlpha);
+        entry.processedUrl = result.url;
+        entry.processedSize = result.size;
+        document.getElementById('bfs_' + entry.name).textContent = '✓ 完成';
+        document.getElementById('bfs_' + entry.name).className = 'batch-file-status done';
+        document.getElementById('bfi_' + entry.name).className = 'batch-file-item done';
+        const diff = entry.processedSize - entry.size;
+        const pct = ((diff / entry.size) * 100).toFixed(1);
+        const diffEl = document.getElementById('bps_' + entry.name);
+        if (diffEl) {
+          diffEl.textContent = (diff <= 0 ? '-' : '+') + Math.abs(pct) + '%';
+          diffEl.className = 'size-diff ' + (diff <= 0 ? 'save' : 'grow');
+        }
+      } catch (err) {
+        document.getElementById('bfs_' + entry.name).textContent = '✕ 失败';
+        document.getElementById('bfs_' + entry.name).className = 'batch-file-status error';
+        document.getElementById('bfi_' + entry.name).className = 'batch-file-item error';
+      }
+      totalOrig += entry.size;
+      totalNew += (entry.processedSize || entry.size);
+      this._batch.done++;
+      const pct = Math.round((this._batch.done / total) * 100);
+      document.getElementById('batchProgressFill').style.width = pct + '%';
+      document.getElementById('batchProgressText').textContent = `${this._batch.done}/${total} 处理完成`;
+    }
+
+    this._batch.processing = false;
+    btn.disabled = false; btn.textContent = '🚀 开始处理';
+    const savedPct = ((1 - totalNew / totalOrig) * 100).toFixed(1);
+    const summary = document.getElementById('batchResultSummary');
+    summary.innerHTML = `总处理 <b>${total}</b> 张图片，体积从 <b>${this.fmtSize(totalOrig)}</b> → <b>${this.fmtSize(totalNew)}</b>，${savedPct > 0 ? '节省 <b style="color:#22c55e">' + savedPct + '%</b>' : '增加 <b style="color:#E24B4A">' + Math.abs(savedPct) + '%</b>'}`;
+    summary.style.display = '';
+    document.getElementById('batchDownloadBtn').style.display = '';
+    this.toast(`批量处理完成！${total} 张图片`);
+  }
+
+  async _processSingleImage(entry, fmt, quality, scale, wmText, wmAlpha) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = Math.round(img.width * scale);
+        let h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        // 水印
+        if (wmText) {
+          ctx.globalAlpha = wmAlpha;
+          const fontSize = Math.max(14, Math.round(w / 20));
+          ctx.font = `${fontSize}px -apple-system, sans-serif`;
+          ctx.fillStyle = '#ffffff';
+          ctx.shadowColor = 'rgba(0,0,0,0.5)';
+          ctx.shadowBlur = 3;
+          const tw = ctx.measureText(wmText).width;
+          ctx.fillText(wmText, w - tw - 12, h - 12);
+          ctx.globalAlpha = 1;
+        }
+        canvas.toBlob(blob => {
+          if (!blob) return reject(new Error('toBlob failed'));
+          const url = URL.createObjectURL(blob);
+          resolve({ blob, url, size: blob.size });
+        }, fmt, fmt === 'image/jpeg' || fmt === 'image/webp' ? quality : undefined);
+      };
+      img.onerror = () => reject(new Error('image load failed'));
+      img.src = entry.thumbUrl;
+    });
+  }
+
+  async downloadBatchZip() {
+    const done = this._batch.files.filter(f => f.processedUrl);
+    if (done.length === 0) return this.toast('没有可下载的图片');
+    this.toast('正在生成 ZIP...');
+    const zip = new JSZip();
+    const extMap = {
+      'image/png': 'png',
+      'image/jpeg': 'jpg',
+      'image/webp': 'webp',
+    };
+    const fmt = document.getElementById('batchFmt').value;
+    const ext = extMap[fmt] || 'png';
+    let idx = 0;
+    for (const entry of done) {
+      try {
+        const resp = await fetch(entry.processedUrl);
+        const blob = await resp.blob();
+        let fname = entry.name + '.' + ext;
+        // 避免重名
+        while (zip.file(fname)) { fname = entry.name + '_' + (++idx) + '.' + ext; }
+        zip.file(fname, blob);
+      } catch (e) { /* skip failed */ }
+    }
+    const zblob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+    const url = URL.createObjectURL(zblob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `images_batch_${Date.now()}.zip`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    this.toast(`ZIP 下载完成，共 ${done.length} 张图片`);
   }
 }
 
