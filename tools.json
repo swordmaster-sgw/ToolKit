@@ -563,7 +563,7 @@
   {
     "id": "image-tools",
     "name": "图片工具箱",
-    "description": "图片压缩、格式转换（PNG/JPG/WebP）、Base64编解码、尺寸调整，本地处理不上传。",
+    "description": "图片压缩、格式转换（PNG/JPG/WebP）、尺寸调整、Base64编码、色板提取、EXIF信息查看，本地处理，支持拖拽上传。",
     "category": "数据处理",
     "tags": ["图片", "压缩", "转换", "Base64"],
     "version": "1.0.0",
@@ -777,18 +777,18 @@
   },
   {
     "id": "image-toolbox",
-    "name": "图片工具箱增强版",
-    "description": "截图、取色、压缩、格式转换、Base64编码、色板提取、EXIF查看，一站式图片处理工具，支持快捷键操作。",
+    "name": "图片工具箱",
+    "description": "图片压缩（质量滑块+对比视图）、格式转换、尺寸调整（快捷预设）、裁剪（Canvas交互+比例预设）、Base64双向编解码、色板提取（K-Means）、EXIF解析、添加水印、图片信息看板（直方图+复杂度），本地处理，支持拖拽上传、历史撤销/重做。",
     "category": "提效工具",
-    "tags": ["图片处理", "截图", "取色", "压缩"],
-    "version": "1.0.0",
+    "tags": ["图片处理", "压缩", "格式转换", "取色", "裁剪", "水印"],
+    "version": "3.0.0",
     "status": "stable",
     "url": "./tools/image-toolbox.html",
     "icon": "🖼️",
     "created": "2026-03-31",
-    "updated": "2026-03-31",
+    "updated": "2026-05-06",
     "ai_callable": false,
-    "ai_description": "处理图片，包括截图、取色、压缩和格式转换",
+    "ai_description": "处理图片，包括压缩、格式转换、尺寸调整、色板提取和EXIF查看",
     "ai_params": {}
   },
   {
