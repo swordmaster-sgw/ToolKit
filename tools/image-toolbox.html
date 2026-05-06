@@ -85,16 +85,19 @@
     /* 裁剪覆盖层 */
     .crop-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 200; display: none; flex-direction: column; }
     .crop-overlay.active { display: flex; }
-    .crop-toolbar { display: flex; align-items: center; gap: 10px; padding: 12px 20px; background: #1a1d2e; border-bottom: 1px solid #2d3148; }
-    .crop-toolbar .ratio-btns { display: flex; gap: 6px; }
-    .crop-toolbar .ratio-btn { padding: 5px 12px; background: #2d3148; border: 1px solid #2d3148; border-radius: 5px; color: #8b90a7; font-size: 12px; cursor: pointer; }
-    .crop-toolbar .ratio-btn:hover { border-color: #6366f1; color: #c4c9e2; }
-    .crop-toolbar .ratio-btn.active { background: rgba(99,102,241,.15); color: #6366f1; border-color: #6366f1; }
-    .crop-container { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
-    .crop-canvas-wrap { position: relative; display: inline-block; }
-    #cropCanvas { max-width: 100%; max-height: calc(100vh - 120px); display: block; }
-    .crop-dim-inputs { display: flex; gap: 12px; align-items: center; font-size: 13px; color: #8b90a7; }
-    .crop-dim-inputs input { width: 70px; }
+    .crop-toolbar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: #1a1d2e; border-bottom: 1px solid #2d3148; flex-wrap: wrap; }
+    .crop-toolbar .ratio-btns, .crop-toolbar .shape-btns, .crop-toolbar .mode-btns { display: flex; gap: 4px; }
+    .crop-toolbar .ratio-btn, .crop-toolbar .shape-btn, .crop-toolbar .mode-btn { padding: 5px 11px; background: #2d3148; border: 1px solid #2d3148; border-radius: 5px; color: #8b90a7; font-size: 12px; cursor: pointer; transition: all .15s; white-space: nowrap; }
+    .crop-toolbar .ratio-btn:hover, .crop-toolbar .shape-btn:hover, .crop-toolbar .mode-btn:hover { border-color: #6366f1; color: #c4c9e2; }
+    .crop-toolbar .ratio-btn.active, .crop-toolbar .shape-btn.active, .crop-toolbar .mode-btn.active { background: rgba(99,102,241,.15); color: #6366f1; border-color: #6366f1; }
+    .crop-toolbar .sep { width: 1px; height: 20px; background: #2d3148; margin: 0 4px; }
+    .crop-toolbar .crop-dim-inputs { display: flex; gap: 6px; align-items: center; font-size: 12px; color: #8b90a7; }
+    .crop-toolbar .crop-dim-inputs input { width: 64px; background: #131520; border: 1px solid #2d3148; border-radius: 4px; padding: 4px 6px; color: #e2e8f0; font-size: 12px; outline: none; }
+    .crop-toolbar .crop-dim-inputs input:focus { border-color: #6366f1; }
+    .crop-container { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; cursor: crosshair; }
+    .crop-container.mode-select { cursor: default; }
+    .crop-canvas-wrap { position: relative; display: inline-block; line-height: 0; }
+    #cropCanvas { display: block; max-width: 100%; max-height: calc(100vh - 110px); }
 
     /* 对比滑块 */
     .compare-slider-wrap { position: relative; width: 100%; max-height: 400px; overflow: hidden; border-radius: 8px; display: none; }
@@ -488,22 +491,31 @@
 <!-- 裁剪覆盖层 -->
 <div class="crop-overlay" id="cropOverlay">
   <div class="crop-toolbar">
-    <span style="font-size:13px;color:#8b90a7">裁剪比例：</span>
-    <div class="ratio-btns">
-      <button class="ratio-btn active" onclick="IT.setCropRatio('free')">自由</button>
-      <button class="ratio-btn" onclick="IT.setCropRatio('1:1')">1:1</button>
-      <button class="ratio-btn" onclick="IT.setCropRatio('4:3')">4:3</button>
-      <button class="ratio-btn" onclick="IT.setCropRatio('16:9')">16:9</button>
-      <button class="ratio-btn" onclick="IT.setCropRatio('3:2')">3:2</button>
+    <span style="font-size:12px;color:#8b90a7;margin-right:2px">形状：</span>
+    <div class="shape-btns">
+      <button class="shape-btn active" onclick="IT.setCropShape('rect')" title="矩形">▢ 矩形</button>
+      <button class="shape-btn" onclick="IT.setCropShape('circle')" title="圆形">◯ 圆形</button>
+      <button class="shape-btn" onclick="IT.setCropShape('ellipse')" title="椭圆">◬ 椭圆</button>
+      <button class="shape-btn" onclick="IT.setCropShape('roundedRect')" title="圆角矩形">▢R 圆角</button>
     </div>
+    <div class="sep"></div>
+    <span style="font-size:12px;color:#8b90a7">模式：</span>
+    <div class="mode-btns">
+      <button class="mode-btn active" onclick="IT.setCropMode('draw')" id="cropModeDraw" title="拖动画出形状">✏️ 绘制</button>
+      <button class="mode-btn" onclick="IT.setCropMode('select')" id="cropModeSelect" title="选中并移动形状">☝️ 选择</button>
+    </div>
+    <div class="sep"></div>
     <div class="crop-dim-inputs">
-      <span>X</span><input id="cropX" type="number" value="0">
-      <span>Y</span><input id="cropY" type="number" value="0">
-      <span>W</span><input id="cropW" type="number" value="100">
-      <span>H</span><input id="cropH" type="number" value="100">
+      <span>X</span><input id="cropX" type="number" value="0" onchange="IT.syncCropDim()">
+      <span>Y</span><input id="cropY" type="number" value="0" onchange="IT.syncCropDim()">
+      <span>W</span><input id="cropW" type="number" value="100" onchange="IT.syncCropDim()">
+      <span>H</span><input id="cropH" type="number" value="100" onchange="IT.syncCropDim()">
     </div>
-    <button class="btn btn-primary btn-sm" onclick="IT.applyCrop()">应用裁剪</button>
-    <button class="btn btn-ghost btn-sm" onclick="IT.cancelCrop()">取消</button>
+    <div class="sep"></div>
+    <button class="btn btn-sm btn-ghost" onclick="IT.deleteCropShape()" title="删除选中图形">🗑 删除</button>
+    <button class="btn btn-sm btn-ghost" onclick="IT.clearCropShapes()">清空</button>
+    <button class="btn btn-primary btn-sm" onclick="IT.applyCrop()">✓ 应用裁剪</button>
+    <button class="btn btn-ghost btn-sm" onclick="IT.cancelCrop()">✕ 取消</button>
   </div>
   <div class="crop-container" id="cropContainer">
     <div class="crop-canvas-wrap">
@@ -766,137 +778,431 @@ class ImageToolbox {
   /* ========== 裁剪 ========== */
   startCrop() {
     if (!this.srcImg) return this.toast('请先选择图片');
+    // 初始化裁剪状态
+    this._crop = {
+      shapes: [],           // 所有图形
+      activeId: null,      // 选中图形 id
+      mode: 'draw',        // 'draw' | 'select'
+      drawType: 'rect',   // 当前绘制形状类型
+      dragging: false,
+      resizing: false,
+      resizeHandle: null,  // 'nw'|'n'|'ne'|'e'|'se'|'s'|'sw'|'w'
+      dragStart: null,
+      shapeStart: null,
+      nextId: 1,
+    };
+    this.setCropMode('draw');
     const overlay = document.getElementById('cropOverlay');
     overlay.classList.add('active');
     const canvas = document.getElementById('cropCanvas');
     canvas.width = this.srcImg.width;
     canvas.height = this.srcImg.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(this.srcImg, 0, 0);
-    // 默认选区：中心区域
+    // 绑定鼠标事件
+    this._bindCropEvents();
+    // 默认在中心创建一个矩形选区
     const cx = Math.round(this.srcImg.width * 0.15);
     const cy = Math.round(this.srcImg.height * 0.15);
     const cw = Math.round(this.srcImg.width * 0.7);
     const ch = Math.round(this.srcImg.height * 0.7);
-    this._crop.sel = { x: cx, y: cy, w: cw, h: ch };
-    document.getElementById('cropX').value = cx;
-    document.getElementById('cropY').value = cy;
-    document.getElementById('cropW').value = cw;
-    document.getElementById('cropH').value = ch;
-    this._drawCropOverlay();
-    this._initCropInteraction();
+    const shape = { id: this._crop.nextId++, type: 'rect', x: cx, y: cy, w: cw, h: ch };
+    this._crop.shapes.push(shape);
+    this._crop.activeId = shape.id;
+    this._syncCropInputs(shape);
+    this.renderCrop();
   }
 
-  setCropRatio(ratio) {
-    this._crop.ratio = ratio;
-    document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
-    document.querySelector(`.ratio-btn[onclick="IT.setCropRatio('${ratio}')"]`).classList.add('active');
-    if (ratio !== 'free') {
-      const [rw, rh] = ratio.split(':').map(Number);
-      const img = this.srcImg;
-      let w, h;
-      if (rw > rh) { w = Math.round(img.width * 0.7); h = Math.round(w * rh / rw); }
-      else { h = Math.round(img.height * 0.7); w = Math.round(h * rw / rh); }
-      const x = Math.round((img.width - w) / 2);
-      const y = Math.round((img.height - h) / 2);
-      this._crop.sel = { x, y, w, h };
-      document.getElementById('cropX').value = x;
-      document.getElementById('cropY').value = y;
-      document.getElementById('cropW').value = w;
-      document.getElementById('cropH').value = h;
-      this._drawCropOverlay();
+  setCropShape(type) {
+    this._crop.drawType = type;
+    document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.shape-btn[onclick="IT.setCropShape('${type}')"]`).classList.add('active');
+    this.setCropMode('draw');
+  }
+
+  setCropMode(mode) {
+    this._crop.mode = mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('cropMode' + (mode === 'draw' ? 'Draw' : 'Select')).classList.add('active');
+    const container = document.getElementById('cropContainer');
+    if (mode === 'draw') {
+      container.classList.remove('mode-select');
+      container.classList.add('mode-draw');
+    } else {
+      container.classList.add('mode-select');
+      container.classList.remove('mode-draw');
     }
+    this.renderCrop();
   }
 
-  _initCropInteraction() {
-    const canvas = document.getElementById('cropCanvas');
-    const wrap = document.getElementById('cropContainer');
-    let dragging = false, dir = '';
-    let startX, startY, startSel;
-
-    const getPos = (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      return {
-        x: Math.round((clientX - rect.left) * scaleX),
-        y: Math.round((clientY - rect.top) * scaleY)
-      };
-    };
-
-    const hitTest = (px, py) => {
-      const s = this._crop.sel;
-      const d = 8;
-      if (px >= s.x && px <= s.x + s.w && py >= s.y && py <= s.y + s.h) return 'move';
-      return '';
-    };
-
-    canvas.onmousedown = canvas.ontouchstart = (e) => {
-      const p = getPos(e);
-      const hit = hitTest(p.x, p.y);
-      if (hit) { dragging = true; dir = hit; startX = p.x; startY = p.y; startSel = { ...this._crop.sel }; e.preventDefault(); }
-    };
-    document.onmousemove = document.ontouchmove = (e) => {
-      if (!dragging) return;
-      const p = getPos(e);
-      const dx = p.x - startX, dy = p.y - startY;
-      const s = this._crop.sel;
-      let nx = startSel.x, ny = startSel.y, nw = startSel.w, nh = startSel.h;
-      if (dir === 'move') { nx = startSel.x + dx; ny = startSel.y + dy; }
-      nx = Math.max(0, Math.min(nx, this.srcImg.width - nw));
-      ny = Math.max(0, Math.min(ny, this.srcImg.height - nh));
-      this._crop.sel = { x: nx, y: ny, w: nw, h: nh };
-      document.getElementById('cropX').value = nx;
-      document.getElementById('cropY').value = ny;
-      this._drawCropOverlay();
-    };
-    document.onmouseup = document.ontouchend = () => { dragging = false; };
-  }
-
-  _drawCropOverlay() {
+  /* ---- 渲染 ---- */
+  renderCrop() {
     const canvas = document.getElementById('cropCanvas');
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(this.srcImg, 0, 0);
-    const s = this._crop.sel;
-    if (!s) return;
-    // 暗色覆盖
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillRect(0, 0, canvas.width, s.y);
-    ctx.fillRect(0, s.y + s.h, canvas.width, canvas.height - s.y - s.h);
-    ctx.fillRect(0, s.y, s.x, s.h);
-    ctx.fillRect(s.x + s.w, s.y, canvas.width - s.x - s.w, s.h);
-    // 裁剪边框
+    const shapes = this._crop.shapes;
+    const active = shapes.find(s => s.id === this._crop.activeId);
+
+    // 为每个图形绘制暗色蒙版（选区外）
+    for (const s of shapes) {
+      this._drawShapeMask(ctx, s);
+    }
+
+    // 绘制所有图形边框
+    ctx.save();
+    for (const s of shapes) {
+      const isActive = s.id === this._crop.activeId;
+      ctx.strokeStyle = isActive ? '#6366f1' : 'rgba(255,255,255,0.5)';
+      ctx.lineWidth = isActive ? 2 : 1;
+      ctx.setLineDash(isActive ? [] : [4, 4]);
+      this._strokeShape(ctx, s);
+      ctx.setLineDash([]);
+      // 选中时绘制手柄
+      if (isActive) this._drawHandles(ctx, s);
+    }
+    ctx.restore();
+  }
+
+  _drawShapeMask(ctx, s) {
+    ctx.save();
+    // 全屏暗色蒙版
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, 0, this.srcImg.width, this.srcImg.height);
+    // 用图形区域裁出透明洞
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = '#000';
+    if (s.type === 'rect') {
+      ctx.fillRect(s.x, s.y, s.w, s.h);
+    } else if (s.type === 'roundedRect') {
+      this._roundRectPath(ctx, s.x, s.y, s.w, s.h, 12);
+      ctx.fill();
+    } else if (s.type === 'circle') {
+      const cx = s.x + s.w / 2, cy = s.y + s.h / 2, r = s.w / 2;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    } else if (s.type === 'ellipse') {
+      ctx.beginPath();
+      ctx.ellipse(s.x + s.w / 2, s.y + s.h / 2, s.w / 2, s.h / 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  _strokeShape(ctx, s) {
+    if (s.type === 'rect') {
+      ctx.strokeRect(s.x, s.y, s.w, s.h);
+    } else if (s.type === 'roundedRect') {
+      this._roundRectPath(ctx, s.x, s.y, s.w, s.h, 12);
+      ctx.stroke();
+    } else if (s.type === 'circle') {
+      ctx.beginPath();
+      ctx.arc(s.x + s.w / 2, s.y + s.h / 2, s.w / 2, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (s.type === 'ellipse') {
+      ctx.beginPath();
+      ctx.ellipse(s.x + s.w / 2, s.y + s.h / 2, s.w / 2, s.h / 2, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  _roundRectPath(ctx, x, y, w, h, r) {
+    if (typeof ctx.roundRect === 'function') {
+      ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.arcTo(x + w, y, x + w, y + r, r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+      ctx.lineTo(x + r, y + h);
+      ctx.arcTo(x, y + h, x, y + h - r, r);
+      ctx.lineTo(x, y + r);
+      ctx.arcTo(x, y, x + r, y, r);
+      ctx.closePath();
+    }
+  }
+
+  _drawHandles(ctx, s) {
+    const hs = this._getHandlePositions(s);
+    const hSize = 7;
+    ctx.fillStyle = '#fff';
     ctx.strokeStyle = '#6366f1';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(s.x, s.y, s.w, s.h);
-    // 9宫格线
-    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1.5;
+    for (const h of Object.values(hs)) {
+      ctx.beginPath();
+      ctx.arc(h.x, h.y, hSize, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    // 中心十字
+    ctx.strokeStyle = 'rgba(99,102,241,0.5)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(s.x + s.w / 3, s.y); ctx.lineTo(s.x + s.w / 3, s.y + s.h);
-    ctx.moveTo(s.x + 2 * s.w / 3, s.y); ctx.lineTo(s.x + 2 * s.w / 3, s.y + s.h);
-    ctx.moveTo(s.x, s.y + s.h / 3); ctx.lineTo(s.x + s.w, s.y + s.h / 3);
-    ctx.moveTo(s.x, s.y + 2 * s.h / 3); ctx.lineTo(s.x + s.w, s.y + 2 * s.h / 3);
+    ctx.moveTo(s.x + s.w / 2 - 6, s.y + s.h / 2);
+    ctx.lineTo(s.x + s.w / 2 + 6, s.y + s.h / 2);
+    ctx.moveTo(s.x + s.w / 2, s.y + s.h / 2 - 6);
+    ctx.lineTo(s.x + s.w / 2, s.y + s.h / 2 + 6);
     ctx.stroke();
   }
 
+  _getHandlePositions(s) {
+    const { x, y, w, h } = s;
+    return {
+      nw: { x, y }, n: { x: x + w / 2, y },
+      ne: { x: x + w, y }, e: { x: x + w, y: y + h / 2 },
+      se: { x: x + w, y: y + h }, s: { x: x + w / 2, y: y + h },
+      sw: { x, y: y + h }, w: { x, y: y + h / 2 },
+    };
+  }
+
+  /* ---- 鼠标事件 ---- */
+  _bindCropEvents() {
+    // 解绑旧事件（防止重复）
+    this._unbindCropEvents();
+    const canvas = document.getElementById('cropCanvas');
+    const container = document.getElementById('cropContainer');
+    const getPos = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const sx = canvas.width / rect.width;
+      const sy = canvas.height / rect.height;
+      const cx = e.touches ? e.touches[0].clientX : e.clientX;
+      const cy = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: Math.round((cx - rect.left) * sx),
+        y: Math.round((cy - rect.top) * sy),
+        sx, sy,
+        rawX: cx, rawY: cy
+      };
+    };
+
+    const onDown = (e) => {
+      e.preventDefault();
+      const p = getPos(e);
+      const crop = this._crop;
+      if (crop.mode === 'draw') {
+        // 新建图形
+        const shape = { id: crop.nextId++, type: crop.drawType, x: p.x, y: p.y, w: 1, h: 1 };
+        crop.shapes.push(shape);
+        crop.activeId = shape.id;
+        crop.dragging = true;
+        crop.dragStart = p;
+        crop.shapeStart = { x: p.x, y: p.y, w: 0, h: 0 };
+      } else {
+        // 选择模式：先检查手柄
+        const active = crop.shapes.find(s => s.id === crop.activeId);
+        if (active) {
+          const handle = this._hitHandle(p.x, p.y, active);
+          if (handle) {
+            crop.resizing = true;
+            crop.resizeHandle = handle;
+            crop.dragStart = p;
+            crop.shapeStart = { ...active };
+            return;
+          }
+        }
+        // 检查是否点中某个图形
+        const hit = this._hitTest(p.x, p.y);
+        if (hit) {
+          crop.activeId = hit.id;
+          crop.dragging = true;
+          crop.dragStart = p;
+          crop.shapeStart = { ...hit };
+          this._syncCropInputs(hit);
+        } else {
+          crop.activeId = null;
+        }
+      }
+      this.renderCrop();
+    };
+
+    const onMove = (e) => {
+      const crop = this._crop;
+      if (!crop.dragging && !crop.resizing) return;
+      e.preventDefault();
+      const p = getPos(e);
+      const dx = p.x - crop.dragStart.x;
+      const dy = p.y - crop.dragStart.y;
+      if (crop.dragging && crop.mode === 'draw') {
+        // 绘制模式：从起点画矩形/圆形
+        const s = crop.shapes[crop.shapes.length - 1];
+        if (!s) return;
+        const sx = crop.shapeStart.x, sy = crop.shapeStart.y;
+        s.x = Math.min(sx, sx + dx);
+        s.y = Math.min(sy, sy + dy);
+        s.w = Math.abs(dx);
+        s.h = Math.abs(dy);
+        this._syncCropInputs(s);
+      } else if (crop.dragging) {
+        // 移动图形
+        const shape = crop.shapes.find(s => s.id === crop.activeId);
+        if (!shape) return;
+        let nx = crop.shapeStart.x + dx;
+        let ny = crop.shapeStart.y + dy;
+        nx = Math.max(0, Math.min(nx, this.srcImg.width - shape.w));
+        ny = Math.max(0, Math.min(ny, this.srcImg.height - shape.h));
+        shape.x = nx; shape.y = ny;
+        this._syncCropInputs(shape);
+      } else if (crop.resizing) {
+        // 调整大小
+        const shape = crop.shapes.find(s => s.id === crop.activeId);
+        if (!shape) return;
+        const ss = crop.shapeStart;
+        const h = crop.resizeHandle;
+        let nx = ss.x, ny = ss.y, nw = ss.w, nh = ss.h;
+        if (h.includes('e')) nw = Math.max(10, ss.w + dx);
+        if (h.includes('s')) nh = Math.max(10, ss.h + dy);
+        if (h.includes('w')) { nx = Math.min(ss.x + dx, ss.x + ss.w - 10); nw = Math.max(10, ss.w - dx); }
+        if (h.includes('n')) { ny = Math.min(ss.y + dy, ss.y + ss.h - 10); nh = Math.max(10, ss.h - dy); }
+        shape.x = nx; shape.y = ny; shape.w = nw; shape.h = nh;
+        this._syncCropInputs(shape);
+      }
+      this.renderCrop();
+    };
+
+    const onUp = () => {
+      const crop = this._crop;
+      crop.dragging = false;
+      crop.resizing = false;
+      crop.resizeHandle = null;
+    };
+
+    canvas.addEventListener('mousedown', onDown);
+    canvas.addEventListener('touchstart', onDown, { passive: false });
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('mouseup', onUp);
+    document.addEventListener('touchend', onUp);
+    this._cropCanvasHandlers = { onDown, onMove, onUp };
+  }
+
+  _unbindCropEvents() {
+    const h = this._cropCanvasHandlers;
+    if (!h) return;
+    const canvas = document.getElementById('cropCanvas');
+    canvas.removeEventListener('mousedown', h.onDown);
+    canvas.removeEventListener('touchstart', h.onDown);
+    document.removeEventListener('mousemove', h.onMove);
+    document.removeEventListener('touchmove', h.onMove);
+    document.removeEventListener('mouseup', h.onUp);
+    document.removeEventListener('touchend', h.onUp);
+    this._cropCanvasHandlers = null;
+  }
+
+  _hitTest(px, py) {
+    // 从上往下遍历（后画的在上层），返回最上层命中的
+    for (let i = this._crop.shapes.length - 1; i >= 0; i--) {
+      const s = this._crop.shapes[i];
+      if (px >= s.x && px <= s.x + s.w && py >= s.y && py <= s.y + s.h) return s;
+    }
+    return null;
+  }
+
+  _hitHandle(px, py, shape) {
+    const hs = this._getHandlePositions(shape);
+    const R = 10; // 手柄半径（点击判定范围）
+    for (const [key, pos] of Object.entries(hs)) {
+      if (Math.abs(px - pos.x) <= R && Math.abs(py - pos.y) <= R) return key;
+    }
+    return null;
+  }
+
+  /* ---- 工具方法 ---- */
+  _syncCropInputs(shape) {
+    if (!shape) return;
+    document.getElementById('cropX').value = Math.round(shape.x);
+    document.getElementById('cropY').value = Math.round(shape.y);
+    document.getElementById('cropW').value = Math.round(shape.w);
+    document.getElementById('cropH').value = Math.round(shape.h);
+  }
+
+  syncCropDim() {
+    const shape = this._crop.shapes.find(s => s.id === this._crop.activeId);
+    if (!shape) return;
+    const x = parseInt(document.getElementById('cropX').value) || 0;
+    const y = parseInt(document.getElementById('cropY').value) || 0;
+    const w = Math.max(10, parseInt(document.getElementById('cropW').value) || 10);
+    const h = Math.max(10, parseInt(document.getElementById('cropH').value) || 10);
+    shape.x = Math.max(0, Math.min(x, this.srcImg.width - w));
+    shape.y = Math.max(0, Math.min(y, this.srcImg.height - h));
+    shape.w = w; shape.h = h;
+    this.renderCrop();
+  }
+
+  deleteCropShape() {
+    if (!this._crop.activeId) return;
+    this._crop.shapes = this._crop.shapes.filter(s => s.id !== this._crop.activeId);
+    this._crop.activeId = null;
+    document.getElementById('cropX').value = 0;
+    document.getElementById('cropY').value = 0;
+    document.getElementById('cropW').value = 0;
+    document.getElementById('cropH').value = 0;
+    this.renderCrop();
+    this.toast('已删除图形');
+  }
+
+  clearCropShapes() {
+    this._crop.shapes = [];
+    this._crop.activeId = null;
+    document.getElementById('cropX').value = 0;
+    document.getElementById('cropY').value = 0;
+    document.getElementById('cropW').value = 0;
+    document.getElementById('cropH').value = 0;
+    this.renderCrop();
+    this.toast('已清空');
+  }
+
+  /* ---- 应用裁剪 ---- */
   applyCrop() {
-    const s = this._crop.sel;
-    if (!s || s.w <= 0 || s.h <= 0) return this.toast('请先选择裁剪区域');
-    const canvas = document.createElement('canvas');
-    canvas.width = s.w; canvas.height = s.h;
-    canvas.getContext('2d').drawImage(this.srcImg, s.x, s.y, s.w, s.h, 0, 0, s.w, s.h);
-    this.resultDataUrl = canvas.toDataURL('image/png');
+    const shape = this._crop.shapes.find(s => s.id === this._crop.activeId);
+    if (!shape) return this.toast('请先选择一个裁剪区域');
+    let croppedUrl;
+    try {
+      croppedUrl = this._cropShapeToDataUrl(shape);
+    } catch (e) {
+      return this.toast('裁剪失败：' + e.message, false, true);
+    }
+    this.resultDataUrl = croppedUrl;
+    this._unbindCropEvents();
     document.getElementById('cropOverlay').classList.remove('active');
-    this._showResultImage(`裁剪 ${s.w} × ${s.h}`, this.resultDataUrl);
+    this._showResultImage(
+      `裁剪 ${Math.round(shape.w)} × ${Math.round(shape.h)}`,
+      this.resultDataUrl
+    );
     this._pushHistory();
-    this.toast(`裁剪完成: ${s.w} × ${s.h}`);
+    this.toast(`裁剪完成: ${Math.round(shape.w)} × ${Math.round(shape.h)}`);
+  }
+
+  _cropShapeToDataUrl(shape) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const { x, y, w, h, type } = shape;
+    canvas.width = Math.round(w);
+    canvas.height = Math.round(h);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (type === 'rect') {
+      ctx.drawImage(this.srcImg, x, y, w, h, 0, 0, w, h);
+    } else if (type === 'roundedRect') {
+      ctx.drawImage(this.srcImg, x, y, w, h, 0, 0, w, h);
+    } else if (type === 'circle') {
+      const cx = w / 2, cy = h / 2, r = w / 2;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(this.srcImg, x, y, w, h, 0, 0, w, h);
+      ctx.restore();
+    } else if (type === 'ellipse') {
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(w / 2, h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(this.srcImg, x, y, w, h, 0, 0, w, h);
+      ctx.restore();
+    }
+    return canvas.toDataURL('image/png');
   }
 
   cancelCrop() {
+    this._unbindCropEvents();
     document.getElementById('cropOverlay').classList.remove('active');
   }
 
