@@ -59,7 +59,6 @@ if [ "$DEPLOY_ONLY" = true ]; then
     --project-name="$CF_PROJECT" \
     --branch=main \
     --commit-dirty=true \
-    --skip-binding \
     --no-bundle
 
   echo ""
@@ -157,7 +156,6 @@ npx wrangler pages deploy . \
   --project-name="$CF_PROJECT" \
   --branch=main \
   --commit-dirty=true \
-  --skip-binding \
   --no-bundle
 
 # ---------- 完成 ----------
