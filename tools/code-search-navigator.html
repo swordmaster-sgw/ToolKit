@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>轻量级代码搜索与导航器 - ToolKit</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #e2e8f0; min-height: 100vh; padding: 20px; }
@@ -40,6 +43,9 @@
         .toast.show { transform: translateY(0); opacity: 1; }
         @media (max-width: 768px) { .filters { flex-direction: column; } .stats { flex-direction: column; } }
     </style>
+
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
 </head>
 <body>
     <div class="container">
@@ -71,7 +77,8 @@
                     <input type="radio" name="searchType" value="semantic" id="searchSemantic">
                     <label for="searchSemantic">语义搜索</label>
                 </div>
-            </div>
+            <div id="theme-container"></div>
+</div>
             
             <div class="filter-group">
                 <div class="filter-title">📄 文件类型</div>
@@ -119,6 +126,7 @@
     </div>
 
     <script>
+ThemeManager.init('theme-container');
         let projectFiles = [];
         let searchIndex = null;
 

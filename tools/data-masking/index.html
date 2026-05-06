@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>数据脱敏工具 - Data Masking</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
   <meta name="description" content="智能数据脱敏工具，支持20+敏感信息自动识别，多级脱敏强度，实时预览高亮，反向还原，审计报告导出。">
   <style>
     :root {
@@ -148,6 +151,9 @@
       .rule-editor { flex-direction: column; align-items: flex-start; }
     }
   </style>
+
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
 <div class="header">
@@ -156,6 +162,7 @@
     <h1 style="font-size:16px;font-weight:600">数据脱敏工具</h1>
     <p style="font-size:12px;color:var(--text-muted);margin-top:2px">智能识别敏感信息 · 多级脱敏 · 实时预览 · 审计报告</p>
   </div>
+  <div id="theme-container"></div>
   <a class="back-btn" href="../../index.html">&larr; 返回工具集</a>
 </div>
 
@@ -360,6 +367,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
+ThemeManager.init('theme-container');
 // ============== State ==============
 let currentMode = 'plain';
 let currentView = 'plain';

@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JSONPath 查询</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; }
@@ -57,6 +60,9 @@
 
     @media (max-width: 768px) { .workspace { grid-template-columns: 1fr; } }
   </style>
+
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
 <div class="header">
@@ -65,6 +71,7 @@
     <h1>JSONPath 查询</h1>
     <p>用路径表达式从 JSON 中提取数据，支持通配符、递归、过滤器</p>
   </div>
+  <div id="theme-container"></div>
   <a class="back-btn" href="../../index.html">← 返回</a>
 </div>
 
@@ -122,6 +129,7 @@
 </div>
 
 <script>
+ThemeManager.init('theme-container');
 // ========== 内置 JSONPath 引擎 ==========
 function jsonPath(obj, expr) {
   if (!expr || expr.trim() === '$') return [{ path: '$', value: obj }];

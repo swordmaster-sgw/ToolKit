@@ -1,0 +1,15 @@
+{
+  "name": "toolkit-api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:create": "wrangler d1 create toolkit-db",
+    "db:init": "wrangler d1 execute toolkit-db --local --file=src/schema.sql",
+    "db:init:remote": "wrangler d1 execute toolkit-db --file=src/schema.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

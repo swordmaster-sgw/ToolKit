@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>正则表达式测试器 - 在线正则生成、匹配、可视化</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
   <meta name="description" content="免费在线正则表达式工具。AI智能生成正则、实时匹配高亮、正则解释、常用正则大全、交互式教程，支持JavaScript/Python/Java/Go/Rust/PHP代码生成。">
   <style>
     :root {
@@ -177,6 +180,9 @@
       .gen-input-row { flex-direction: column; }
     }
   </style>
+
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
 <div class="header">
@@ -185,6 +191,7 @@
     <h1>正则表达式测试器</h1>
     <p>AI生成 · 实时匹配 · 正则大全 · 交互式教程</p>
   </div>
+  <div id="theme-container"></div>
   <a class="back-btn" href="../../index.html">← 返回工具集</a>
 </div>
 
@@ -375,6 +382,7 @@ HTML示例：<div class="test">Hello</div>
 <div class="toast" id="toast"></div>
 
 <script>
+ThemeManager.init('theme-container');
 // ==================== 页面导航 ====================
 function switchPage(name) {
   document.querySelectorAll('.main-nav-btn').forEach((b, i) => b.classList.toggle('active', ['generate','test','cheatsheet','tutorial'][i] === name));

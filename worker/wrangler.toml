@@ -1,0 +1,17 @@
+name = "toolkit-api"
+main = "src/index.js"
+compatibility_date = "2024-12-01"
+
+# D1 数据库绑定
+[[d1_databases]]
+binding = "DB"
+database_name = "toolkit-db"
+database_id = "81215f1b-aef3-4599-8286-35007e63ec61"
+
+# 环境变量
+[vars]
+GITHUB_OWNER = "swordmaster-sgw"
+GITHUB_REPO = "ToolKit"
+
+# Secrets（通过 wrangler secret put 设置，不写在配置里）
+# GITHUB_TOKEN

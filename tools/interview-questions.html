@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>技术面试题库管理器 - ToolKit</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #e2e8f0; min-height: 100vh; padding: 20px; }
@@ -63,6 +66,9 @@
         .toast.show { transform: translateY(0); opacity: 1; }
         @media (max-width: 768px) { .main-layout { grid-template-columns: 1fr; } }
     </style>
+
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
 </head>
 <body>
     <div class="container">
@@ -86,7 +92,8 @@
                         <div class="filter-option"><input type="checkbox" value="阿里" checked><label>阿里巴巴</label></div>
                         <div class="filter-option"><input type="checkbox" value="美团" checked><label>美团</label></div>
                         <div class="filter-option"><input type="checkbox" value="百度" checked><label>百度</label></div>
-                    </div>
+                    <div id="theme-container"></div>
+</div>
                 </div>
 
                 <div class="filter-section">
@@ -236,6 +243,7 @@
     </div>
 
     <script>
+ThemeManager.init('theme-container');
         let questions = [];
         let reviewHistory = [];
         let interviewRecords = [];

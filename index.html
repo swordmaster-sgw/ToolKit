@@ -7,6 +7,13 @@
   <meta name="description" content="免费、开源、全本地运行的在线开发者工具箱">
   <link rel="stylesheet" href="./assets/css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  <script>
+    // 尽早恢复主题，避免闪烁
+    (function() {
+      const t = localStorage.getItem('devkit-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
 </head>
 <body>
   <!-- 导航栏 -->
@@ -19,6 +26,29 @@
       <span class="nav-search-icon">🔍</span>
       <input type="text" id="search-input" placeholder="搜索工具..." autocomplete="off">
       <span class="nav-search-kbd">⌘K</span>
+    </div>
+    <!-- 主题切换 -->
+    <div class="theme-switcher" id="theme-switcher">
+      <button class="theme-btn" id="theme-btn" onclick="toggleThemeDropdown()" title="切换主题">
+        <span id="theme-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg></span>
+        <span id="theme-label">主题</span>
+      </button>
+      <div class="theme-dropdown" id="theme-dropdown">
+        <div class="theme-option" data-theme="dark" onclick="setTheme('dark')">
+          <span class="theme-dot theme-dot-dark"></span>深空暗黑
+        </div>
+        <div class="theme-option" data-theme="light" onclick="setTheme('light')">
+          <span class="theme-dot theme-dot-light"></span>清爽白天
+        </div>
+        <div class="theme-option" data-theme="green" onclick="setTheme('green')">
+          <span class="theme-dot theme-dot-green"></span>绿意盎然
+        </div>
+        <div class="theme-option" data-theme="warm" onclick="setTheme('warm')">
+          <span class="theme-dot theme-dot-warm"></span>暖橙暮色
+        </div>
+      </div>
     </div>
     <a href="https://github.com/swordmaster-swg/ToolKit" target="_blank" class="nav-github">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -42,6 +72,128 @@
     DevKit · 开源免费 · <a href="https://github.com/swordmaster-swg/ToolKit" target="_blank">GitHub</a>
   </footer>
 
+  <!-- 反馈浮动按钮 -->
+  <button class="feedback-fab" onclick="toggleFeedbackModal()" title="提交反馈">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    </svg>
+  </button>
+
+  <!-- 反馈弹窗 -->
+  <div class="feedback-overlay" id="feedback-overlay" onclick="closeFeedbackModal(event)">
+    <div class="feedback-modal" onclick="event.stopPropagation()">
+      <div class="feedback-modal-header">
+        <h3>💬 提交反馈</h3>
+        <button class="feedback-close" onclick="closeFeedbackModal()">&times;</button>
+      </div>
+      <form id="feedback-form" onsubmit="submitFeedback(event)">
+        <div class="feedback-field">
+          <label>反馈类型</label>
+          <div class="feedback-type-group">
+            <label class="feedback-type-option">
+              <input type="radio" name="fb_type" value="bug">
+              <span>🐛 Bug</span>
+            </label>
+            <label class="feedback-type-option">
+              <input type="radio" name="fb_type" value="suggestion" checked>
+              <span>💡 建议</span>
+            </label>
+            <label class="feedback-type-option">
+              <input type="radio" name="fb_type" value="other">
+              <span>💬 其他</span>
+            </label>
+          </div>
+        </div>
+        <div class="feedback-field">
+          <label for="fb-tool">相关工具（可选）</label>
+          <select id="fb-tool">
+            <option value="">请选择工具</option>
+          </select>
+        </div>
+        <div class="feedback-field">
+          <label for="fb-content">反馈内容 *</label>
+          <textarea id="fb-content" rows="4" placeholder="请描述你的问题或建议..." required maxlength="2000"></textarea>
+          <div class="feedback-char-count"><span id="fb-char-count">0</span>/2000</div>
+        </div>
+        <div class="feedback-field">
+          <label for="fb-contact">联系方式（可选）</label>
+          <input type="text" id="fb-contact" placeholder="邮箱或 GitHub 用户名">
+        </div>
+        <div class="feedback-actions">
+          <button type="button" class="feedback-btn-cancel" onclick="closeFeedbackModal()">取消</button>
+          <button type="submit" class="feedback-btn-submit" id="fb-submit-btn">提交反馈</button>
+        </div>
+      </form>
+      <div class="feedback-success" id="feedback-success" style="display:none">
+        <div class="feedback-success-icon">✅</div>
+        <p>感谢你的反馈！</p>
+        <p class="feedback-success-hint" id="feedback-issue-hint"></p>
+        <button class="feedback-btn-submit" onclick="closeFeedbackModal()" style="margin-top:16px">关闭</button>
+      </div>
+    </div>
+  </div>
+
   <script src="./assets/js/app.js"></script>
+  <script src="./assets/js/feedback.js"></script>
+  <script>
+    // ==================== 主题切换 ====================
+    const THEMES = {
+      dark:  { label: '深空暗黑', icon: 'moon' },
+      light: { label: '清爽白天', icon: 'sun' },
+      green: { label: '绿意盎然', icon: 'leaf' },
+      warm:  { label: '暖橙暮色', icon: 'sun' },
+    };
+
+    const THEME_ICONS = {
+      moon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`,
+      sun:  `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
+      leaf: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>`,
+    };
+
+    let themeDropdownOpen = false;
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      const info = THEMES[theme] || THEMES.dark;
+      const iconEl = document.getElementById('theme-icon');
+      if (iconEl) iconEl.innerHTML = THEME_ICONS[info.icon];
+      const labelEl = document.getElementById('theme-label');
+      if (labelEl) labelEl.textContent = info.label;
+      // 高亮当前选项
+      document.querySelectorAll('.theme-option').forEach(el => {
+        el.classList.toggle('active', el.dataset.theme === theme);
+      });
+    }
+
+    function setTheme(theme) {
+      localStorage.setItem('devkit-theme', theme);
+      applyTheme(theme);
+      closeThemeDropdown();
+    }
+
+    function toggleThemeDropdown() {
+      themeDropdownOpen = !themeDropdownOpen;
+      document.getElementById('theme-dropdown').classList.toggle('active', themeDropdownOpen);
+    }
+
+    function closeThemeDropdown() {
+      themeDropdownOpen = false;
+      document.getElementById('theme-dropdown').classList.remove('active');
+    }
+
+    // 点击外部关闭
+    document.addEventListener('click', function(e) {
+      const switcher = document.getElementById('theme-switcher');
+      if (switcher && !switcher.contains(e.target)) {
+        closeThemeDropdown();
+      }
+    });
+
+    // 初始化：恢复保存的主题
+    (function() {
+      const saved = localStorage.getItem('devkit-theme') || 'dark';
+      applyTheme(saved);
+    })();
+  </script>
 </body>
 </html>

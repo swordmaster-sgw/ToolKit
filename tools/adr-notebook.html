@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>架构决策记录本 - ToolKit</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
     <style>
         * {
             margin: 0;
@@ -420,6 +423,9 @@
             }
         }
     </style>
+
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
 </head>
 <body>
     <div class="container">
@@ -441,7 +447,8 @@
                 <div class="adr-list" id="adrList">
                     <!-- ADR列表将在这里显示 -->
                 </div>
-            </div>
+            <div id="theme-container"></div>
+</div>
             
             <!-- 内容区 -->
             <div class="content">
@@ -632,6 +639,7 @@
     <div class="toast" id="toast"></div>
     
     <script>
+ThemeManager.init('theme-container');
         class ADRNotebook {
             constructor() {
                 this.adrs = JSON.parse(localStorage.getItem('adrs') || '[]');

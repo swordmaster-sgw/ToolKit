@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>依赖包安全扫描器 - ToolKit</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #e2e8f0; min-height: 100vh; padding: 20px; }
@@ -46,6 +49,9 @@
         .toast.show { transform: translateY(0); opacity: 1; }
         @media (max-width: 768px) { .dashboard { grid-template-columns: 1fr; } }
     </style>
+
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
 </head>
 <body>
     <div class="container">
@@ -66,7 +72,8 @@
             <div class="stat-card">
                 <div class="stat-value" id="totalPackages">0</div>
                 <div class="stat-label">总包数</div>
-            </div>
+            <div id="theme-container"></div>
+</div>
             <div class="stat-card">
                 <div class="stat-value" id="vulnerablePackages">0</div>
                 <div class="stat-label">漏洞包</div>
@@ -95,6 +102,7 @@
     </div>
 
     <script>
+ThemeManager.init('theme-container');
         let scanResults = [];
         let vulnerabilityDB = [];
 

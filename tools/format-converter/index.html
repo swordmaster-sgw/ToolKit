@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>格式转换器 YAML / JSON / TOML</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; }
@@ -67,6 +70,9 @@
       .divider { width: 100%; height: 40px; flex-direction: row; border-left: none; border-right: none; border-top: 1px solid #2d3148; border-bottom: 1px solid #2d3148; }
     }
   </style>
+
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
 <div class="header">
@@ -75,6 +81,7 @@
     <h1>格式转换器</h1>
     <p>YAML ↔ JSON ↔ TOML 互相转换，支持配置文件格式化</p>
   </div>
+  <div id="theme-container"></div>
   <a class="back-btn" href="../../index.html">← 返回</a>
 </div>
 
@@ -127,6 +134,7 @@
 </div>
 
 <script>
+ThemeManager.init('theme-container');
 // ========== 状态 ==========
 let srcFmt = 'json';
 let dstFmt = 'yaml';

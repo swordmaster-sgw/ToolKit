@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>个人任务看板</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
     <style>
         * {
             margin: 0;
@@ -490,6 +493,9 @@
             background: #999;
         }
     </style>
+
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
 </head>
 <body>
     <div class="container">
@@ -505,7 +511,8 @@
                 </div>
                 <button class="add-task-btn" onclick="tm.showAddModal()">➕ 添加任务</button>
             </div>
-        </div>
+        <div id="theme-container"></div>
+</div>
         
         <div class="quick-add">
             <input type="text" class="quick-input" id="quickInput" placeholder="快速添加任务（例如：完成项目文档 @明天 #高优先级）...">
@@ -636,6 +643,7 @@
     <div class="toast" id="toast"></div>
 
     <script>
+ThemeManager.init('theme-container');
         // 任务管理器
         class TaskManager {
             constructor() {

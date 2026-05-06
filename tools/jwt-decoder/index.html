@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JWT 解析器 - JWT Decoder</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
   <meta name="description" content="在线 JWT 解析器，解码 Header/Payload、检查有效期、HS256 签名验证、JWT 生成工具。">
   <style>
     :root {
@@ -96,6 +99,9 @@
 
     @media (max-width: 768px) { .grid3 { grid-template-columns: 1fr; } .gen-grid { grid-template-columns: 1fr; } }
   </style>
+
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
 <div class="header">
@@ -104,6 +110,7 @@
     <h1 style="font-size:16px;font-weight:600">JWT 解析器</h1>
     <p style="font-size:12px;color:var(--text-muted);margin-top:2px">解码 &#183; 有效期检查 &#183; HS/RS/ES 签名验证 &#183; JWT 生成</p>
   </div>
+  <div id="theme-container"></div>
   <a class="back-btn" href="../../index.html">&larr; 返回工具集</a>
 </div>
 
@@ -221,6 +228,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
+ThemeManager.init('theme-container');
 // ============== Utilities ==============
 function showToast(msg) {
   const t = document.getElementById('toast');

@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>接口Mock小助手</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
     <style>
         * {
             margin: 0;
@@ -448,6 +451,9 @@
             background: #999;
         }
     </style>
+
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
 </head>
 <body>
     <div class="container">
@@ -468,7 +474,8 @@
                     ➕ 添加接口
                 </button>
             </div>
-        </div>
+        <div id="theme-container"></div>
+</div>
         
         <div class="main-content">
             <div class="left-panel">
@@ -569,6 +576,7 @@
     <div class="toast" id="toast"></div>
 
     <script>
+ThemeManager.init('theme-container');
         // Mock接口助手
         class MockAssistant {
             constructor() {

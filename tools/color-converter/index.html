@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>颜色转换器 - Color Converter</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
   <meta name="description" content="在线颜色转换工具，支持 HEX/RGB/HSL 互转、Tailwind CSS 色阶匹配、渐变生成器、WCAG 对比度检查。">
   <style>
     :root {
@@ -109,6 +112,9 @@
       .contrast-grid { grid-template-columns: 1fr; }
     }
   </style>
+
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
 <div class="header">
@@ -117,6 +123,7 @@
     <h1 style="font-size:16px;font-weight:600">颜色转换器</h1>
     <p style="font-size:12px;color:var(--text-muted);margin-top:2px">HEX / RGB / HSL 互转 &#183; Tailwind 色阶 &#183; 渐变生成 &#183; 对比度检查</p>
   </div>
+  <div id="theme-container"></div>
   <a class="back-btn" href="../../index.html">&larr; 返回工具集</a>
 </div>
 
@@ -236,6 +243,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
+ThemeManager.init('theme-container');
 // ============== Named Colors ==============
 const NAMED_COLORS = {
   'aliceblue':'#f0f8ff','antiquewhite':'#faebd7','aqua':'#00ffff','aquamarine':'#7fffd4','azure':'#f0ffff',

@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Markdown微信公众号编辑器</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
     <style>
         * {
             margin: 0;
@@ -458,6 +461,9 @@
             background: #999;
         }
     </style>
+
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
 </head>
 <body>
     <div class="container">
@@ -477,7 +483,8 @@
                     📋 复制微信格式
                 </button>
             </div>
-        </div>
+        <div id="theme-container"></div>
+</div>
         
         <div class="main-content">
             <div class="editor-panel">
@@ -544,6 +551,7 @@
     <div class="toast" id="toast"></div>
 
     <script>
+ThemeManager.init('theme-container');
         // Markdown微信编辑器
         class MarkdownWechatEditor {
             constructor() {

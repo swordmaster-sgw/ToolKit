@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>微信/钉钉快速助手</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
@@ -48,6 +51,9 @@
         .toast { position: fixed; bottom: 24px; right: 24px; background: #333; color: white; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); opacity: 0; transform: translateY(20px); transition: all 0.3s; z-index: 1001; }
         .toast.show { opacity: 1; transform: translateY(0); }
     </style>
+
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
 </head>
 <body>
     <div class="container">
@@ -63,7 +69,8 @@
                 </div>
                 <button class="btn btn-primary" onclick="wa.openChat()">💬 打开聊天</button>
             </div>
-        </div>
+        <div id="theme-container"></div>
+</div>
         
         <div class="main-content">
             <div class="quick-actions">
@@ -162,6 +169,7 @@
     <div class="toast" id="toast"></div>
 
     <script>
+ThemeManager.init('theme-container');
         // 微信/钉钉快速助手
         class WechatQuickAssistant {
             constructor() {

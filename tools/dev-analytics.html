@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>个人开发数据分析 - ToolKit</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
     <style>
         * {
             margin: 0;
@@ -469,6 +472,9 @@
             }
         }
     </style>
+
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
 </head>
 <body>
     <div class="container">
@@ -483,7 +489,8 @@
                 <h3>100%本地数据分析</h3>
                 <p>所有数据存储在本地浏览器中，不上传至任何服务器。可完全离线使用，保护您的隐私。</p>
             </div>
-        </div>
+        <div id="theme-container"></div>
+</div>
         
         <div class="actions">
             <button class="btn btn-primary" onclick="da.startTracking()">
@@ -631,6 +638,7 @@
     <div class="toast" id="toast"></div>
     
     <script>
+ThemeManager.init('theme-container');
         class DevAnalytics {
             constructor() {
                 this.settings = {

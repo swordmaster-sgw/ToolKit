@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>本地API开发套件 - ToolKit</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
     <style>
         * {
             margin: 0;
@@ -464,6 +467,9 @@
             }
         }
     </style>
+
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
 </head>
 <body>
     <div class="container">
@@ -494,7 +500,8 @@
                         📤 导出
                     </button>
                 </div>
-            </div>
+            <div id="theme-container"></div>
+</div>
             
             <!-- 内容区 -->
             <div class="content">
@@ -652,6 +659,7 @@
     <div class="toast" id="toast"></div>
     
     <script>
+ThemeManager.init('theme-container');
         class APIDevelopmentKit {
             constructor() {
                 this.collections = JSON.parse(localStorage.getItem('apiCollections') || '[]');

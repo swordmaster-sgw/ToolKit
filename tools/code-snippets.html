@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>代码片段极速插入</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
     <style>
         * {
             margin: 0;
@@ -413,9 +416,13 @@
             background: #999;
         }
     </style>
+
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
 </head>
 <body>
-    <div class="container">
+    <div id="theme-container"></div>
+<div class="container">
         <div class="sidebar">
             <div class="sidebar-header">
                 <h1>💻 代码片段</h1>
@@ -499,6 +506,7 @@
     <div class="toast" id="toast"></div>
 
     <script>
+ThemeManager.init('theme-container');
         // 代码片段管理器
         class SnippetManager {
             constructor() {

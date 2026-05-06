@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>番茄钟 & 专注计时</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -27,9 +30,13 @@
     .progress-ring { width: 200px; height: 200px; transform: rotate(-90deg); }
     .progress-ring-circle { transition: stroke-dashoffset .1s linear; }
   </style>
+
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
-<a class="back-btn" href="../../index.html">← 返回工具集</a>
+<div id="theme-container"></div>
+  <a class="back-btn" href="../../index.html">← 返回工具集</a>
 
 <div class="container">
   <div style="font-size:36px;margin-bottom:10px">🍅</div>
@@ -71,6 +78,7 @@
 </div>
 
 <script>
+ThemeManager.init('theme-container');
 let timeLeft = 25 * 60;
 let isRunning = false;
 let isWorkMode = true;

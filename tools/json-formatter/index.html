@@ -4,9 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JSON 格式化 / 压缩</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <script src="../../assets/js/theme.js"></script>
   <style>
     /* ===== Design Tokens ===== */
-    :root {
+    :root, [data-theme="dark"] {
       --bg-base:       #0d1117;
       --bg-surface:    #161b27;
       --bg-elevated:   #1c2133;
@@ -38,11 +43,127 @@
       --btn-danger-bg:     #8c2020;
       --btn-danger-hover:  #a52828;
 
-      /* fold icon colors — 高饱和，深背景上醒目 */
-      --fold-obj-color:   #60a5fa;   /* object { } — 亮蓝 */
-      --fold-arr-color:   #4ade80;   /* array  [ ] — 亮绿 */
+      --fold-obj-color:   #60a5fa;
+      --fold-arr-color:   #4ade80;
       --fold-obj-hover:   #93c5fd;
       --fold-arr-hover:   #86efac;
+    }
+
+    /* ===== 清爽白天 ===== */
+    [data-theme="light"] {
+      --bg-base:       #f8f9fc;
+      --bg-surface:    #ffffff;
+      --bg-elevated:   #f1f3f8;
+      --bg-overlay:    #e8ebf2;
+      --border-subtle: #e2e5ed;
+      --border-default:#cdd1dc;
+      --border-strong: #b0b5c4;
+
+      --text-primary:  #1e293b;
+      --text-secondary:#475569;
+      --text-muted:    #94a3b8;
+      --text-faint:    #cbd5e1;
+
+      --accent-blue:   #2563eb;
+      --accent-purple: #7c3aed;
+      --accent-cyan:   #0891b2;
+      --accent-green:  #16a34a;
+      --accent-yellow: #ca8a04;
+      --accent-orange: #ea580c;
+      --accent-red:    #dc2626;
+      --accent-pink:   #c026d3;
+
+      --btn-primary-bg:    #3b6bdf;
+      --btn-primary-hover: #4a7bec;
+      --btn-success-bg:    #15803d;
+      --btn-success-hover: #16a34a;
+      --btn-warning-bg:    #a16207;
+      --btn-warning-hover: #ca8a04;
+      --btn-danger-bg:     #b91c1c;
+      --btn-danger-hover:  #dc2626;
+
+      --fold-obj-color:   #2563eb;
+      --fold-arr-color:   #16a34a;
+      --fold-obj-hover:   #3b82f6;
+      --fold-arr-hover:   #22c55e;
+    }
+
+    /* ===== 绿意盎然 ===== */
+    [data-theme="green"] {
+      --bg-base:       #0d1117;
+      --bg-surface:    #161b22;
+      --bg-elevated:   #1c2128;
+      --bg-overlay:    #21262d;
+      --border-subtle: #21262d;
+      --border-default:#30363d;
+      --border-strong: #484f58;
+
+      --text-primary:  #e6edf3;
+      --text-secondary:#8b949e;
+      --text-muted:    #484f58;
+      --text-faint:    #2d333b;
+
+      --accent-blue:   #58a6ff;
+      --accent-purple: #bc8cff;
+      --accent-cyan:   #39d2c0;
+      --accent-green:  #3fb950;
+      --accent-yellow: #d29922;
+      --accent-orange: #db6d28;
+      --accent-red:    #f85149;
+      --accent-pink:   #db61a2;
+
+      --btn-primary-bg:    #238636;
+      --btn-primary-hover: #2ea043;
+      --btn-success-bg:    #238636;
+      --btn-success-hover: #2ea043;
+      --btn-warning-bg:    #9e6a03;
+      --btn-warning-hover: #bb8009;
+      --btn-danger-bg:     #da3633;
+      --btn-danger-hover:  #f85149;
+
+      --fold-obj-color:   #58a6ff;
+      --fold-arr-color:   #3fb950;
+      --fold-obj-hover:   #79c0ff;
+      --fold-arr-hover:   #56d364;
+    }
+
+    /* ===== 暖橙暮色 ===== */
+    [data-theme="warm"] {
+      --bg-base:       #16100a;
+      --bg-surface:    #1e1810;
+      --bg-elevated:   #2a2015;
+      --bg-overlay:    #342a1c;
+      --border-subtle: #2a2015;
+      --border-default:#3d3018;
+      --border-strong: #544020;
+
+      --text-primary:  #fef3c7;
+      --text-secondary:#d4a054;
+      --text-muted:    #8b6914;
+      --text-faint:    #5a4510;
+
+      --accent-blue:   #60a5fa;
+      --accent-purple: #c084fc;
+      --accent-cyan:   #22d3ee;
+      --accent-green:  #4ade80;
+      --accent-yellow: #fbbf24;
+      --accent-orange: #fb923c;
+      --accent-red:    #f87171;
+      --accent-pink:   #f472b6;
+
+      --btn-primary-bg:    #b45309;
+      --btn-primary-hover: #d97706;
+      --btn-success-bg:    #166534;
+      --btn-success-hover: #15803d;
+      --btn-warning-bg:    #92400e;
+      --btn-warning-hover: #b45309;
+      --btn-danger-bg:     #991b1b;
+      --btn-danger-hover:  #b91c1c;
+
+      --fold-obj-color:   #fbbf24;
+      --fold-arr-color:   #fb923c;
+      --fold-obj-hover:   #fde047;
+      --fold-arr-hover:   #fdba74;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -82,7 +203,6 @@
     .header h1 { font-size: 14px; font-weight: 600; color: var(--text-primary); letter-spacing: 0.2px; }
     .header p  { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
     .back-btn {
-      margin-left: auto;
       padding: 4px 12px;
       background: transparent;
       border: 1px solid var(--border-default);
@@ -96,6 +216,12 @@
       display: flex; align-items: center; gap: 4px;
     }
     .back-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+    .header-actions {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
     /* ===== Toolbar ===== */
     .toolbar {
@@ -836,10 +962,13 @@
     <h1>JSON 格式化 / 压缩</h1>
     <p>格式化、压缩、校验、排序 · 节点图视图 · 支持拖拽文件</p>
   </div>
-  <a class="back-btn" href="../../index.html">
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7.5 2L4 6l3.5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    返回
-  </a>
+  <div class="header-actions">
+    <div id="theme-container"></div>
+    <a class="back-btn" href="../../index.html">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7.5 2L4 6l3.5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      返回
+    </a>
+  </div>
 </div>
 
 <div class="toolbar">
@@ -979,6 +1108,8 @@
 </div>
 
 <script>
+ThemeManager.init('theme-container');
+
 /* ===================================================================
    基础状态
 =================================================================== */

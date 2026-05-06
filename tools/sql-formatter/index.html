@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SQL 格式化</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
@@ -30,6 +33,9 @@
     .sql-comment { color: #4a4f6a; }
     @media (max-width: 768px) { .grid2 { grid-template-columns: 1fr; } }
   </style>
+
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
 <div class="header">
@@ -38,6 +44,7 @@
     <h1 style="font-size:16px;font-weight:600">SQL 格式化</h1>
     <p style="font-size:12px;color:#8b90a7;margin-top:2px">美化/压缩，支持多种 SQL 方言</p>
   </div>
+  <div id="theme-container"></div>
   <a class="back-btn" href="../../index.html">← 返回工具集</a>
 </div>
 
@@ -70,6 +77,7 @@
 </div>
 
 <script>
+ThemeManager.init('theme-container');
 const KEYWORDS = ['SELECT','FROM','WHERE','JOIN','LEFT','RIGHT','INNER','OUTER','ON','GROUP','BY','HAVING','ORDER','LIMIT','OFFSET','INSERT','INTO','VALUES','UPDATE','SET','DELETE','CREATE','TABLE','DROP','ALTER','ADD','COLUMN','CONSTRAINT','PRIMARY','KEY','FOREIGN','UNIQUE','INDEX','VIEW','AND','OR','NOT','IN','BETWEEN','LIKE','IS','NULL','CASE','WHEN','THEN','ELSE','END','UNION','DISTINCT','ALL','AS','WITH','RECURSIVE'];
 const FUNCTIONS = ['COUNT','SUM','AVG','MIN','MAX','LOWER','UPPER','SUBSTR','LENGTH','TRIM','ROUND','ABS','NOW','DATE','CONCAT','REPLACE','COALESCE','IF','IFNULL'];
 

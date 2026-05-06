@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>代码片段增强版 - ToolKit</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #e2e8f0; min-height: 100vh; padding: 20px; }
@@ -50,6 +53,9 @@
         .toast.show { transform: translateY(0); opacity: 1; }
         @media (max-width: 768px) { .main-layout { grid-template-columns: 1fr; } .snippet-grid { grid-template-columns: 1fr; } }
     </style>
+
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
 </head>
 <body>
     <div class="container">
@@ -77,7 +83,8 @@
                     <div class="stat-item"><span>团队共享</span><span class="stat-value" id="teamSnippets">0</span></div>
                     <div class="stat-item"><span>本周新增</span><span class="stat-value" id="weeklyAdd">0</span></div>
                     <div class="stat-item"><span>最常用</span><span class="stat-value" id="mostUsed">-</span></div>
-                </div>
+                <div id="theme-container"></div>
+</div>
             </div>
 
             <div class="main-content">
@@ -181,6 +188,7 @@
     </div>
 
     <script>
+ThemeManager.init('theme-container');
         let snippets = [];
         let currentCategory = 'all';
         let usageStats = {};

@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>每日站会助手</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
@@ -30,6 +33,9 @@
     .history-time { color: #8b90a7; font-size: 11px; }
     @media (max-width: 768px) { .grid2 { grid-template-columns: 1fr; } }
   </style>
+
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
 <div class="header">
@@ -38,6 +44,7 @@
     <h1 style="font-size:16px;font-weight:600">每日站会助手</h1>
     <p style="font-size:12px;color:#8b90a7;margin-top:2px">记录昨日、今日、阻塞，一键生成站会汇报</p>
   </div>
+  <div id="theme-container"></div>
   <a class="back-btn" href="../../index.html">← 返回工具集</a>
 </div>
 
@@ -90,6 +97,7 @@
 </div>
 
 <script>
+ThemeManager.init('theme-container');
 function generate() {
   const person = document.getElementById('person').value.trim() || '开发人员';
   const yesterday = document.getElementById('yesterday').value.trim();

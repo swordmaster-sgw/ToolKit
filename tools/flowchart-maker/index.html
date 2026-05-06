@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>流程图制作 (Mermaid)</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,6 +30,9 @@
     .mermaid { background: #131520; }
     @media (max-width: 768px) { .grid2 { grid-template-columns: 1fr; } }
   </style>
+
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
 <div class="header">
@@ -35,6 +41,7 @@
     <h1 style="font-size:16px;font-weight:600">流程图制作 (Mermaid)</h1>
     <p style="font-size:12px;color:#8b90a7;margin-top:2px">文本描述生成流程图，实时预览</p>
   </div>
+  <div id="theme-container"></div>
   <a class="back-btn" href="../../index.html">← 返回工具集</a>
 </div>
 
@@ -90,6 +97,7 @@
 </div>
 
 <script>
+ThemeManager.init('theme-container');
 mermaid.initialize({ startOnLoad: true, theme: 'dark' });
 
 function render() {

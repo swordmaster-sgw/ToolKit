@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevKit - 数据统计</title>
+  <link rel="stylesheet" href="./assets/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+  <style>
+    .stats-page { max-width: 1200px; margin: 0 auto; padding: 24px 20px 60px; }
+    .stats-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .stats-header h1 { font-size: 24px; font-weight: 700; color: var(--text-primary, #1a1a2e); }
+    .stats-header .back-link { color: #666; text-decoration: none; font-size: 14px; }
+    .stats-header .back-link:hover { color: var(--accent, #6c5ce7); }
+
+    .stats-period { display: flex; gap: 8px; }
+    .stats-period button {
+      padding: 6px 16px; border-radius: 8px; border: 1px solid #e0e0e0;
+      background: #fff; cursor: pointer; font-size: 13px; transition: all .2s;
+    }
+    .stats-period button.active { background: var(--accent, #6c5ce7); color: #fff; border-color: var(--accent, #6c5ce7); }
+
+    .overview-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .overview-card {
+      background: #fff; border-radius: 12px; padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #f0f0f0;
+    }
+    .overview-card .label { font-size: 13px; color: #999; margin-bottom: 8px; }
+    .overview-card .value { font-size: 32px; font-weight: 700; color: var(--text-primary, #1a1a2e); }
+    .overview-card .sub { font-size: 12px; color: #bbb; margin-top: 4px; }
+
+    .stats-section { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #f0f0f0; }
+    .stats-section h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary, #1a1a2e); }
+
+    .ranking-table { width: 100%; border-collapse: collapse; }
+    .ranking-table th { text-align: left; padding: 10px 12px; font-size: 12px; color: #999; border-bottom: 2px solid #f0f0f0; font-weight: 500; }
+    .ranking-table td { padding: 10px 12px; font-size: 14px; border-bottom: 1px solid #f5f5f5; }
+    .ranking-table tr:hover { background: #fafafa; }
+    .rank-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px; border-radius: 6px; font-size: 12px; font-weight: 700;
+    }
+    .rank-1 { background: linear-gradient(135deg, #FFD700, #FFA500); color: #fff; }
+    .rank-2 { background: linear-gradient(135deg, #C0C0C0, #A0A0A0); color: #fff; }
+    .rank-3 { background: linear-gradient(135deg, #CD7F32, #A0522D); color: #fff; }
+    .rank-other { background: #f0f0f0; color: #999; }
+
+    .trend-chart { height: 200px; position: relative; }
+    .trend-chart canvas { width: 100% !important; height: 100% !important; }
+
+    .feedback-list { list-style: none; padding: 0; }
+    .feedback-item {
+      padding: 14px 0; border-bottom: 1px solid #f5f5f5;
+    }
+    .feedback-item:last-child { border-bottom: none; }
+    .feedback-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+    .feedback-type-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+    .type-bug { background: #fee2e2; color: #dc2626; }
+    .type-suggestion { background: #dbeafe; color: #2563eb; }
+    .type-feature { background: #d1fae5; color: #059669; }
+    .type-other { background: #f3f4f6; color: #6b7280; }
+    .feedback-tool { font-size: 12px; color: #999; }
+    .feedback-content { font-size: 14px; color: #444; line-height: 1.6; }
+    .feedback-time { font-size: 11px; color: #ccc; margin-top: 4px; }
+    .feedback-issue-link { font-size: 12px; color: var(--accent, #6c5ce7); text-decoration: none; }
+    .feedback-issue-link:hover { text-decoration: underline; }
+
+    .stats-loading { text-align: center; padding: 60px; color: #999; }
+    .stats-error { text-align: center; padding: 60px; color: #dc2626; }
+
+    .empty-hint { text-align: center; padding: 40px; color: #ccc; }
+  </style>
+</head>
+<body>
+  <!-- 导航栏 -->
+  <nav class="navbar">
+    <a href="/" class="nav-brand">
+      <div class="nav-brand-icon">⚡</div>
+      DevKit
+    </a>
+    <div style="flex:1"></div>
+    <a href="/" class="nav-github">← 返回首页</a>
+  </nav>
+
+  <div class="stats-page">
+    <div class="stats-header">
+      <div>
+        <h1>📊 数据统计</h1>
+      </div>
+      <div class="stats-period">
+        <button onclick="loadStats(7)" data-days="7">7天</button>
+        <button onclick="loadStats(30)" data-days="30" class="active">30天</button>
+        <button onclick="loadStats(90)" data-days="90">90天</button>
+      </div>
+    </div>
+
+    <!-- 概览卡片 -->
+    <div class="overview-cards" id="overview-cards">
+      <div class="stats-loading">加载中...</div>
+    </div>
+
+    <!-- 使用趋势 -->
+    <div class="stats-section">
+      <h2>📈 使用趋势</h2>
+      <div class="trend-chart">
+        <canvas id="trend-canvas"></canvas>
+      </div>
+    </div>
+
+    <!-- 工具排行榜 -->
+    <div class="stats-section">
+      <h2>🏆 工具排行榜</h2>
+      <table class="ranking-table">
+        <thead>
+          <tr>
+            <th style="width:50px">排名</th>
+            <th>工具</th>
+            <th style="width:80px">PV</th>
+            <th style="width:80px">UV</th>
+          </tr>
+        </thead>
+        <tbody id="ranking-body"></tbody>
+      </table>
+      <div class="empty-hint" id="ranking-empty" style="display:none">暂无数据</div>
+    </div>
+
+    <!-- 用户反馈 -->
+    <div class="stats-section">
+      <h2>💬 最近反馈</h2>
+      <ul class="feedback-list" id="feedback-list"></ul>
+      <div class="empty-hint" id="feedback-empty" style="display:none">暂无反馈</div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://toolkit-api.18164820426.workers.dev';
+    let currentDays = 30;
+
+    async function loadStats(days) {
+      currentDays = days;
+
+      // 更新按钮状态
+      document.querySelectorAll('.stats-period button').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.days) === days);
+      });
+
+      try {
+        const [statsResp, feedbackResp] = await Promise.all([
+          fetch(`${API_BASE}/api/stats?days=${days}`),
+          fetch(`${API_BASE}/api/feedback?limit=20`),
+        ]);
+
+        const stats = await statsResp.json();
+        const feedback = await feedbackResp.json();
+
+        renderOverview(stats);
+        renderTrend(stats.daily);
+        renderRanking(stats.ranking);
+        renderFeedback(feedback);
+      } catch (e) {
+        document.getElementById('overview-cards').innerHTML = `<div class="stats-error">加载失败：${e.message}<br><small>请确认后端服务已启动</small></div>`;
+      }
+    }
+
+    function renderOverview(stats) {
+      const o = stats.overview || {};
+      const t = stats.today || {};
+      document.getElementById('overview-cards').innerHTML = `
+        <div class="overview-card">
+          <div class="label">总访问量（PV）</div>
+          <div class="value">${(o.total_pv || 0).toLocaleString()}</div>
+          <div class="sub">近 ${currentDays} 天</div>
+        </div>
+        <div class="overview-card">
+          <div class="label">独立访客（UV）</div>
+          <div class="value">${(o.total_uv || 0).toLocaleString()}</div>
+          <div class="sub">近 ${currentDays} 天</div>
+        </div>
+        <div class="overview-card">
+          <div class="label">今日 PV</div>
+          <div class="value">${(t.pv || 0).toLocaleString()}</div>
+          <div class="sub">今日访问量</div>
+        </div>
+        <div class="overview-card">
+          <div class="label">今日 UV</div>
+          <div class="value">${(t.uv || 0).toLocaleString()}</div>
+          <div class="sub">今日访客数</div>
+        </div>
+      `;
+    }
+
+    function renderTrend(daily) {
+      const canvas = document.getElementById('trend-canvas');
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = rect.height + 'px';
+      ctx.scale(dpr, dpr);
+
+      const W = rect.width;
+      const H = rect.height;
+      const pad = { top: 20, right: 20, bottom: 30, left: 50 };
+      const plotW = W - pad.left - pad.right;
+      const plotH = H - pad.top - pad.bottom;
+
+      ctx.clearRect(0, 0, W, H);
+
+      if (!daily || daily.length === 0) {
+        ctx.fillStyle = '#ccc';
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('暂无趋势数据', W / 2, H / 2);
+        return;
+      }
+
+      const maxPV = Math.max(...daily.map(d => d.pv), 1);
+
+      // 网格线
+      ctx.strokeStyle = '#f0f0f0';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = pad.top + (plotH / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(W - pad.right, y);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ccc';
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(Math.round(maxPV * (1 - i / 4)), pad.left - 8, y + 4);
+      }
+
+      // 绘制 PV 曲线
+      ctx.beginPath();
+      ctx.strokeStyle = '#6c5ce7';
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+
+      daily.forEach((d, i) => {
+        const x = pad.left + (plotW / (daily.length - 1 || 1)) * i;
+        const y = pad.top + plotH * (1 - d.pv / maxPV);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // 填充区域
+      ctx.lineTo(pad.left + plotW, pad.top + plotH);
+      ctx.lineTo(pad.left, pad.top + plotH);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(108, 92, 231, 0.08)';
+      ctx.fill();
+
+      // X 轴标签（间隔显示）
+      const step = Math.max(1, Math.floor(daily.length / 8));
+      ctx.fillStyle = '#999';
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'center';
+      daily.forEach((d, i) => {
+        if (i % step === 0 || i === daily.length - 1) {
+          const x = pad.left + (plotW / (daily.length - 1 || 1)) * i;
+          ctx.fillText(d.date.slice(5), x, H - 8);
+        }
+      });
+    }
+
+    function renderRanking(ranking) {
+      const tbody = document.getElementById('ranking-body');
+      const empty = document.getElementById('ranking-empty');
+
+      if (!ranking || ranking.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = '';
+        return;
+      }
+      empty.style.display = 'none';
+
+      tbody.innerHTML = ranking.map((item, i) => {
+        const rankClass = i < 3 ? `rank-${i + 1}` : 'rank-other';
+        return `
+          <tr>
+            <td><span class="rank-badge ${rankClass}">${i + 1}</span></td>
+            <td>${item.tool_name || item.tool_id}</td>
+            <td>${item.pv.toLocaleString()}</td>
+            <td>${item.uv.toLocaleString()}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    function renderFeedback(list) {
+      const ul = document.getElementById('feedback-list');
+      const empty = document.getElementById('feedback-empty');
+
+      if (!list || list.length === 0) {
+        ul.innerHTML = '';
+        empty.style.display = '';
+        return;
+      }
+      empty.style.display = 'none';
+
+      const typeMap = { bug: '🐛 Bug', suggestion: '💡 建议', feature: '🚀 新功能', other: '💬 其他' };
+      const typeClassMap = { bug: 'type-bug', suggestion: 'type-suggestion', feature: 'type-feature', other: 'type-other' };
+
+      ul.innerHTML = list.map(fb => `
+        <li class="feedback-item">
+          <div class="feedback-meta">
+            <span class="feedback-type-badge ${typeClassMap[fb.type] || 'type-other'}">${typeMap[fb.type] || fb.type}</span>
+            ${fb.tool_name ? `<span class="feedback-tool">${fb.tool_name}</span>` : ''}
+            ${fb.github_issue_url ? `<a href="${fb.github_issue_url}" target="_blank" class="feedback-issue-link">🔗 Issue</a>` : ''}
+          </div>
+          <div class="feedback-content">${escapeHtml(fb.content)}</div>
+          <div class="feedback-time">${fb.created_at}</div>
+        </li>
+      `).join('');
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // 窗口大小变化时重绘图表
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => loadStats(currentDays), 300);
+    });
+
+    // 初始化
+    loadStats(30);
+  </script>
+</body>
+</html>

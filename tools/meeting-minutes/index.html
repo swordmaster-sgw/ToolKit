@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>会议纪要生成器</title>
+  <script>
+    (function(){var t=localStorage.getItem('devkit-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
@@ -33,6 +36,9 @@
     .action-del { padding: 2px 8px; background: #ef4444; color: #fff; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; }
     @media (max-width: 768px) { .grid2 { grid-template-columns: 1fr; } }
   </style>
+
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <script src="../../assets/js/theme.js"></script>
 </head>
 <body>
 <div class="header">
@@ -41,6 +47,7 @@
     <h1 style="font-size:16px;font-weight:600">会议纪要生成器</h1>
     <p style="font-size:12px;color:#8b90a7;margin-top:2px">快速录入议题、决策、行动项，自动格式化</p>
   </div>
+  <div id="theme-container"></div>
   <a class="back-btn" href="../../index.html">← 返回工具集</a>
 </div>
 
@@ -99,6 +106,7 @@
 </div>
 
 <script>
+ThemeManager.init('theme-container');
 let actions = [];
 
 function addAction() {

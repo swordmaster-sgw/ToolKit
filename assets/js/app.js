@@ -3,6 +3,38 @@
  * 公开展示所有点开即用的工具
  */
 
+// ==================== 后端配置 ====================
+// Workers 部署后替换为实际地址，如 https://toolkit-api.your-name.workers.dev
+const API_BASE = 'https://toolkit-api.18164820426.workers.dev';
+
+// ==================== Session ID（匿名 UV 去重） ====================
+function getSessionId() {
+  if (!sessionStorage.getItem('_sid')) {
+    sessionStorage.setItem('_sid', crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
+  }
+  return sessionStorage.getItem('_sid');
+}
+
+// ==================== 埋点模块 ====================
+const Tracker = {
+  _tracked: new Set(), // 当前 session 已埋点的工具
+
+  track(toolId, toolName) {
+    if (this._tracked.has(toolId)) return;
+    this._tracked.add(toolId);
+
+    fetch(`${API_BASE}/api/track`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        toolId,
+        toolName: toolName || toolId,
+        sessionId: getSessionId(),
+      }),
+    }).catch(() => {}); // 静默失败，不影响用户体验
+  },
+};
+
 // 依赖用户数据、无法公开展示的工具 ID
 const HIDDEN_IDS = new Set([
   'clipboard-manager',   // 剪贴板工作台 — 本地历史数据
@@ -60,8 +92,10 @@ async function loadTools() {
     allTools = data.filter(t =>
       !HIDDEN_IDS.has(t.id) && !HIDDEN_CATEGORIES.has(t.category)
     );
+    window.allTools = allTools; // 暴露给 feedback.js 使用
   } catch {
     allTools = [];
+    window.allTools = [];
   }
   filteredTools = [...allTools];
   renderCategoryTabs();
@@ -124,7 +158,8 @@ function render() {
     ).join('');
 
     return `
-      <a class="tool-card" href="${tool.url}" target="_blank" rel="noopener">
+      <a class="tool-card" href="${tool.url}" target="_blank" rel="noopener"
+         data-tool-id="${tool.id}" onclick="Tracker.track('${tool.id}','${tool.name.replace(/'/g,"\\'")}')">
         <div class="tool-card-header">
           <div class="tool-icon">${tool.icon || '🔧'}</div>
           <div class="tool-info">
