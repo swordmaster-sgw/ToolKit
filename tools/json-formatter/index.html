@@ -3381,10 +3381,31 @@ function parseObjectLiteral(str) {
     }
   };
 
+  // 解析花括号对象 {key=value, ...}
+  const parseBraceObj = () => {
+    A(); // 跳过 {
+    if (T().t === '}') { A(); return {}; }
+    const obj = {};
+    while (T().t !== '}' && T().t !== 'EOF') {
+      if (T().t === ',') { A(); continue; }
+      if (T().t === 'IDENT') {
+        const key = A().v;
+        if (T().t === '=') A();
+        obj[key] = parseVal();
+      } else {
+        // 跳过无法识别的 token
+        A();
+      }
+    }
+    if (T().t === '}') A();
+    return obj;
+  };
+
   // 解析值
   const parseVal = () => {
     const tok = T();
     if (tok.t === '[') return parseList();
+    if (tok.t === '{') return parseBraceObj();
     if (tok.t === '(') return parseCall();
     if (tok.t === 'IDENT') {
       let name = A().v;
@@ -3411,6 +3432,7 @@ function parseObjectLiteral(str) {
     return name;
   }
   if (first.t === '[') return parseList();
+  if (first.t === '{') return parseBraceObj();
   if (first.t === '(') return parseCall();
   throw new Error('格式不被识别');
 }
