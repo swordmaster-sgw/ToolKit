@@ -618,9 +618,9 @@
 
     /* ===== 主编辑区 ===== */
 
-    .editor-area { display: grid; grid-template-columns: 1fr 1fr; flex: 1; min-height: 0; }
+    .editor-area { display: grid; grid-template-columns: 1fr 1fr; flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
 
-    .panel { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--border-subtle); }
+    .panel { display: flex; flex-direction: column; min-height: 0; min-width: 0; border-right: 1px solid var(--border-subtle); overflow: hidden; }
 
     .panel:last-child { border-right: none; }
 
