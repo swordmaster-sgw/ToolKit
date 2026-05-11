@@ -1517,6 +1517,150 @@
 
 
 
+
+    /* ===== API 文档面板 ===== */
+
+    .apidoc-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 900; display: none;
+    }
+    .apidoc-overlay.active { display: block; }
+
+    .apidoc-panel {
+      position: fixed; top: 0; right: 0; height: 100%; width: 820px; max-width: 100vw;
+      background: var(--bg-surface); border-left: 1px solid var(--border-subtle);
+      z-index: 901; display: none; flex-direction: column; overflow: hidden;
+      box-shadow: -8px 0 32px rgba(0,0,0,.35);
+    }
+    .apidoc-panel.active { display: flex; }
+
+    .apidoc-header {
+      display: flex; align-items: center; gap: 10px; padding: 14px 18px;
+      border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;
+      background: var(--bg-overlay);
+    }
+    .apidoc-header h2 { flex: 1; font-size: 15px; font-weight: 600; color: var(--text-primary); margin: 0; }
+    .apidoc-close {
+      width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border-subtle);
+      background: transparent; color: var(--text-muted); cursor: pointer; font-size: 16px;
+      display: flex; align-items: center; justify-content: center; transition: all .15s;
+    }
+    .apidoc-close:hover { background: var(--bg-overlay); color: var(--text-primary); }
+
+    .apidoc-toolbar {
+      display: flex; align-items: center; gap: 8px; padding: 8px 18px;
+      border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;
+      background: var(--bg-primary);
+    }
+    .apidoc-tab {
+      padding: 4px 14px; border-radius: 6px; border: 1px solid var(--border-subtle);
+      background: transparent; color: var(--text-muted); cursor: pointer; font-size: 12px;
+      font-weight: 500; transition: all .15s;
+    }
+    .apidoc-tab.active {
+      background: var(--accent-blue); color: #fff; border-color: var(--accent-blue);
+    }
+    .apidoc-tab:hover:not(.active) { color: var(--text-primary); border-color: var(--border-strong); }
+    .apidoc-copy-btn {
+      margin-left: auto; padding: 4px 14px; border-radius: 6px;
+      border: 1px solid var(--border-subtle); background: transparent;
+      color: var(--accent-green); cursor: pointer; font-size: 12px; font-weight: 500;
+      transition: all .15s;
+    }
+    .apidoc-copy-btn:hover { background: rgba(158,206,106,.1); border-color: var(--accent-green); }
+
+    .apidoc-body {
+      flex: 1; overflow-y: auto; padding: 24px 28px;
+    }
+
+    /* HTML 预览样式 */
+    .apidoc-preview { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .apidoc-preview .doc-title {
+      font-size: 22px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px;
+    }
+    .apidoc-preview .doc-subtitle {
+      font-size: 13px; color: var(--text-muted); margin: 0 0 20px;
+    }
+    .apidoc-preview .doc-meta {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px;
+      background: var(--bg-overlay); border-radius: 10px; padding: 16px 18px;
+    }
+    .apidoc-preview .doc-meta-item { display: flex; flex-direction: column; gap: 3px; }
+    .apidoc-preview .doc-meta-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .6px; }
+    .apidoc-preview .doc-meta-value { font-size: 13px; color: var(--text-primary); font-weight: 500; word-break: break-all; }
+    .apidoc-preview .doc-meta-value code { font-family: 'Cascadia Code','Fira Code',Consolas,monospace; background: rgba(122,162,247,.12); padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+    .apidoc-preview .method-badge {
+      display: inline-block; padding: 2px 10px; border-radius: 5px; font-size: 12px;
+      font-weight: 700; letter-spacing: .5px;
+    }
+    .apidoc-preview .method-post { background: rgba(115,218,202,.2); color: #73daca; }
+    .apidoc-preview .method-get { background: rgba(158,206,106,.2); color: #9ece6a; }
+    .apidoc-preview .method-put { background: rgba(255,192,0,.2); color: #ffc000; }
+    .apidoc-preview .method-delete { background: rgba(247,118,142,.2); color: #f7768e; }
+    .apidoc-preview .doc-section { margin-bottom: 26px; }
+    .apidoc-preview .doc-section-title {
+      font-size: 14px; font-weight: 700; color: var(--text-primary);
+      margin: 0 0 10px; padding-bottom: 7px;
+      border-bottom: 2px solid var(--accent-blue);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .apidoc-preview .doc-section-title .section-icon { opacity: .7; }
+    .apidoc-preview .param-table {
+      width: 100%; border-collapse: collapse; font-size: 12.5px;
+    }
+    .apidoc-preview .param-table th {
+      background: var(--bg-overlay); color: var(--text-muted); font-weight: 600;
+      padding: 7px 10px; text-align: left; font-size: 11px; text-transform: uppercase;
+      letter-spacing: .5px; border-bottom: 1px solid var(--border-subtle);
+    }
+    .apidoc-preview .param-table td {
+      padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,.04);
+      color: var(--text-secondary); vertical-align: top; line-height: 1.5;
+    }
+    .apidoc-preview .param-table tr:last-child td { border-bottom: none; }
+    .apidoc-preview .param-table tr:hover td { background: var(--bg-overlay); }
+    .apidoc-preview .param-name { font-family: 'Cascadia Code','Fira Code',Consolas,monospace; color: var(--accent-blue); font-size: 12px; white-space: nowrap; }
+    .apidoc-preview .param-indent { color: var(--text-muted); margin-right: 4px; user-select: none; }
+    .apidoc-preview .type-badge {
+      display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 11px;
+      font-family: monospace; font-weight: 600; white-space: nowrap;
+    }
+    .apidoc-preview .type-string { background: rgba(158,206,106,.15); color: #9ece6a; }
+    .apidoc-preview .type-number { background: rgba(255,192,0,.15); color: #ffc000; }
+    .apidoc-preview .type-boolean { background: rgba(187,154,247,.15); color: #bb9af7; }
+    .apidoc-preview .type-object { background: rgba(122,162,247,.15); color: #7aa2f7; }
+    .apidoc-preview .type-array { background: rgba(247,118,142,.15); color: #f7768e; }
+    .apidoc-preview .required-badge { color: #f7768e; font-size: 11px; font-weight: 700; margin-left: 4px; }
+    .apidoc-preview .param-desc { color: var(--text-muted); font-size: 12px; }
+    .apidoc-preview .param-example { font-family: monospace; color: #73daca; font-size: 11px; }
+    .apidoc-preview .code-block {
+      background: var(--bg-overlay); border-radius: 8px; padding: 14px 16px;
+      font-family: 'Cascadia Code','Fira Code',Consolas,monospace; font-size: 12px;
+      color: var(--text-secondary); overflow-x: auto; line-height: 1.7;
+      white-space: pre; border: 1px solid var(--border-subtle); margin: 0;
+    }
+    .apidoc-preview .error-code-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .apidoc-preview .error-code-table th {
+      background: var(--bg-overlay); color: var(--text-muted); font-size: 11px;
+      padding: 7px 10px; text-align: left; text-transform: uppercase; letter-spacing: .5px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .apidoc-preview .error-code-table td {
+      padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,.04);
+      color: var(--text-secondary); font-size: 12px; vertical-align: top;
+    }
+    .apidoc-preview .doc-desc {
+      background: var(--bg-overlay); border-left: 3px solid var(--accent-blue);
+      padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: 13px;
+      color: var(--text-secondary); line-height: 1.7; margin-bottom: 20px;
+    }
+
+    /* Markdown 输出 */
+    .apidoc-markdown {
+      font-family: 'Cascadia Code','Fira Code',Consolas,monospace; font-size: 12.5px;
+      color: var(--text-secondary); line-height: 1.8; white-space: pre-wrap;
+      word-break: break-word;
+    }
+
     /* ===== 代码生成面板 ===== */
 
     .codegen-overlay {
@@ -2052,6 +2196,14 @@
     <svg viewBox="0 0 14 14" fill="none"><path d="M4 2h4l2 2v8l-2 2H4l-2-2V4l2-2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M5 5h4M5 7h4M5 9h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
 
     Python/Java → JSON
+
+  </button>
+
+  <button class="btn btn-secondary" onclick="openApiDoc()" id="btn-api-doc" title="将用友YonBIP API元数据JSON转换为API文档（支持HTML预览和Markdown）">
+
+    <svg viewBox="0 0 14 14" fill="none"><rect x="2" y="1.5" width="10" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/><line x1="4.5" y1="4.5" x2="9.5" y2="4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="4.5" y1="6.5" x2="9.5" y2="6.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="4.5" y1="8.5" x2="7.5" y2="8.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="10.5" cy="9.5" r="2" fill="var(--accent-orange)" stroke="none"/></svg>
+
+    API 文档
 
   </button>
 
@@ -8325,7 +8477,320 @@ setOutputEmpty();
 
 /* ===================================================================
 
-   可拖动分隔条（Panel Resizer）
+   API 文档生成器（用友 YonBIP 格式）
+
+=================================================================== */
+
+(function() {
+
+  // ─── 全局状态 ───────────────────────────────────────────────────────
+  let currentDocData = null;   // 解析后的文档数据
+  let currentTab = 'html';     // 当前标签
+
+  // ─── 入口：打开面板 ──────────────────────────────────────────────────
+  window.openApiDoc = function() {
+    const raw = document.getElementById('input').value.trim();
+    if (!raw) { showToast('请先在输入框中粘贴 JSON'); return; }
+    let json;
+    try { json = JSON.parse(raw); } catch(e) { showToast('JSON 解析失败：' + e.message); return; }
+
+    // 判断是否是用友API格式（宽松判断）
+    const apiData = extractApiData(json);
+    if (!apiData) { showToast('未识别为用友 YonBIP API 元数据格式'); return; }
+
+    currentDocData = apiData;
+    renderApiDoc();
+    document.getElementById('apidoc-title').textContent = apiData.name || 'API 文档';
+    document.getElementById('apidoc-overlay').classList.add('active');
+    document.getElementById('apidoc-panel').classList.add('active');
+    currentTab = 'html';
+    document.getElementById('apidoc-tab-html').classList.add('active');
+    document.getElementById('apidoc-tab-md').classList.remove('active');
+    document.getElementById('apidoc-html-content').style.display = '';
+    document.getElementById('apidoc-md-content').style.display = 'none';
+    document.getElementById('apidoc-copy-btn').textContent = '复制内容';
+  };
+
+  window.closeApiDoc = function() {
+    document.getElementById('apidoc-overlay').classList.remove('active');
+    document.getElementById('apidoc-panel').classList.remove('active');
+  };
+
+  window.switchApiDocTab = function(tab) {
+    currentTab = tab;
+    if (tab === 'html') {
+      document.getElementById('apidoc-tab-html').classList.add('active');
+      document.getElementById('apidoc-tab-md').classList.remove('active');
+      document.getElementById('apidoc-html-content').style.display = '';
+      document.getElementById('apidoc-md-content').style.display = 'none';
+      document.getElementById('apidoc-copy-btn').textContent = '复制内容';
+    } else {
+      document.getElementById('apidoc-tab-html').classList.remove('active');
+      document.getElementById('apidoc-tab-md').classList.add('active');
+      document.getElementById('apidoc-html-content').style.display = 'none';
+      document.getElementById('apidoc-md-content').style.display = '';
+      document.getElementById('apidoc-copy-btn').textContent = '复制 Markdown';
+    }
+  };
+
+  window.copyApiDoc = function() {
+    let text = '';
+    if (currentTab === 'md') {
+      text = document.getElementById('apidoc-md-content').textContent;
+    } else {
+      // 从 HTML 提取纯文本（带格式）
+      text = generateMarkdown(currentDocData);
+    }
+    navigator.clipboard.writeText(text).then(() => showToast('已复制！')).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      showToast('已复制！');
+    });
+  };
+
+  // ─── 提取 API 数据 ────────────────────────────────────────────────────
+  function extractApiData(json) {
+    // 支持直接是 data 层或带 success/data 包装的两种情况
+    let d = json;
+    if (json && json.success !== undefined && json.data) d = json.data;
+    if (!d || !d.name || !d.httpRequestType) return null;
+    return d;
+  }
+
+  // ─── 渲染 ─────────────────────────────────────────────────────────────
+  function renderApiDoc() {
+    const d = currentDocData;
+    document.getElementById('apidoc-html-content').innerHTML = generateHTML(d);
+    document.getElementById('apidoc-md-content').textContent = generateMarkdown(d);
+  }
+
+  // ─── 参数表格行（递归）────────────────────────────────────────────────
+  function buildParamRows(params, depth, rows) {
+    if (!params) return;
+    params.forEach(p => {
+      rows.push({ ...p, _depth: depth });
+      if (p.children && p.children.length > 0) {
+        buildParamRows(p.children, depth + 1, rows);
+      }
+    });
+  }
+
+  function typeClass(t) {
+    if (!t) return 'type-string';
+    t = t.toLowerCase();
+    if (t === 'object') return 'type-object';
+    if (t === 'number' || t === 'integer') return 'type-number';
+    if (t === 'boolean') return 'type-boolean';
+    if (t === 'array') return 'type-array';
+    return 'type-string';
+  }
+
+  function typeLabel(p) {
+    if (p.array && p.paramType === 'object') return 'object[]';
+    if (p.array) return (p.paramType || 'string') + '[]';
+    return p.paramType || 'string';
+  }
+
+  function renderParamTable(params) {
+    if (!params || params.length === 0) return '<p style="color:var(--text-muted);font-size:13px">暂无参数</p>';
+    const rows = [];
+    buildParamRows(params, 0, rows);
+    const thead = `<thead><tr>
+      <th style="min-width:140px">参数名</th>
+      <th style="min-width:80px">类型</th>
+      <th style="min-width:60px">必填</th>
+      <th>说明</th>
+      <th style="min-width:100px">示例值</th>
+    </tr></thead>`;
+    const tbody = rows.map(r => {
+      const indent = r._depth > 0 ? `<span class="param-indent">${'&nbsp;&nbsp;&nbsp;'.repeat(r._depth)}└</span>` : '';
+      const isRequired = r.required === true;
+      const tl = typeLabel(r);
+      const example = r.example ? `<span class="param-example">${esc(r.example)}</span>` : '';
+      return `<tr>
+        <td class="param-name">${indent}${esc(r.name)}${isRequired ? '<span class="required-badge">*</span>' : ''}</td>
+        <td><span class="type-badge ${typeClass(r.paramType)}">${esc(tl)}</span></td>
+        <td style="color:${isRequired ? '#f7768e' : 'var(--text-muted)'};font-size:12px">${isRequired ? '是' : '否'}</td>
+        <td class="param-desc">${esc(r.paramDesc || r.name)}</td>
+        <td>${example}</td>
+      </tr>`;
+    }).join('');
+    return `<table class="param-table">${thead}<tbody>${tbody}</tbody></table>`;
+  }
+
+  function esc(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function methodBadge(m) {
+    const cls = 'method-' + (m || 'post').toLowerCase();
+    return `<span class="method-badge ${cls}">${esc(m || 'POST')}</span>`;
+  }
+
+  // ─── 生成 HTML ────────────────────────────────────────────────────────
+  function generateHTML(d) {
+    const method = d.httpRequestType || 'POST';
+    const url = d.proxyUrl || d.completeProxyUrl || d.address || '';
+    const connUrl = d.connectUrl || '';
+    const desc = d.description || '';
+    const category = [d.productClassifyName, d.productName, d.apiClassifyName].filter(Boolean).join(' / ');
+    const reqDemos = d.apiDemoReturnDTOS || d.apiDemoReturnDTOList || [];
+    const successDemo = reqDemos.find(r => r.rightOrNot || r.right);
+    const errorDemo = reqDemos.find(r => !(r.rightOrNot || r.right));
+    const reqExample = d.requestParamsDemo || '';
+    const errorCodes = d.displayCodeApiConfigDTOS || d.errorCodeDTOS || [];
+
+    let html = '';
+
+    // 标题
+    html += `<h1 class="doc-title">${esc(d.name)}</h1>`;
+    html += `<p class="doc-subtitle">${esc(category)}</p>`;
+    if (desc) html += `<div class="doc-desc">${esc(desc)}</div>`;
+
+    // 基本信息
+    html += `<div class="doc-meta">
+      <div class="doc-meta-item"><span class="doc-meta-label">请求方法</span><span class="doc-meta-value">${methodBadge(method)}</span></div>
+      <div class="doc-meta-item"><span class="doc-meta-label">请求路径</span><span class="doc-meta-value"><code>${esc(url)}</code></span></div>
+      <div class="doc-meta-item"><span class="doc-meta-label">内部地址</span><span class="doc-meta-value"><code>${esc(connUrl)}</code></span></div>
+      <div class="doc-meta-item"><span class="doc-meta-label">内容类型</span><span class="doc-meta-value"><code>${esc(d.contentType || 'application/json')}</code></span></div>
+      <div class="doc-meta-item"><span class="doc-meta-label">是否鉴权</span><span class="doc-meta-value">${d.auth ? '<span style="color:#f7768e">✓ 需要</span>' : '<span style="color:#9ece6a">✗ 不需要</span>'}</span></div>
+      <div class="doc-meta-item"><span class="doc-meta-label">API ID</span><span class="doc-meta-value"><code>${esc(d.id || d.apiCode || '')}</code></span></div>
+    </div>`;
+
+    // 请求参数
+    html += `<div class="doc-section"><div class="doc-section-title"><span class="section-icon">📥</span> 请求参数</div>`;
+    html += renderParamTable(d.paramDTOS || []);
+    html += `</div>`;
+
+    // 响应参数
+    html += `<div class="doc-section"><div class="doc-section-title"><span class="section-icon">📤</span> 响应参数</div>`;
+    html += renderParamTable(d.paramReturnDTOS || []);
+    html += `</div>`;
+
+    // 请求示例
+    if (reqExample) {
+      html += `<div class="doc-section"><div class="doc-section-title"><span class="section-icon">📝</span> 请求示例</div>
+        <pre class="code-block">${esc(reqExample)}</pre></div>`;
+    }
+
+    // 成功响应示例
+    if (successDemo && successDemo.content) {
+      let content = successDemo.content;
+      try { content = JSON.stringify(JSON.parse(content), null, 2); } catch(e) {}
+      html += `<div class="doc-section"><div class="doc-section-title"><span class="section-icon">✅</span> 成功响应示例</div>
+        <pre class="code-block">${esc(content)}</pre></div>`;
+    }
+
+    // 失败响应示例
+    if (errorDemo && errorDemo.content) {
+      let content = errorDemo.content;
+      try { content = JSON.stringify(JSON.parse(content), null, 2); } catch(e) {}
+      html += `<div class="doc-section"><div class="doc-section-title"><span class="section-icon">❌</span> 失败响应示例</div>
+        <pre class="code-block">${esc(content)}</pre></div>`;
+    }
+
+    // 错误码
+    if (errorCodes.length > 0) {
+      html += `<div class="doc-section"><div class="doc-section-title"><span class="section-icon">⚠️</span> 错误码说明</div>
+        <table class="error-code-table"><thead><tr><th>错误码</th><th>服务</th><th>说明</th></tr></thead><tbody>`;
+      errorCodes.forEach(ec => {
+        html += `<tr><td><code style="font-family:monospace;color:var(--accent-orange)">${esc(ec.code)}</code></td><td style="color:var(--text-muted)">${esc(ec.microServiceCode || '')}</td><td>${esc(ec.message || ec.description || '')}</td></tr>`;
+      });
+      html += `</tbody></table></div>`;
+    }
+
+    return html;
+  }
+
+  // ─── 生成 Markdown ────────────────────────────────────────────────────
+  function generateMarkdown(d) {
+    const method = d.httpRequestType || 'POST';
+    const url = d.proxyUrl || d.completeProxyUrl || d.address || '';
+    const connUrl = d.connectUrl || '';
+    const desc = d.description || '';
+    const category = [d.productClassifyName, d.productName, d.apiClassifyName].filter(Boolean).join(' > ');
+    const reqDemos = d.apiDemoReturnDTOS || d.apiDemoReturnDTOList || [];
+    const successDemo = reqDemos.find(r => r.rightOrNot || r.right);
+    const errorDemo = reqDemos.find(r => !(r.rightOrNot || r.right));
+    const reqExample = d.requestParamsDemo || '';
+    const errorCodes = d.displayCodeApiConfigDTOS || d.errorCodeDTOS || [];
+
+    let md = '';
+    md += `# ${d.name}\n\n`;
+    if (category) md += `> **分类**：${category}\n\n`;
+    if (desc) md += `${desc}\n\n`;
+
+    md += `## 基本信息\n\n`;
+    md += `| 属性 | 值 |\n|------|----|\n`;
+    md += `| 请求方法 | \`${method}\` |\n`;
+    md += `| 请求路径 | \`${url}\` |\n`;
+    if (connUrl) md += `| 内部地址 | \`${connUrl}\` |\n`;
+    md += `| 内容类型 | \`${d.contentType || 'application/json'}\` |\n`;
+    md += `| 是否鉴权 | ${d.auth ? '是' : '否'} |\n`;
+    md += `| API ID | \`${d.id || d.apiCode || ''}\` |\n`;
+    md += '\n';
+
+    // 请求参数
+    md += `## 请求参数\n\n`;
+    md += buildMdParamTable(d.paramDTOS || []);
+
+    // 响应参数
+    md += `## 响应参数\n\n`;
+    md += buildMdParamTable(d.paramReturnDTOS || []);
+
+    // 请求示例
+    if (reqExample) {
+      md += `## 请求示例\n\n\`\`\`\n${reqExample}\n\`\`\`\n\n`;
+    }
+
+    // 成功响应
+    if (successDemo && successDemo.content) {
+      let content = successDemo.content;
+      try { content = JSON.stringify(JSON.parse(content), null, 2); } catch(e) {}
+      md += `## 成功响应示例\n\n\`\`\`json\n${content}\n\`\`\`\n\n`;
+    }
+
+    // 失败响应
+    if (errorDemo && errorDemo.content) {
+      let content = errorDemo.content;
+      try { content = JSON.stringify(JSON.parse(content), null, 2); } catch(e) {}
+      md += `## 失败响应示例\n\n\`\`\`json\n${content}\n\`\`\`\n\n`;
+    }
+
+    // 错误码
+    if (errorCodes.length > 0) {
+      md += `## 错误码说明\n\n`;
+      md += `| 错误码 | 服务 | 说明 |\n|--------|------|------|\n`;
+      errorCodes.forEach(ec => {
+        md += `| \`${ec.code}\` | ${ec.microServiceCode || ''} | ${ec.message || ec.description || ''} |\n`;
+      });
+      md += '\n';
+    }
+
+    return md;
+  }
+
+  function buildMdParamTable(params) {
+    if (!params || params.length === 0) return '暂无参数\n\n';
+    let rows = [];
+    buildParamRows(params, 0, rows);
+    let t = '| 参数名 | 类型 | 必填 | 说明 | 示例值 |\n|--------|------|------|------|--------|\n';
+    rows.forEach(r => {
+      const indent = '　'.repeat(r._depth);
+      const tl = typeLabel(r);
+      const isRequired = r.required === true ? '是' : '否';
+      const example = (r.example || '').toString().replace(/\n/g, ' ');
+      const desc = (r.paramDesc || r.name || '').replace(/\|/g, '\\|');
+      t += `| ${indent}${r.name} | \`${tl}\` | ${isRequired} | ${desc} | ${example} |\n`;
+    });
+    return t + '\n';
+  }
+
+})();
+
+
 
 =================================================================== */
 
@@ -8512,6 +8977,30 @@ setOutputEmpty();
 
     </div>
 
+  </div>
+
+</div>
+
+<!-- API 文档面板 -->
+<div class="apidoc-overlay" id="apidoc-overlay" onclick="closeApiDoc()"></div>
+
+<div class="apidoc-panel" id="apidoc-panel">
+
+  <div class="apidoc-header">
+    <svg width="18" height="18" viewBox="0 0 14 14" fill="none"><rect x="2" y="1.5" width="10" height="11" rx="1.5" stroke="var(--accent-orange)" stroke-width="1.3"/><line x1="4.5" y1="4.5" x2="9.5" y2="4.5" stroke="var(--accent-orange)" stroke-width="1.2" stroke-linecap="round"/><line x1="4.5" y1="6.5" x2="9.5" y2="6.5" stroke="var(--accent-orange)" stroke-width="1.2" stroke-linecap="round"/><line x1="4.5" y1="8.5" x2="7.5" y2="8.5" stroke="var(--accent-orange)" stroke-width="1.2" stroke-linecap="round"/></svg>
+    <h2 id="apidoc-title">API 文档</h2>
+    <button class="apidoc-close" onclick="closeApiDoc()">&times;</button>
+  </div>
+
+  <div class="apidoc-toolbar">
+    <button class="apidoc-tab active" id="apidoc-tab-html" onclick="switchApiDocTab('html')">预览</button>
+    <button class="apidoc-tab" id="apidoc-tab-md" onclick="switchApiDocTab('md')">Markdown</button>
+    <button class="apidoc-copy-btn" id="apidoc-copy-btn" onclick="copyApiDoc()">复制内容</button>
+  </div>
+
+  <div class="apidoc-body" id="apidoc-body">
+    <div class="apidoc-preview" id="apidoc-html-content"></div>
+    <div class="apidoc-markdown" id="apidoc-md-content" style="display:none"></div>
   </div>
 
 </div>
