@@ -618,11 +618,50 @@
 
     /* ===== 主编辑区 ===== */
 
-    .editor-area { display: grid; grid-template-columns: 1fr 1fr; flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
+    .editor-area { display: grid; grid-template-columns: 1fr 5px 1fr; flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
 
-    .panel { display: flex; flex-direction: column; min-height: 0; min-width: 0; border-right: 1px solid var(--border-subtle); overflow: hidden; }
+    .panel { display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden; }
 
     .panel:last-child { border-right: none; }
+
+    /* 分隔条 */
+    .resizer {
+      width: 5px;
+      background: var(--border-subtle);
+      cursor: col-resize;
+      flex-shrink: 0;
+      position: relative;
+      transition: background 0.15s;
+      z-index: 10;
+    }
+    .resizer:hover, .resizer.active {
+      background: var(--accent-blue);
+    }
+    .resizer::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 2px;
+      height: 32px;
+      border-radius: 2px;
+      background: rgba(122,162,247,0.5);
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .resizer:hover::after, .resizer.active::after {
+      opacity: 1;
+    }
+
+    /* 移动端垂直布局的分隔条 */
+    @media (max-width: 768px) {
+      .resizer {
+        width: auto;
+        height: 5px;
+        cursor: row-resize;
+      }
+    }
 
 
 
@@ -1922,7 +1961,7 @@
 
     @media (max-width: 768px) {
 
-      .editor-area { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+      .editor-area { grid-template-columns: 1fr !important; grid-template-rows: 1fr 5px 1fr; }
 
       textarea { border-right: none; border-bottom: 1px solid var(--border-subtle); }
 
@@ -2154,7 +2193,8 @@
 
   </div>
 
-
+  <!-- 可拖动分隔条 -->
+  <div class="resizer" id="panel-resizer"></div>
 
   <div class="panel">
 
@@ -8282,6 +8322,127 @@ wrapper.addEventListener('touchend', () => { isDragging=false; lastTouchDist=nul
 =================================================================== */
 
 setOutputEmpty();
+
+/* ===================================================================
+
+   可拖动分隔条（Panel Resizer）
+
+=================================================================== */
+
+(function() {
+  const resizer = document.getElementById('panel-resizer');
+  const editorArea = document.getElementById('editor-area');
+  if (!resizer || !editorArea) return;
+
+  let isResizing = false;
+  let startPos = 0;
+  let startCols = null;
+
+  function isMobile() {
+    return window.innerWidth <= 768;
+  }
+
+  function getContainerSize() {
+    return isMobile() ? editorArea.offsetHeight : editorArea.offsetWidth;
+  }
+
+  function getCurrentSizes() {
+    const style = getComputedStyle(editorArea);
+    const cols = isMobile()
+      ? style.gridTemplateRows.split(' ')
+      : style.gridTemplateColumns.split(' ');
+    return cols;
+  }
+
+  function startResize(e) {
+    e.preventDefault();
+    isResizing = true;
+    resizer.classList.add('active');
+    startPos = isMobile()
+      ? (e.touches ? e.touches[0].clientY : e.clientY)
+      : (e.touches ? e.touches[0].clientX : e.clientX);
+
+    // 记录当前两个 panel 的像素大小
+    const panels = editorArea.querySelectorAll('.panel');
+    if (panels.length >= 2) {
+      startCols = isMobile()
+        ? [panels[0].offsetHeight, panels[1].offsetHeight]
+        : [panels[0].offsetWidth, panels[1].offsetWidth];
+    }
+
+    document.body.style.cursor = isMobile() ? 'row-resize' : 'col-resize';
+    document.body.style.userSelect = 'none';
+  }
+
+  function doResize(e) {
+    if (!isResizing || !startCols) return;
+    const clientPos = isMobile()
+      ? (e.touches ? e.touches[0].clientY : e.clientY)
+      : (e.touches ? e.touches[0].clientX : e.clientX);
+    const delta = clientPos - startPos;
+
+    const RISER_SIZE = 5;
+    const totalSize = getContainerSize() - RISER_SIZE;
+    const minSize = 80; // 最小面板宽度 px
+
+    let newA = startCols[0] + delta;
+    let newB = startCols[1] - delta;
+
+    // 限制最小值
+    if (newA < minSize) { newA = minSize; newB = totalSize - minSize; }
+    if (newB < minSize) { newB = totalSize - minSize; newA = totalSize - minSize; }
+
+    if (isMobile()) {
+      editorArea.style.gridTemplateRows = `${newA}px 5px ${newB}px`;
+      editorArea.style.gridTemplateColumns = '';
+    } else {
+      editorArea.style.gridTemplateColumns = `${newA}px 5px ${newB}px`;
+      editorArea.style.gridTemplateRows = '';
+    }
+  }
+
+  function stopResize() {
+    if (!isResizing) return;
+    isResizing = false;
+    startCols = null;
+    resizer.classList.remove('active');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }
+
+  // 双击重置为 1:1
+  resizer.addEventListener('dblclick', function() {
+    if (isMobile()) {
+      editorArea.style.gridTemplateRows = '1fr 5px 1fr';
+      editorArea.style.gridTemplateColumns = '';
+    } else {
+      editorArea.style.gridTemplateColumns = '1fr 5px 1fr';
+      editorArea.style.gridTemplateRows = '';
+    }
+  });
+
+  resizer.addEventListener('mousedown', startResize);
+  resizer.addEventListener('touchstart', startResize, { passive: false });
+  document.addEventListener('mousemove', doResize);
+  document.addEventListener('touchmove', doResize, { passive: false });
+  document.addEventListener('mouseup', stopResize);
+  document.addEventListener('touchend', stopResize);
+
+  // 窗口大小变化时，重置为 1:1，避免比例错乱
+  let resizeTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+      if (isMobile()) {
+        editorArea.style.gridTemplateRows = '1fr 5px 1fr';
+        editorArea.style.gridTemplateColumns = '';
+      } else {
+        editorArea.style.gridTemplateColumns = '1fr 5px 1fr';
+        editorArea.style.gridTemplateRows = '';
+      }
+    }, 200);
+  });
+})();
 
 </script>
 
